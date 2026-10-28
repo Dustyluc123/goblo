@@ -28,3 +28,6 @@ client/export/
 
 # Pacotes originais da Kenney (só o que o jogo usa vai para client/assets/kenney)
 kenney-original/
+
+# Pacotes originais baixados da Kenney (copie só o necessário para client/assets/kenney)
+/kenney_*/
