@@ -9,6 +9,7 @@ const ACTIONS := {
 	"move_left": [KEY_A, KEY_LEFT],
 	"move_right": [KEY_D, KEY_RIGHT],
 	"run": [KEY_SHIFT],
+	"jump": [KEY_SPACE],
 	"camera_left": [KEY_Q],
 	"camera_right": [KEY_E],
 }

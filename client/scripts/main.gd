@@ -84,7 +84,7 @@ func _on_world_downloaded(result: int, code: int, _headers: PackedStringArray, b
 
 	var spawn := world.find_cell(WorldData.lat_lon_to_vec(spawn_lat, spawn_lon))
 	spawn = world.nearest_land(spawn)
-	_player.spawn(world, spawn, world.radius + land_height)
+	_player.spawn(world, spawn)
 	_camera.snap_behind_target()
 	_hud.hide_status()
 	_run_automation()
@@ -123,6 +123,15 @@ func _run_automation() -> void:
 	var start_cell := _player.cell_id
 	var walk := float(_args.get("walk", 3.0 if _args.has("smoke-test") else 0.0))
 	await get_tree().create_timer(0.5).timeout
+	if _args.has("jump"):
+		_player.request_jump()
+		var peak := 0.0
+		var base := _player.global_position.length()
+		for i in 60:
+			await get_tree().physics_frame
+			peak = maxf(peak, _player.global_position.length() - base)
+		print("Goblo: pulo subiu %.2f (pulos: %d)" % [peak, _player.jumps])
+		_player.request_jump()  # segundo pedido no ar não pode virar pulo duplo
 	if walk > 0.0:
 		if _args.has("run"):
 			Input.action_press("run")

@@ -16,6 +16,7 @@ var centers := PackedVector3Array()
 var lats := PackedFloat32Array()
 var lons := PackedFloat32Array()
 var land := PackedByteArray()  # 1 = terra, 0 = oceano
+var heights := PackedFloat32Array()  # altura do topo da célula acima do nível do mar
 var country_codes := PackedStringArray()
 var neighbors: Array[PackedInt32Array] = []
 var vertices: Array[PackedVector3Array] = []
@@ -37,6 +38,7 @@ static func from_json(text: String) -> WorldData:
 	w.lons.resize(n)
 	w.land.resize(n)
 	w.country_codes.resize(n)
+	w.heights.resize(n)
 	for i in n:
 		var c: Dictionary = cells[i]
 		if int(c["id"]) != i:
@@ -46,6 +48,7 @@ static func from_json(text: String) -> WorldData:
 		w.lats[i] = float(c["lat"])
 		w.lons[i] = float(c["lon"])
 		w.land[i] = 1 if c["terrain"] == "land" else 0
+		w.heights[i] = 0.8 if w.land[i] == 1 else 0.0
 		w.country_codes[i] = str(c["country"])
 		var nb := PackedInt32Array()
 		for x: Variant in c["neighbors"]:
@@ -68,6 +71,11 @@ func cell_count() -> int:
 
 func is_land(id: int) -> bool:
 	return land[id] == 1
+
+
+## Distância do centro do planeta até o topo da célula.
+func surface_radius(id: int) -> float:
+	return radius + heights[id]
 
 
 ## Célula que contém o ponto (a de centro mais próximo da direção do ponto).

@@ -1,14 +1,15 @@
 class_name Player
 extends CharacterBody3D
-## Personagem que anda por cima da esfera.
+## Personagem que anda e pula por cima da esfera.
 ##
 ## A gravidade aponta para o centro do planeta (a origem). A cada quadro, `up_direction`
 ## vira `position.normalized()` e o corpo é girado para ficar em pé na superfície.
-## WASD move no plano tangente, relativo à câmera. O personagem não entra no oceano.
+## WASD move no plano tangente, relativo à câmera; Espaço pula para longe do centro.
+## O personagem não entra no oceano e sobe sozinho degraus pequenos.
 ##
 ## O visual é um personagem do Mini Characters (Kenney), escolhido por `character` e
-## escalado para `model_height`. As animações idle/walk/sprint são misturadas por um
-## AnimationTree (BlendSpace1D) conforme a velocidade.
+## escalado para `model_height`. Um AnimationTree mistura idle/walk/sprint pela velocidade
+## e jump/fall no ar.
 
 signal cell_changed(cell_id: int)
 
@@ -21,14 +22,19 @@ const CHARACTERS_DIR := "res://assets/kenney/mini-characters/"
 	"character-male-a", "character-male-b", "character-male-c",
 	"character-male-d", "character-male-e", "character-male-f"
 ) var character := "character-male-a"
-## Altura do personagem em unidades do jogo (o planeta tem raio 100).
+## Altura do personagem em unidades do jogo.
 @export var model_height := 1.0
 
-@export var walk_speed := 4.5
-@export var run_multiplier := 1.8
+@export var walk_speed := GameConfig.WALK_SPEED
+@export var run_multiplier := GameConfig.RUN_MULTIPLIER
 @export var acceleration := 12.0
+@export var air_acceleration := 5.0
 @export var turn_speed := 10.0
-@export var gravity := 25.0
+@export var gravity := GameConfig.GRAVITY
+@export var jump_height := GameConfig.JUMP_HEIGHT
+@export var step_height := GameConfig.STEP_HEIGHT
+@export var coyote_time := GameConfig.COYOTE_TIME
+@export var jump_buffer := GameConfig.JUMP_BUFFER
 ## Distância à frente usada para "olhar" a célula seguinte antes de pisar nela.
 @export var ocean_probe := 0.6
 
@@ -36,10 +42,21 @@ var world: WorldData
 var camera: Camera3D
 var cell_id := -1
 var facing := Vector3.FORWARD
-## Mistura atual da animação: 0 = idle, 1 = walk, 2 = sprint.
+## Mistura atual da animação no chão: 0 = idle, 1 = walk, 2 = sprint.
 var anim_blend := 0.0
+## 0 = no chão, 1 = no ar (mistura das animações de pulo/queda).
+var air_blend := 0.0
+## Quantos pulos foram dados (usado pelos testes automáticos).
+var jumps := 0
+## Quando true, a direção vem de `auto_wish` em vez do teclado (testes automáticos).
+var autopilot := false
+var auto_wish := Vector3.ZERO
+var auto_run := false
 
 var _anim_tree: AnimationTree
+var _since_floor := 0.0
+var _since_jump_pressed := 1.0
+var _jumping := false
 
 @onready var _visual: Node3D = $Visual
 
@@ -90,34 +107,58 @@ static func _model_height(model: Node3D) -> float:
 	return top
 
 
+## Árvore de animação:
+##   locomotion (BlendSpace1D idle/walk/sprint) ─┐
+##   jump (com TimeSeek para recomeçar) ─┐        ├─ air (Blend2) → saída
+##   fall ───────────────────────── jumpfall ─────┘
 func _setup_animation(model: Node3D) -> void:
 	var players := model.find_children("*", "AnimationPlayer", true, false)
 	if players.is_empty():
 		return
 	var player := players[0] as AnimationPlayer
-	for anim_name in ["idle", "walk", "sprint"]:
+	for anim_name in ["idle", "walk", "sprint", "fall"]:
 		if player.has_animation(anim_name):
 			player.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
-	var blend := AnimationNodeBlendSpace1D.new()
-	blend.min_space = 0.0
-	blend.max_space = 2.0
+
+	var locomotion := AnimationNodeBlendSpace1D.new()
+	locomotion.min_space = 0.0
+	locomotion.max_space = 2.0
 	for point: Array in [["idle", 0.0], ["walk", 1.0], ["sprint", 2.0]]:
-		var node := AnimationNodeAnimation.new()
-		node.animation = point[0]
-		blend.add_blend_point(node, point[1])
+		locomotion.add_blend_point(_anim_node(point[0]), point[1])
+
+	var tree := AnimationNodeBlendTree.new()
+	tree.add_node("locomotion", locomotion, Vector2(0, 0))
+	tree.add_node("jump", _anim_node("jump"), Vector2(0, 200))
+	tree.add_node("jump_seek", AnimationNodeTimeSeek.new(), Vector2(200, 200))
+	tree.add_node("fall", _anim_node("fall"), Vector2(0, 400))
+	tree.add_node("jumpfall", AnimationNodeBlend2.new(), Vector2(400, 300))
+	tree.add_node("air", AnimationNodeBlend2.new(), Vector2(600, 100))
+	tree.connect_node("jump_seek", 0, "jump")
+	tree.connect_node("jumpfall", 0, "jump_seek")
+	tree.connect_node("jumpfall", 1, "fall")
+	tree.connect_node("air", 0, "locomotion")
+	tree.connect_node("air", 1, "jumpfall")
+	tree.connect_node("output", 0, "air")
+
 	_anim_tree = AnimationTree.new()
-	_anim_tree.tree_root = blend
+	_anim_tree.tree_root = tree
 	# Irmão do AnimationPlayer, para as trilhas resolverem a partir do mesmo nó raiz.
 	player.get_parent().add_child(_anim_tree)
 	_anim_tree.anim_player = _anim_tree.get_path_to(player)
 	_anim_tree.active = true
 
 
+static func _anim_node(anim_name: String) -> AnimationNodeAnimation:
+	var node := AnimationNodeAnimation.new()
+	node.animation = anim_name
+	return node
+
+
 ## Coloca o personagem em pé sobre a célula `id`.
-func spawn(w: WorldData, id: int, surface_height: float) -> void:
+func spawn(w: WorldData, id: int) -> void:
 	world = w
 	var up := w.centers[id]
-	global_position = up * (surface_height + 0.3)
+	global_position = up * (w.surface_radius(id) + 0.3)
 	facing = _tangent(Vector3.UP, up)
 	if facing.length() < 0.01:
 		facing = _tangent(Vector3.FORWARD, up)
@@ -131,20 +172,50 @@ func spawn(w: WorldData, id: int, surface_height: float) -> void:
 	cell_changed.emit(cell_id)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("jump"):
+		request_jump()
+
+
+## Pede um pulo (vale por `jump_buffer` segundos, para o pulo responder mesmo se o
+## Espaço vier um pouco antes de pousar).
+func request_jump() -> void:
+	_since_jump_pressed = 0.0
+
+
 func _physics_process(delta: float) -> void:
 	var up := global_position.normalized()
 	up_direction = up
 
-	var vertical := up * velocity.dot(up)
-	var horizontal := velocity - vertical
-	vertical -= up * gravity * delta
+	var vertical_speed := velocity.dot(up)
+	var horizontal := velocity - up * vertical_speed
+	vertical_speed -= gravity * delta
 
-	var wish := _wish_direction(up)
-	var speed := walk_speed * (run_multiplier if Input.is_action_pressed("run") else 1.0)
-	horizontal = horizontal.lerp(wish * speed, clampf(acceleration * delta, 0.0, 1.0))
+	# Coyote time e jump buffer.
+	_since_jump_pressed += delta
+	if is_on_floor():
+		_since_floor = 0.0
+		_jumping = false
+	else:
+		_since_floor += delta
+	if _since_jump_pressed <= jump_buffer and _since_floor <= coyote_time and not _jumping:
+		vertical_speed = sqrt(2.0 * gravity * jump_height)
+		_jumping = true  # sem pulo duplo: só volta a valer depois de tocar o chão
+		_since_jump_pressed = jump_buffer + 1.0
+		_since_floor = coyote_time + 1.0
+		jumps += 1
+		if _anim_tree:
+			_anim_tree.set("parameters/jump_seek/seek_request", 0.0)
+
+	var wish := auto_wish.limit_length(1.0) if autopilot else _wish_direction(up)
+	var running := auto_run if autopilot else Input.is_action_pressed("run")
+	var speed := walk_speed * (run_multiplier if running else 1.0)
+	var accel := acceleration if is_on_floor() else air_acceleration
+	horizontal = horizontal.lerp(wish * speed, clampf(accel * delta, 0.0, 1.0))
 	horizontal = _block_ocean(horizontal, up, delta)
+	_try_step_up(horizontal, up)
 
-	velocity = horizontal + vertical
+	velocity = horizontal + up * vertical_speed
 	move_and_slide()
 
 	_update_animation(delta, up)
@@ -163,7 +234,23 @@ func _physics_process(delta: float) -> void:
 		cell_changed.emit(cell_id)
 
 
-## Idle → walk → sprint conforme a velocidade real no plano tangente, com transição suave.
+## Sobe degraus de até `step_height` andando: se algo bloqueia à frente e o mesmo
+## movimento passa livre um degrau acima, levanta o corpo (o floor snap o assenta no degrau).
+func _try_step_up(horizontal: Vector3, up: Vector3) -> void:
+	if not is_on_floor() or horizontal.length_squared() < 0.04:
+		return
+	var motion := horizontal.normalized() * 0.3
+	if not test_move(global_transform, motion):
+		return
+	var lift := up * step_height
+	if test_move(global_transform, lift):
+		return
+	if test_move(global_transform.translated(lift), motion):
+		return
+	global_position += lift
+
+
+## Animação: no chão, idle → walk → sprint pela velocidade; no ar, jump subindo e fall descendo.
 func _update_animation(delta: float, up: Vector3) -> void:
 	var v := get_real_velocity()
 	var speed := (v - up * v.dot(up)).length()
@@ -172,9 +259,15 @@ func _update_animation(delta: float, up: Vector3) -> void:
 		target = 1.0 + clampf((speed - walk_speed) / (walk_speed * (run_multiplier - 1.0)), 0.0, 1.0)
 	else:
 		target = speed / walk_speed
-	anim_blend = lerpf(anim_blend, target, clampf(10.0 * delta, 0.0, 1.0))
+	var k := clampf(10.0 * delta, 0.0, 1.0)
+	anim_blend = lerpf(anim_blend, target, k)
+	var airborne := not is_on_floor() and (_jumping or _since_floor > 0.15)
+	air_blend = lerpf(air_blend, 1.0 if airborne else 0.0, clampf(14.0 * delta, 0.0, 1.0))
+	var falling := clampf(-v.dot(up) / 4.0, 0.0, 1.0)
 	if _anim_tree:
-		_anim_tree.set("parameters/blend_position", anim_blend)
+		_anim_tree.set("parameters/locomotion/blend_position", anim_blend)
+		_anim_tree.set("parameters/air/blend_amount", air_blend)
+		_anim_tree.set("parameters/jumpfall/blend_amount", falling)
 
 
 ## Direção pedida pelo teclado, no plano tangente, relativa à câmera.
