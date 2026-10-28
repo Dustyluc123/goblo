@@ -25,4 +25,3 @@ client/.godot/
 *.import.tmp
 *.tmp
 client/export/
-export_presets.cfg
