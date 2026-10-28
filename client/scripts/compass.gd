@@ -29,8 +29,10 @@ func update_from(camera_basis: Basis, up: Vector3) -> void:
 	fwd -= up * fwd.dot(up)
 	if fwd.length() < 0.05:
 		fwd = camera_basis.y - up * camera_basis.y.dot(up)
-	heading = fposmod(rad_to_deg(atan2(fwd.dot(east), fwd.dot(north))), 360.0)
-	queue_redraw()
+	var h := fposmod(rad_to_deg(atan2(fwd.dot(east), fwd.dot(north))), 360.0)
+	if absf(wrapf(h - heading, -180.0, 180.0)) > 0.3:  # só redesenha quando muda
+		heading = h
+		queue_redraw()
 
 
 func _draw() -> void:

@@ -15,17 +15,17 @@ const PRESETS := {
 	"low": {
 		"small_density": 0.4, "small_radius": 30.0, "big_radius": 75.0,
 		"collider_radius": 35.0, "shadows": false, "big_shadows": false,
-		"shadow_distance": 0.0, "msaa": Viewport.MSAA_DISABLED, "clouds": 30,
+		"shadow_distance": 0.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": false, "clouds": 30,
 	},
 	"medium": {
 		"small_density": 0.7, "small_radius": 45.0, "big_radius": 115.0,
 		"collider_radius": 40.0, "shadows": true, "big_shadows": false,
-		"shadow_distance": 45.0, "msaa": Viewport.MSAA_2X, "clouds": 50,
+		"shadow_distance": 40.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": true, "clouds": 50,
 	},
 	"high": {
 		"small_density": 1.0, "small_radius": 70.0, "big_radius": 170.0,
 		"collider_radius": 45.0, "shadows": true, "big_shadows": true,
-		"shadow_distance": 90.0, "msaa": Viewport.MSAA_4X, "clouds": 80,
+		"shadow_distance": 90.0, "msaa": Viewport.MSAA_4X, "fxaa": false, "clouds": 80,
 	},
 }
 const DEFAULT := "medium"

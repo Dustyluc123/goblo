@@ -181,12 +181,13 @@ func TestWorldLandHasCountryAndOceanHasNot(t *testing.T) {
 }
 
 // A meta da fase 1.5: SP → fronteira da Venezuela (Pacaraima) em 1min30–2min andando.
-// O cliente anda a 5 u/s (client/scripts/game_config.gd).
+// O cliente anda a 5,3 u/s e corre a 12,19 u/s (client/scripts/game_config.gd). Em linha
+// reta; o tempo real medido no cliente (com desvios) está no README.
 func TestScaleSaoPauloToPacaraima(t *testing.T) {
 	w := testWorld(t)
 	a, b := LatLonToVec(-23.55, -46.63), LatLonToVec(4.5, -61.1)
 	dist := math.Acos(a.Dot(b)) * w.Radius
-	const walk, run = 5.0, 10.0
+	const walk, run = 5.3, 5.3 * 2.3
 	t.Logf("SP → Pacaraima: %.0f unidades; %.0f s andando, %.0f s correndo", dist, dist/walk, dist/run)
 	if dist/walk < 90 || dist/walk > 120 || dist/run >= 60 {
 		t.Errorf("escala fora da meta: %.0f unidades", dist)

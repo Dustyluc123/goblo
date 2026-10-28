@@ -51,14 +51,20 @@ static func _group_of(key: int) -> int:
 	return (face * s + iv / GROUP_SPLIT) * s + iu / GROUP_SPLIT
 
 
-## Liga a colisão dos pedaços perto do ponto e desliga a dos distantes.
-func update_collision(point: Vector3) -> void:
+## Liga a colisão dos pedaços perto do ponto e desliga a dos distantes. `max_new` limita
+## quantos pedaços novos são montados por chamada (cada um custa ~4 ms); -1 = todos.
+func update_collision(point: Vector3, max_new := 2) -> void:
 	if world == null:
 		return
 	var wanted := {}
-	for key in world.chunks_near(point, collision_radius):
+	var built := 0
+	var near := world.chunks_near_with_distance(point, collision_radius)
+	near.sort_custom(func(a: Array, b: Array) -> bool: return a[1] < b[1])
+	for pair: Array in near:
+		var key: int = pair[0]
 		wanted[key] = true
-		if not _shapes.has(key):
+		if not _shapes.has(key) and (max_new < 0 or built < max_new):
+			built += 1
 			var shape := ConcavePolygonShape3D.new()
 			shape.set_faces(GlobeBuilder.collision_faces(world, world.chunk_cells[key]))
 			var cs := CollisionShape3D.new()

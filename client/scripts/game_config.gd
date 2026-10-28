@@ -4,10 +4,11 @@ extends RefCounted
 ## (server/internal/world/world.go, DefaultConfig); aqui ficam os do cliente.
 
 # --- Personagem -----------------------------------------------------------------------------
-## Velocidade andando (unidades/s). SP → Pacaraima (~549 u) leva ~1 min 50 s andando.
-const WALK_SPEED := 5.0
-## Multiplicador com Shift. Correndo, SP → Pacaraima leva ~55 s.
-const RUN_MULTIPLIER := 2.0
+## Velocidade andando (unidades/s). SP → Pacaraima (548 u em linha reta) leva ~1 min 50 s
+## andando, medido com o piloto automático (--route), contando desvios de árvores e pulos.
+const WALK_SPEED := 5.3
+## Multiplicador com Shift (12,2 u/s). Correndo, o mesmo trajeto leva menos de 1 min.
+const RUN_MULTIPLIER := 2.3
 ## Gravidade radial (unidades/s²).
 const GRAVITY := 25.0
 ## Altura máxima do pulo (unidades). Sobe o degrau de colina (0,6), não um penhasco de montanha (1,6).

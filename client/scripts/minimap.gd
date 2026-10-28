@@ -23,8 +23,9 @@ func _ready() -> void:
 	_viewport.size = Vector2i(SIZE, SIZE)
 	_viewport.own_world_3d = true
 	_viewport.transparent_bg = true
-	_viewport.msaa_3d = Viewport.MSAA_4X
-	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_viewport.msaa_3d = Viewport.MSAA_2X
+	# Renderiza só 10 vezes por segundo (o globinho muda devagar).
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	add_child(_viewport)
 
 	var cam := Camera3D.new()
@@ -85,8 +86,16 @@ func build(world: WorldData) -> void:
 	_material.set_shader_parameter("map", ImageTexture.create_from_image(img))
 
 
+var _since_render := 1.0
+
+
 ## Gira o globinho para o ponto `up` (direção do jogador) ficar de frente, com o norte para cima.
 func update_view(up: Vector3, sun_dir: Vector3) -> void:
+	_since_render += get_process_delta_time()
+	if _since_render < 0.1:
+		return
+	_since_render = 0.0
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	var north := Vector3.UP - up * up.y
 	if north.length() < 0.01:
 		north = Vector3.FORWARD

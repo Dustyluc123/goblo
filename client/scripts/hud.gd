@@ -155,6 +155,6 @@ func _card_style() -> StyleBoxFlat:
 	s.content_margin_right = 16
 	s.content_margin_top = 10
 	s.content_margin_bottom = 10
-	s.shadow_color = Color(0, 0, 0, 0.15)
-	s.shadow_size = 6
+	s.border_color = Color(0, 0, 0, 0.08)
+	s.set_border_width_all(1)
 	return s

@@ -50,6 +50,10 @@ var cell_chunk := PackedInt32Array()
 var chunk_cells: Dictionary = {}  # chave → PackedInt32Array
 var chunk_center: Dictionary = {}  # chave → Vector3 unitário
 var chunk_radius: Dictionary = {}  # chave → float
+# As mesmas informações em arrays compactos, para buscas rápidas.
+var _chunk_keys := PackedInt32Array()
+var _chunk_dirs := PackedVector3Array()
+var _chunk_rads := PackedFloat32Array()
 
 
 ## Monta o mundo a partir do binário do servidor. Devolve null se o formato estiver errado.
@@ -179,6 +183,9 @@ func _compute_chunks() -> void:
 			r = maxf(r, center.angle_to(centers[i]))
 		chunk_center[key] = center
 		chunk_radius[key] = r * radius + 15.0  # + meio hexágono
+		_chunk_keys.append(key)
+		_chunk_dirs.append(center)
+		_chunk_rads.append(r * radius + 15.0)
 
 
 ## Pedaço de uma direção: face do cubo (0–5) e posição na grade dessa face.
@@ -206,12 +213,26 @@ static func chunk_key(dir: Vector3) -> int:
 
 ## Pedaços cujo conteúdo pode estar a menos de `distance` unidades do ponto.
 func chunks_near(point: Vector3, distance: float) -> Array[int]:
-	var dir := point.normalized()
 	var out: Array[int] = []
-	for key: int in chunk_center:
-		var d: float = dir.angle_to(chunk_center[key]) * radius
-		if d - float(chunk_radius[key]) <= distance:
-			out.append(key)
+	for pair: Array in chunks_near_with_distance(point, distance):
+		out.append(pair[0])
+	return out
+
+
+## Como chunks_near, mas devolve [chave, distância até a borda do pedaço].
+## Primeiro descarta pelo produto escalar (barato) e só calcula o ângulo dos candidatos.
+func chunks_near_with_distance(point: Vector3, distance: float) -> Array:
+	var dir := point.normalized()
+	var out: Array = []
+	var max_angle := (distance + 120.0) / radius  # 120 ≥ maior raio de pedaço
+	var min_dot := cos(minf(max_angle, PI))
+	for i in _chunk_keys.size():
+		var dot := dir.dot(_chunk_dirs[i])
+		if dot < min_dot:
+			continue
+		var d := acos(clampf(dot, -1.0, 1.0)) * radius - _chunk_rads[i]
+		if d <= distance:
+			out.append([_chunk_keys[i], d])
 	return out
 
 

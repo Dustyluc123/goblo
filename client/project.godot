@@ -13,7 +13,7 @@ config_version=5
 config/name="Goblo"
 config/description="MMO cozy no planeta Terra de verdade — fase 1: o globo."
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.7", "Forward Plus")
+config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
 [display]
@@ -30,5 +30,8 @@ server_url="http://127.0.0.1:8080"
 common/physics_interpolation=true
 
 [rendering]
+
+renderer/rendering_method="mobile"
+lights_and_shadows/directional_shadow/size=2048
 
 anti_aliasing/quality/msaa_3d=2

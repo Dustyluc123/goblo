@@ -131,7 +131,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 
 	var spawn := world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(spawn_lat, spawn_lon)))
 	t0 = Time.get_ticks_msec()
-	_terrain.update_collision(world.centers[spawn] * world.radius)
+	_terrain.update_collision(world.centers[spawn] * world.radius, -1)
 	load_stats["collision_ms"] = Time.get_ticks_msec() - t0
 	_player.spawn(world, spawn)
 	_camera.snap_behind_target()
@@ -242,6 +242,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _apply_quality() -> void:
 	var q := Quality.current()
 	get_viewport().msaa_3d = q["msaa"]
+	get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q["fxaa"] else Viewport.SCREEN_SPACE_AA_DISABLED
+	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if q["big_shadows"] else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	_day_night.set_shadows_wanted(q["shadows"])
 	_sun.directional_shadow_max_distance = maxf(1.0, q["shadow_distance"])
 
@@ -367,7 +369,12 @@ func _perf_test() -> void:
 	_player.autopilot = true
 	_player.auto_run = _args.has("run")
 	var heading := -_player.global_basis.z
+	var vp_rid := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp_rid, true)
 	await get_tree().create_timer(3.0).timeout
+	var phys_ms := 0.0
+	var gpu_ms := 0.0
+	var cpu_ms := 0.0
 	var times: Array[float] = []
 	var draw_calls := 0.0
 	var primitives := 0.0
@@ -380,6 +387,9 @@ func _perf_test() -> void:
 		t += dt
 		times.append(dt)
 		draw_calls += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		phys_ms += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+		gpu_ms += RenderingServer.viewport_get_measured_render_time_gpu(vp_rid)
+		cpu_ms += RenderingServer.viewport_get_measured_render_time_cpu(vp_rid) + RenderingServer.get_frame_setup_time_cpu()
 		primitives += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
 		var up := _player.global_position.normalized()
 		heading = (heading - up * heading.dot(up)).normalized()
@@ -407,6 +417,9 @@ func _perf_test() -> void:
 	print("Goblo: desempenho (%s, qualidade %s): média %.1f fps, 1%% piores %.1f fps, pior quadro %.1f ms, %d draw calls, %.0f mil triângulos, %s" % [
 		world.biome_label(_player.cell_id), Quality.current_name(), n / total, 1.0 / worst_avg, times[n - 1] * 1000.0,
 		int(draw_calls / n), primitives / n / 1000.0, Engine.get_version_info()["string"]])
+	print("Goblo: janela %s, escala da tela %.1f, viewport %s, renderizador %s" % [DisplayServer.window_get_size(), DisplayServer.screen_get_scale(), get_viewport().get_visible_rect().size, RenderingServer.get_current_rendering_method()])
+	print("Goblo: tempo médio por quadro: física %.1f ms, render CPU %.1f ms, GPU %.1f ms; GPU: %s" % [
+		phys_ms / n, cpu_ms / n, gpu_ms / n, RenderingServer.get_video_adapter_name()])
 	get_tree().quit()
 
 
