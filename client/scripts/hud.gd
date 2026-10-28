@@ -8,6 +8,7 @@ const INK_SOFT := Color("6b6f8c")
 
 var _country: Label
 var _coords: Label
+var _time: Label
 var _status_panel: PanelContainer
 var _status: Label
 
@@ -22,8 +23,10 @@ func _ready() -> void:
 	card.add_child(box)
 	_country = _label(24, INK)
 	_coords = _label(15, INK_SOFT)
+	_time = _label(15, INK_SOFT)
 	box.add_child(_country)
 	box.add_child(_coords)
+	box.add_child(_time)
 	_country.text = "Goblo"
 	_coords.text = "carregando o mundo…"
 
@@ -61,6 +64,16 @@ func show_status(text: String) -> void:
 
 func hide_status() -> void:
 	_status_panel.visible = false
+
+
+## Horário solar local onde o personagem está.
+func show_time(hours: float, speed: float) -> void:
+	var h := int(hours)
+	var m := int((hours - h) * 60.0)
+	var text := "%02d:%02d" % [h, m]
+	if speed != 1.0:
+		text += "  (×%d)" % int(speed)
+	_time.text = text
 
 
 func show_cell(world: WorldData, id: int) -> void:

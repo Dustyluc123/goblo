@@ -42,6 +42,7 @@ var _collision_timer := 0.0
 @onready var _terrain: Terrain = $Terrain
 @onready var _vegetation: Vegetation = $Vegetation
 @onready var _sun: DirectionalLight3D = $Sun
+@onready var _day_night: DayNight = $DayNight
 @onready var _highlight: MeshInstance3D = $Highlight
 @onready var _player: Player = $Player
 @onready var _camera: CameraRig = $Camera
@@ -63,6 +64,8 @@ func _ready() -> void:
 			spawn_lat = float(parts[0])
 			spawn_lon = float(parts[1])
 	_cached_version = _read_cached_version()
+	if _args.has("utc"):
+		_day_night.set_utc_hour(float(_args["utc"]))
 	if _args.has("quality"):
 		Quality.set_quality(str(_args["quality"]), false)
 	Quality.emitter.changed.connect(_apply_quality)
@@ -198,6 +201,8 @@ func _process(delta: float) -> void:
 		_collision_timer = 0.25
 		_terrain.update_collision(_player.global_position)
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
+	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
+	_hud.show_time(_day_night.local_hours(world.lons[_player.cell_id]), _day_night.speed)
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
 		mat.albedo_color.a = 0.45 + 0.15 * sin(Time.get_ticks_msec() / 300.0)
@@ -207,6 +212,12 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match (event as InputEventKey).keycode:
+			KEY_F3:
+				_day_night.faster()
+				_hud.flash("Tempo ×%d" % int(_day_night.speed))
+			KEY_F4:
+				_day_night.real_time()
+				_hud.flash("Horário real")
 			KEY_F6:
 				Quality.cycle()
 				_hud.flash("Qualidade: %s" % Quality.label())
@@ -216,7 +227,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _apply_quality() -> void:
 	var q := Quality.current()
 	get_viewport().msaa_3d = q["msaa"]
-	_sun.shadow_enabled = q["shadows"]
+	_day_night.set_shadows_wanted(q["shadows"])
 	_sun.directional_shadow_max_distance = maxf(1.0, q["shadow_distance"])
 
 

@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="5_terrain"]
 [ext_resource type="Script" path="res://scripts/vegetation.gd" id="6_vegetation"]
+[ext_resource type="Script" path="res://scripts/day_night.gd" id="7_daynight"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -26,6 +27,17 @@ light_color = Color(1, 0.97, 0.92, 1)
 light_energy = 1.0
 shadow_enabled = true
 directional_shadow_max_distance = 45.0
+
+[node name="Moon" type="DirectionalLight3D" parent="."]
+light_color = Color(0.6, 0.7, 1, 1)
+light_energy = 0.3
+light_specular = 0.0
+
+[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "moon", "world_environment")]
+script = ExtResource("7_daynight")
+sun = NodePath("../Sun")
+moon = NodePath("../Moon")
+world_environment = NodePath("../WorldEnvironment")
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("5_terrain")
