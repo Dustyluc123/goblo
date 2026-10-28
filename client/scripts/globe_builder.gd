@@ -156,19 +156,22 @@ static func _mesh(arrays_in: Array, mat: Material) -> ArrayMesh:
 	return mesh
 
 
-## Malha de destaque da célula embaixo do personagem (um véu branco por cima do azulejo).
+## Contorno de destaque da célula embaixo do personagem (um anel claro perto da borda).
 static func highlight(world: WorldData, id: int) -> ArrayMesh:
 	var c := world.centers[id]
 	var h := world.surface_radius(id) + 0.05
 	var poly := world.vertices[id]
+	var n := poly.size()
 	var verts := PackedVector3Array()
 	var idx := PackedInt32Array()
-	verts.append(c * h)
 	for corner in poly:
-		var d := c.lerp(corner, 0.97).normalized()
-		verts.append(d * (h / d.dot(c)))
-	for k in poly.size():
-		idx.append_array([0, 1 + (k + 1) % poly.size(), 1 + k])
+		for f in [0.9, 0.96]:
+			var d := c.lerp(corner, f).normalized()
+			verts.append(d * (h / d.dot(c)))
+	for k in n:
+		var a := 2 * k
+		var b := 2 * ((k + 1) % n)
+		idx.append_array([a, b + 1, a + 1, a, b, b + 1])
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
@@ -178,7 +181,7 @@ static func highlight(world: WorldData, id: int) -> ArrayMesh:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(1, 1, 1, 0.3)
+	mat.albedo_color = Color(1, 1, 1, 0.5)
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mesh.surface_set_material(0, mat)
 	return mesh

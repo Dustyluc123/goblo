@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="3_camera"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="5_terrain"]
+[ext_resource type="Script" path="res://scripts/vegetation.gd" id="6_vegetation"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -28,6 +29,9 @@ directional_shadow_max_distance = 45.0
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("5_terrain")
+
+[node name="Vegetation" type="Node3D" parent="."]
+script = ExtResource("6_vegetation")
 
 [node name="Highlight" type="MeshInstance3D" parent="."]
 cast_shadow = 0

@@ -40,6 +40,8 @@ var _request_started := 0
 var _collision_timer := 0.0
 
 @onready var _terrain: Terrain = $Terrain
+@onready var _vegetation: Vegetation = $Vegetation
+@onready var _sun: DirectionalLight3D = $Sun
 @onready var _highlight: MeshInstance3D = $Highlight
 @onready var _player: Player = $Player
 @onready var _camera: CameraRig = $Camera
@@ -61,6 +63,10 @@ func _ready() -> void:
 			spawn_lat = float(parts[0])
 			spawn_lon = float(parts[1])
 	_cached_version = _read_cached_version()
+	if _args.has("quality"):
+		Quality.set_quality(str(_args["quality"]), false)
+	Quality.emitter.changed.connect(_apply_quality)
+	_apply_quality()
 
 	_http = HTTPRequest.new()
 	_http.timeout = 30.0
@@ -121,10 +127,15 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	load_stats["collision_ms"] = Time.get_ticks_msec() - t0
 	_player.spawn(world, spawn)
 	_camera.snap_behind_target()
+	t0 = Time.get_ticks_msec()
+	_vegetation.setup(world)
+	_vegetation.load_now(_player.global_position)
+	load_stats["vegetation_ms"] = Time.get_ticks_msec() - t0
 	_hud.hide_status()
-	print("Goblo: mundo %d células (n = %d, raio %.0f) — %s, download %d ms, leitura %d ms, malhas %d ms, colisão %d ms" % [
+	print("Goblo: mundo %d células (n = %d, raio %.0f) — %s, download %d ms, leitura %d ms, malhas %d ms, colisão %d ms, vegetação %d ms (%d objetos, qualidade %s)" % [
 		world.cell_count(), world.frequency, world.radius, load_stats["source"],
-		load_stats["download_ms"], load_stats["parse_ms"], load_stats["mesh_ms"], load_stats["collision_ms"]])
+		load_stats["download_ms"], load_stats["parse_ms"], load_stats["mesh_ms"], load_stats["collision_ms"],
+		load_stats["vegetation_ms"], _vegetation.instance_count, Quality.current_name()])
 	_run_automation()
 
 
@@ -186,10 +197,27 @@ func _process(delta: float) -> void:
 	if _collision_timer <= 0.0:
 		_collision_timer = 0.25
 		_terrain.update_collision(_player.global_position)
+	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
-		mat.albedo_color.a = 0.2 + 0.1 * sin(Time.get_ticks_msec() / 300.0)
+		mat.albedo_color.a = 0.45 + 0.15 * sin(Time.get_ticks_msec() / 300.0)
 		_highlight.visible = _camera.far_amount < 0.5
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		match (event as InputEventKey).keycode:
+			KEY_F6:
+				Quality.cycle()
+				_hud.flash("Qualidade: %s" % Quality.label())
+
+
+## Aplica a qualidade atual: antisserrilhado e sombras (a vegetação se recarrega sozinha).
+func _apply_quality() -> void:
+	var q := Quality.current()
+	get_viewport().msaa_3d = q["msaa"]
+	_sun.shadow_enabled = q["shadows"]
+	_sun.directional_shadow_max_distance = maxf(1.0, q["shadow_distance"])
 
 
 # --- Automação para testes e screenshots ---------------------------------------------------

@@ -53,57 +53,60 @@ const COLD := Color(0.85, 0.9, 0.85)
 const GREY := Color(0.9, 0.9, 0.92)
 const WHITE_BLUE := Color(0.95, 0.98, 1.05)
 
+const GRASS_LIGHT := Color(1.12, 1.15, 0.86)
+
 ## Decoração por bioma: [modelo, por célula, escala mín, escala máx, cor, grande?]
+## O personagem tem 1 unidade; as árvores ficam entre ~3 e ~5,5.
 const DECOR := {
 	WorldData.Biome.TROPICAL_FOREST: [
-		["tree_high", 16.0, 2.6, 3.8, GREEN_DARK, true],
-		["tree", 10.0, 2.2, 3.2, GREEN_DARK, true],
-		["plant", 26.0, 2.0, 3.6, GREEN_DARK, false],
-		["grass", 10.0, 2.0, 3.0, GREEN_DARK, false],
-		["trunk", 0.6, 1.2, 1.8, GREEN, false],
+		["tree_high", 14.0, 1.6, 2.4, GREEN_DARK, true],
+		["tree", 9.0, 1.5, 2.2, GREEN_DARK, true],
+		["plant", 22.0, 1.6, 2.8, GREEN_DARK, false],
+		["grass", 8.0, 1.0, 1.6, GREEN_DARK, false],
+		["trunk", 0.6, 1.0, 1.5, GREEN, false],
 	],
 	WorldData.Biome.FOREST: [
-		["tree", 8.0, 2.2, 3.2, GREEN, true],
-		["pine", 5.0, 2.4, 3.4, GREEN, true],
-		["pine_fall", 1.5, 2.2, 3.0, GREEN, true],
-		["plant", 10.0, 1.8, 3.0, GREEN, false],
-		["grass", 10.0, 2.0, 3.0, GREEN, false],
-		["stones", 1.0, 1.2, 2.0, GREY, false],
+		["tree", 8.0, 1.5, 2.3, GREEN, true],
+		["pine", 5.0, 1.5, 2.2, GREEN, true],
+		["pine_fall", 1.5, 1.4, 2.0, GREEN, true],
+		["plant", 10.0, 1.4, 2.4, GREEN, false],
+		["grass", 8.0, 1.0, 1.6, GREEN, false],
+		["stones", 1.0, 1.0, 1.8, GREY, false],
 	],
 	WorldData.Biome.GRASSLAND: [
-		["grass", 22.0, 2.0, 3.6, Color(1.0, 0.968, 0.86), false],
-		["plant", 8.0, 1.6, 2.8, Color(1.0, 0.96, 0.825), false],
-		["tree", 1.2, 2.0, 3.0, Color(1.0, 0.976, 0.895), true],
-		["stones", 1.0, 1.2, 2.2, GREY, false],
+		["grass", 18.0, 1.0, 1.8, GRASS_LIGHT, false],
+		["plant", 8.0, 1.2, 2.2, GRASS_LIGHT, false],
+		["tree", 1.2, 1.4, 2.0, Color(1.0, 0.976, 0.895), true],
+		["stones", 1.0, 1.0, 1.8, GREY, false],
 	],
 	WorldData.Biome.DESERT: [
-		["rocks", 2.0, 1.6, 3.2, DRY, true],
-		["rocks_tall", 0.8, 1.6, 2.8, DRY, true],
-		["stones", 3.0, 1.2, 2.4, DRY, false],
-		["plant", 0.6, 1.4, 2.2, DRY, false],
-		["trunk", 0.3, 1.0, 1.6, DRY, false],
+		["rocks", 2.0, 1.2, 2.4, DRY, true],
+		["rocks_tall", 0.8, 1.2, 2.2, DRY, true],
+		["stones", 3.0, 1.0, 2.0, DRY, false],
+		["plant", 0.6, 1.0, 1.6, DRY, false],
+		["trunk", 0.3, 0.8, 1.3, DRY, false],
 	],
 	WorldData.Biome.MOUNTAIN: [
-		["rocks_high", 2.5, 1.6, 3.4, GREY, true],
-		["rocks_tall", 2.0, 1.6, 3.0, GREY, true],
-		["pine", 1.5, 2.2, 3.2, COLD, true],
-		["stones", 4.0, 1.2, 2.4, GREY, false],
-		["grass", 2.0, 1.8, 2.6, COLD, false],
+		["rocks_high", 2.5, 1.2, 2.4, GREY, true],
+		["rocks_tall", 2.0, 1.2, 2.2, GREY, true],
+		["pine", 1.5, 1.4, 2.0, COLD, true],
+		["stones", 4.0, 1.0, 2.0, GREY, false],
+		["grass", 2.0, 1.0, 1.5, COLD, false],
 	],
 	WorldData.Biome.TUNDRA: [
-		["grass", 6.0, 1.8, 2.8, Color(0.91, 0.908, 0.77), false],
-		["stones", 3.0, 1.2, 2.2, GREY, false],
-		["pine_crooked", 0.8, 2.0, 2.8, COLD, true],
-		["rocks", 0.8, 1.4, 2.6, GREY, true],
+		["grass", 6.0, 1.0, 1.6, Color(0.91, 0.908, 0.77), false],
+		["stones", 3.0, 1.0, 1.8, GREY, false],
+		["pine_crooked", 0.8, 1.3, 1.8, COLD, true],
+		["rocks", 0.8, 1.1, 2.0, GREY, true],
 	],
 	WorldData.Biome.ICE: [
-		["stones", 0.6, 1.2, 2.0, WHITE_BLUE, false],
+		["stones", 0.6, 1.0, 1.6, WHITE_BLUE, false],
 	],
 	WorldData.Biome.BEACH: [
-		["plant", 1.5, 1.6, 2.6, GREEN, false],
-		["grass", 2.0, 1.6, 2.4, DRY, false],
-		["stones", 1.0, 1.0, 1.8, DRY, false],
-		["tree", 0.4, 2.0, 2.8, GREEN, true],
+		["plant", 1.5, 1.2, 2.0, GREEN, false],
+		["grass", 2.0, 1.0, 1.5, DRY, false],
+		["stones", 1.0, 0.8, 1.4, DRY, false],
+		["tree", 0.4, 1.4, 1.9, GREEN, true],
 	],
 }
 

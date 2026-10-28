@@ -46,6 +46,14 @@ func _ready() -> void:
 	add_child(help)
 
 
+## Mensagem rápida no centro da tela, que some sozinha.
+func flash(text: String) -> void:
+	show_status(text)
+	await get_tree().create_timer(1.5).timeout
+	if _status.text == text:
+		hide_status()
+
+
 func show_status(text: String) -> void:
 	_status.text = text
 	_status_panel.visible = true
