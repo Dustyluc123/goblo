@@ -8,6 +8,8 @@ extends Node3D
 ##   --zoom=0..1         zoom inicial da câmera
 ##   --walk=SEGUNDOS     anda para a frente antes do teste/screenshot
 ##   --spawn=LAT,LON     onde o personagem nasce (padrão: São Paulo)
+##   --tour              passeio automático (anda, afasta, gira, volta) e fecha; use com
+##                       --write-movie do Godot para gravar o GIF do README
 
 const DEFAULT_SERVER := "http://127.0.0.1:8080"
 const RETRY_SECONDS := 3.0
@@ -110,6 +112,9 @@ func _process(_delta: float) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _run_automation() -> void:
+	if _args.has("tour"):
+		await _tour()
+		return
 	if not (_args.has("smoke-test") or _args.has("screenshot")):
 		return
 	var start_cell := _player.cell_id
@@ -139,6 +144,29 @@ func _run_automation() -> void:
 	var err := get_viewport().get_texture().get_image().save_png(path)
 	print("Goblo: screenshot salvo em %s (erro %d)" % [path, err])
 	get_tree().quit(0 if err == OK else 1)
+
+
+func _tour() -> void:
+	_camera.set_zoom_now(0.12)
+	_camera.spin_speed = 0.45
+	await get_tree().create_timer(0.5).timeout
+	Input.action_press("move_forward")
+	await get_tree().create_timer(2.5).timeout
+	Input.action_press("move_right")
+	await get_tree().create_timer(1.0).timeout
+	Input.action_release("move_right")
+	Input.action_release("move_forward")
+	await _zoom_to(1.0, 3.0)
+	await get_tree().create_timer(3.0).timeout
+	await _zoom_to(0.15, 3.0)
+	await get_tree().create_timer(2.0).timeout
+	get_tree().quit()
+
+
+func _zoom_to(z: float, seconds: float) -> void:
+	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_camera, "zoom", z, seconds)
+	await tween.finished
 
 
 func _parse_args() -> Dictionary:
