@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/imagens/passeio.gif" alt="Personagem rosa andando sobre hexágonos verdes no Brasil; a câmera se afasta até mostrar o globo inteiro girando e depois volta" width="720" />
+  <img src="docs/imagens/passeio.gif" alt="Personagem andando sobre hexágonos verdes no Brasil; a câmera se afasta até mostrar o globo inteiro girando e depois volta" width="720" />
 </p>
 
 ---
@@ -33,6 +33,7 @@
 - [Controles](#controles)
 - [Testes](#testes)
 - [Dados](#dados)
+- [Créditos](#créditos)
 - [Roadmap](#roadmap)
 - [Sobre mim](#sobre-mim)
 
@@ -48,6 +49,7 @@ O que já dá para fazer:
 
 - [x] Ver um **globo low-poly** com os continentes reais, dividido em **4.002 hexágonos** (e 12 pentágonos, como numa bola de futebol)
 - [x] **Zoom contínuo** do personagem até o planeta inteiro, que gira devagar sozinho
+- [x] **Personagem animado** (Mini Characters da Kenney) que fica parado, anda e corre com transição suave e vira para onde está indo
 - [x] **Andar com WASD** por cima da esfera, com a gravidade puxando para o centro: dá para dar a volta ao mundo
 - [x] **Não entrar no oceano** (o personagem desliza pela costa)
 - [x] **HUD** com o país e a latitude/longitude do hexágono embaixo do personagem, que fica destacado
@@ -58,7 +60,7 @@ O que já dá para fazer:
 
 | Perto do personagem | Meia distância | O planeta inteiro |
 | --- | --- | --- |
-| <img src="docs/imagens/perto.png" alt="Personagem rosa em cima de um hexágono destacado, com o mar e o degrau de areia ao lado" width="300" /> | <img src="docs/imagens/meio.png" alt="Litoral de São Paulo em hexágonos: terra verde elevada e mar azul-claro" width="300" /> | <img src="docs/imagens/globo.png" alt="Globo com a América do Sul e a África em hexágonos verdes sobre o oceano azul" width="300" /> |
+| <img src="docs/imagens/perto.png" alt="Personagem do Mini Characters andando em cima de um hexágono destacado" width="300" /> | <img src="docs/imagens/meio.png" alt="Litoral de São Paulo em hexágonos: terra verde elevada e mar azul-claro" width="300" /> | <img src="docs/imagens/globo.png" alt="Globo com a América do Sul e a África em hexágonos verdes sobre o oceano azul" width="300" /> |
 
 ## Arquitetura
 
@@ -108,6 +110,7 @@ Mais detalhes em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e nas decisões em
 | Servidor | Go 1.27, biblioteca padrão | Binário único, rápido, testes embutidos |
 | Geometria | [`paulmach/orb`](https://github.com/paulmach/orb) | GeoJSON e point-in-polygon prontos |
 | Cliente | Godot 4.7 + GDScript | Leve, código aberto, exporta para tudo; física com `up_direction` livre |
+| Arte 3D | [Kenney](https://www.kenney.nl) (CC0) | Personagens low-poly fofos com animações prontas |
 | Dados | Natural Earth 1:110m | Domínio público, com nomes dos países em português |
 | CI | GitHub Actions | `gofmt`, `go vet` e `go test -race` a cada push |
 
@@ -117,6 +120,7 @@ Mais detalhes em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e nas decisões em
 .
 ├── client/                    # Godot 4
 │   ├── project.godot
+│   ├── assets/kenney/         # Mini Characters, Graveyard Kit, Monster Builder (CC0)
 │   ├── scenes/                # main.tscn, player.tscn
 │   └── scripts/               # world_data, globe_builder, player, camera_rig, hud, main
 ├── server/                    # Go
@@ -139,7 +143,19 @@ Mais detalhes em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e nas decisões em
 
 Pré-requisitos: [Go 1.27+](https://go.dev/dl/) e [Godot 4.7+](https://godotengine.org/download) (versão padrão, não a .NET).
 
-**1. Servidor**
+> **No meu Mac** (Intel), Go e Godot foram instalados fora do Homebrew, em `~/sdk`. O Go fica em `~/sdk/go/bin`, que precisa estar no `PATH`. Para deixar isso permanente:
+>
+> ```bash
+> echo 'export PATH="$HOME/sdk/go/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+> go version   # go1.27.3 darwin/amd64
+> ```
+>
+> O Godot fica em `~/sdk/godot/Godot.app` (dá para arrastar para `/Applications`).
+
+> [!IMPORTANT]
+> **O servidor precisa estar rodando antes de dar Play no Godot.** O cliente não gera o mundo: ele baixa tudo do servidor. Deixe o servidor aberto num **terminal separado** enquanto joga. Sem ele, o jogo mostra "Sem resposta do servidor" e fica tentando de novo a cada 3 segundos.
+
+**1. Servidor (terminal 1, deixe aberto)**
 
 ```bash
 cd server
@@ -148,18 +164,20 @@ go run ./cmd/server
 # servidor no ar endereço=:8080
 ```
 
-Opções: `-addr :8080`, `-frequency 20` (células = 10·n²+2) e `-radius 100`, ou as variáveis `GOBLO_ADDR`, `GOBLO_FREQUENCY` e `GOBLO_RADIUS`.
+Opções: `-addr :8080`, `-frequency 20` (células = 10·n²+2) e `-radius 100`, ou as variáveis `GOBLO_ADDR`, `GOBLO_FREQUENCY` e `GOBLO_RADIUS`. Para parar, `Ctrl+C`.
 
-**2. Cliente**
+**2. Cliente (Godot)**
 
-Com o servidor rodando, abra o Godot, clique em **Importar**, escolha `client/project.godot` e aperte **F5**. Ou pela linha de comando:
+Com o servidor no ar, abra o Godot, clique em **Importar**, escolha `client/project.godot` e aperte **F5**. Ou, num segundo terminal:
 
 ```bash
 cd client
-godot --path .
+~/sdk/godot/Godot.app/Contents/MacOS/Godot --path .
 ```
 
-O cliente procura o servidor em `http://127.0.0.1:8080`. Para trocar: `godot --path . -- --server=http://outro:8080`, a variável `GOBLO_SERVER_URL` ou a opção `goblo/server_url` no `project.godot`. Se o servidor estiver fora do ar, o jogo avisa e tenta de novo a cada 3 segundos.
+O cliente procura o servidor em `http://127.0.0.1:8080`. Para trocar: `godot --path . -- --server=http://outro:8080`, a variável `GOBLO_SERVER_URL` ou a opção `goblo/server_url` no `project.godot`.
+
+**Trocar o personagem:** selecione o nó `Player` em `scenes/main.tscn` (ou abra `scenes/player.tscn`) e escolha outro na propriedade **Character** do Inspetor. São 12 opções, de `character-female-a` a `character-male-f`. A altura fica em **Model Height**.
 
 ## Controles
 
@@ -199,6 +217,11 @@ godot --headless --path . -- --smoke-test --walk=30   # de São Paulo para o nor
 
 Terra e países vêm do [Natural Earth](https://www.naturalearthdata.com/) na escala 1:110m (domínio público). Os arquivos ficam em `server/data/naturalearth/` e são embutidos no binário; para baixar de novo, `server/scripts/baixar-dados.sh`. Fonte, versão e observações em [`docs/DADOS.md`](docs/DADOS.md).
 
+## Créditos
+
+- **Personagem e assets 3D/2D:** [Kenney](https://www.kenney.nl), pacotes Mini Characters, Graveyard Kit e Monster Builder Pack, licença [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Detalhes em [`client/assets/CREDITOS.md`](client/assets/CREDITOS.md).
+- **Mapa:** [Natural Earth](https://www.naturalearthdata.com/), domínio público.
+
 ## Roadmap
 
 1. **Fase 1: o globo.** Globo, personagem andando e servidor do mundo. ✅
@@ -217,4 +240,4 @@ Gostou do projeto, achou um bug ou tem uma ideia? Abra uma issue ou me chame no 
 
 ## Licença
 
-[MIT](LICENSE) © 2026 Lucas Barreto. Dados do Natural Earth em domínio público.
+[MIT](LICENSE) © 2026 Lucas Barreto. Dados do Natural Earth e assets da Kenney em domínio público (CC0).

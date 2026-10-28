@@ -98,7 +98,7 @@ O mundo é gerado uma vez na inicialização (~0,8 s) e servido do cache.
 | `scenes/main.tscn` + `scripts/main.gd` | baixa o mundo, monta o globo, solta o personagem; automações de teste |
 | `scripts/world_data.gd` | dados do mundo e busca de célula por direção (caminha pelos vizinhos: O(1) por quadro) |
 | `scripts/globe_builder.gd` | uma `ArrayMesh` com cor por vértice, sombreamento flat, terra elevada, paredes na costa |
-| `scenes/player.tscn` + `scripts/player.gd` | `CharacterBody3D` com gravidade para o centro e bloqueio do oceano |
+| `scenes/player.tscn` + `scripts/player.gd` | `CharacterBody3D` com gravidade para o centro e bloqueio do oceano; modelo do Mini Characters com idle/walk/sprint num `AnimationTree` |
 | `scripts/camera_rig.gd` | câmera em terceira pessoa com zoom contínuo até o planeta inteiro |
 | `scripts/hud.gd` | país, lat/lon e id da célula atual |
 | `scripts/input_setup.gd` | ações de teclado |
@@ -120,7 +120,7 @@ O zoom vai de 0 (3,5 unidades do personagem) a 1 (165 unidades acima da superfí
 | Raio do planeta | 100 | `-radius` / `GOBLO_RADIUS` no servidor |
 | Células | 4.002 (`n = 20`) | `-frequency` / `GOBLO_FREQUENCY` |
 | Altura da terra | 0,8 | `land_height` em `main.gd` |
-| Personagem | 0,9 de altura | `scenes/player.tscn` |
+| Personagem | 1,0 de altura | `model_height` em `player.gd` |
 | Velocidade | 4,5 (×1,8 correndo) | `walk_speed` em `player.gd` |
 
 A volta ao mundo pelo equador tem ~630 unidades: ~2 min e 20 s andando, ~1 min e 20 s correndo (sem contar desvios do oceano).

@@ -10,6 +10,11 @@ MMO cozy no planeta Terra de verdade, visto como um globo de sala de aula. Monor
 - `client/` — Godot 4 + GDScript. Baixa o mundo e só desenha; nunca gera mundo.
 - `docs/` — arquitetura, dados, briefings das fases e ADRs em `docs/decisoes/`.
 
+## Antes de tudo
+
+- **PATH do Go:** neste Mac o Go fica em `~/sdk/go/bin` (instalado fora do Homebrew, que não suporta mais Mac Intel). Garanta que está no `PATH` (`export PATH="$HOME/sdk/go/bin:$PATH"`) ou chame `~/sdk/go/bin/go` direto. O Godot fica em `~/sdk/godot/Godot.app/Contents/MacOS/Godot`.
+- **O servidor precisa estar rodando** (`cd server && go run ./cmd/server`, num terminal separado ou em segundo plano) antes de abrir o jogo ou rodar qualquer automação do cliente (`--smoke-test`, `--screenshot`, `--tour`). Sem ele, o cliente não tem mundo para desenhar.
+
 ## Comandos
 
 ```bash
@@ -31,9 +36,7 @@ godot --path . -- --screenshot=/tmp/a.png --zoom=0.5  # PNG da tela (precisa de 
 godot --path . --write-movie /tmp/f.png --fixed-fps 15 -- --tour   # quadros para o GIF
 ```
 
-Neste Mac, Go e Godot foram instalados fora do Homebrew: `~/sdk/go/bin/go` e `~/sdk/godot/Godot.app/Contents/MacOS/Godot`.
-
-Argumentos do cliente (depois de `--`): `--server=URL`, `--spawn=LAT,LON`, `--zoom=0..1`, `--walk=SEG`, `--smoke-test`, `--screenshot=ARQ`, `--tour`. A URL do servidor também vem de `GOBLO_SERVER_URL` ou de `goblo/server_url` no `project.godot`.
+Argumentos do cliente (depois de `--`): `--server=URL`, `--spawn=LAT,LON`, `--zoom=0..1`, `--walk=SEG`, `--dir=forward|back|left|right`, `--run`, `--moving`, `--smoke-test`, `--screenshot=ARQ`, `--tour`. Exemplo para ver a animação de corrida: `--screenshot=/tmp/a.png --zoom=0.05 --walk=1.5 --moving --run`. A URL do servidor também vem de `GOBLO_SERVER_URL` ou de `goblo/server_url` no `project.godot`.
 
 ## Convenções
 
@@ -45,6 +48,8 @@ Argumentos do cliente (depois de `--`): `--server=URL`, `--spawn=LAT,LON`, `--zo
 - **Determinismo:** mesma frequência + mesmos dados = mesmo JSON. Há teste para isso; não use mapas sem ordenar nem aleatoriedade na geração.
 - **Testes de geografia:** São Paulo é `BRA`, (0, -30) é oceano, oceano entre 60% e 80%. Se trocar dados ou frequência, esses testes precisam continuar passando.
 - **Godot:** cenas em `client/scenes/`, scripts em `client/scripts/` com `class_name`. Os arquivos `.uid` vão para o Git; a pasta `.godot/` não. UI montada em código (`hud.gd`) para ficar fácil de revisar.
+- **Assets:** só da Kenney (CC0), em `client/assets/kenney/`, com créditos em `client/assets/CREDITOS.md`. Copie apenas GLB + `Textures/` (os GLB procuram `Textures/colormap.png` pelo caminho relativo) ou PNG; nada de FBX/OBJ/prévias. Os `.import` vão para o Git. Pacotes originais baixados ficam em `kenney-original/`, que está no `.gitignore`.
+- **Personagem:** escolhido por `@export_enum var character` em `player.gd` e escalado para `model_height` medindo as malhas. Os modelos olham para +Z e são girados 180° (a frente no Godot é -Z). As animações vêm sem loop do GLB; `player.gd` liga o loop e monta um `AnimationTree` com `BlendSpace1D` (0 idle, 1 walk, 2 sprint).
 - **Escala:** raio 100, personagem ~1, velocidade 4,5. Tabela completa em `docs/ARQUITETURA.md`.
 
 ## Onde fica cada coisa
@@ -56,7 +61,8 @@ Argumentos do cliente (depois de `--`): `--server=URL`, `--spawn=LAT,LON`, `--zo
 | formato do JSON / cache | `server/internal/world/world.go` |
 | rotas HTTP | `server/internal/httpapi/httpapi.go` |
 | cores e malha do globo | `client/scripts/globe_builder.gd` |
-| movimento e bloqueio do oceano | `client/scripts/player.gd` |
+| movimento, bloqueio do oceano, personagem e animação | `client/scripts/player.gd` |
+| assets e créditos | `client/assets/` |
 | câmera e zoom | `client/scripts/camera_rig.gd` |
 | HUD | `client/scripts/hud.gd` |
 | fluxo de inicialização e automações | `client/scripts/main.gd` |
