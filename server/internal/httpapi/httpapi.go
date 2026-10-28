@@ -1,10 +1,15 @@
 // Package httpapi expõe o mundo por HTTP.
 //
-//	GET /health → {"status":"ok"}
-//	GET /world  → definição completa do mundo (JSON, com gzip quando o cliente aceita)
+//	GET /health        → {"status":"ok"}
+//	GET /world/version → {"version":"…","format":1,"frequency":50,"cells":25002}
+//	GET /world.bin     → mundo no formato binário (o que o jogo usa), com gzip
+//	GET /world         → mundo em JSON (para depuração), com gzip
+//
+// As duas rotas do mundo mandam ETag com a versão e respondem 304 a If-None-Match.
 package httpapi
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -15,10 +20,12 @@ import (
 )
 
 // NewHandler monta as rotas. O snapshot é gerado uma vez na inicialização e servido do cache.
-func NewHandler(snap *world.Snapshot, log *slog.Logger) http.Handler {
+func NewHandler(w *world.World, snap *world.Snapshot, log *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", health)
-	mux.HandleFunc("GET /world", worldHandler(snap))
+	mux.HandleFunc("GET /world/version", versionHandler(w, snap))
+	mux.HandleFunc("GET /world.bin", blob(snap, "application/octet-stream", snap.Binary, snap.BinaryGzip))
+	mux.HandleFunc("GET /world", blob(snap, "application/json", snap.JSON, snap.JSONGzip))
 	return logRequests(log, cors(mux))
 }
 
@@ -27,21 +34,37 @@ func health(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte(`{"status":"ok"}`))
 }
 
-func worldHandler(snap *world.Snapshot) http.HandlerFunc {
+func versionHandler(wd *world.World, snap *world.Snapshot) http.HandlerFunc {
+	body, _ := json.Marshal(map[string]any{
+		"version":   snap.Version,
+		"format":    world.BinaryFormatVersion,
+		"frequency": wd.Frequency,
+		"cells":     len(wd.Cells),
+	})
+	return func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(body)
+	}
+}
+
+func blob(snap *world.Snapshot, contentType string, raw, gz []byte) http.HandlerFunc {
+	etag := snap.ETag()
 	return func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
-		h.Set("Content-Type", "application/json")
+		h.Set("Content-Type", contentType)
 		h.Set("Cache-Control", "no-cache")
-		h.Set("ETag", snap.ETag)
+		h.Set("ETag", etag)
+		h.Set("X-World-Version", snap.Version)
 		h.Set("Vary", "Accept-Encoding")
-		if r.Header.Get("If-None-Match") == snap.ETag {
+		if r.Header.Get("If-None-Match") == etag {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
-		body := snap.JSON
+		body := raw
 		if acceptsGzip(r) {
 			h.Set("Content-Encoding", "gzip")
-			body = snap.Gzip
+			body = gz
 		}
 		h.Set("Content-Length", strconv.Itoa(len(body)))
 		if r.Method == http.MethodHead {

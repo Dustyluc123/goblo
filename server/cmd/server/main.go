@@ -52,14 +52,21 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	log.Info("mundo gerado", "frequência", w.Frequency, "células", len(w.Cells),
-		"oceano", fmt.Sprintf("%.1f%%", 100*w.OceanRatio()), "países", len(w.Countries),
-		"json_kb", len(snap.JSON)/1024, "gzip_kb", len(snap.Gzip)/1024,
+	log.Info("mundo gerado", "versão", w.Version, "frequência", w.Frequency, "células", len(w.Cells),
+		"raio", w.Radius, "oceano", fmt.Sprintf("%.1f%%", 100*w.OceanRatio()), "países", len(w.Countries),
+		"bin_kb", len(snap.Binary)/1024, "bin_gzip_kb", len(snap.BinaryGzip)/1024,
+		"json_kb", len(snap.JSON)/1024, "json_gzip_kb", len(snap.JSONGzip)/1024,
 		"tempo", time.Since(start).Round(time.Millisecond))
+	counts := w.BiomeCounts()
+	attrs := make([]any, 0, 2*len(world.BiomeNames))
+	for i, name := range world.BiomeNames {
+		attrs = append(attrs, name, counts[world.Biome(i)])
+	}
+	log.Info("biomas", attrs...)
 
 	srv := &http.Server{
 		Addr:              *addr,
-		Handler:           httpapi.NewHandler(snap, log),
+		Handler:           httpapi.NewHandler(w, snap, log),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

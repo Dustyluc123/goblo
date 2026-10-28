@@ -41,6 +41,7 @@ type Country struct {
 // Geography responde se um ponto (lat/lon) é terra e a qual país pertence.
 type Geography struct {
 	land      []shape
+	regions   []region
 	Countries []Country
 }
 
@@ -77,7 +78,10 @@ func LoadGeography(fsys fs.FS) (*Geography, error) {
 		}
 		g.Countries = append(g.Countries, Country{Code: code, Name: name, shape: s})
 	}
-	if len(g.land) == 0 || len(g.Countries) == 0 {
+	if g.regions, err = loadRegions(fsys); err != nil {
+		return nil, err
+	}
+	if len(g.land) == 0 || len(g.Countries) == 0 || len(g.regions) == 0 {
 		return nil, fmt.Errorf("dados geográficos vazios")
 	}
 	return g, nil

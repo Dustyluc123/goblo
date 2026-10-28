@@ -16,8 +16,9 @@ type Config struct {
 	Radius    float64 // raio sugerido do planeta, em unidades do jogo
 }
 
-// DefaultConfig é o mundo da fase 1: 4.002 células e raio 100.
-var DefaultConfig = Config{Frequency: 20, Radius: 100}
+// DefaultConfig é o mundo da fase 1.5: 25.002 células e raio 1000. Com isso cada
+// hexágono tem ~22 unidades de largura e SP → Pacaraima tem ~549 unidades.
+var DefaultConfig = Config{Frequency: 50, Radius: 1000}
 
 // Cell é uma célula do globo, no formato enviado ao cliente.
 type Cell struct {
@@ -29,17 +30,21 @@ type Cell struct {
 	Neighbors []int        `json:"neighbors"`
 	Terrain   Terrain      `json:"terrain"`
 	Country   string       `json:"country"`
+	Biome     Biome        `json:"biome"`
+	Height    float64      `json:"height"` // topo da célula acima do nível do mar
 }
 
 // World é a definição completa do mundo: a fonte da verdade que o cliente só desenha.
 type World struct {
+	Version   string            `json:"version"` // hash do formato binário; muda quando o mundo muda
 	Frequency int               `json:"frequency"`
 	Radius    float64           `json:"radius"`
 	Countries map[string]string `json:"countries"` // código ISO A3 → nome, só países com células
 	Cells     []Cell            `json:"cells"`
 }
 
-// New monta o mundo: gera a grade e classifica cada célula pelo centro.
+// New monta o mundo: gera a grade, classifica cada célula pelo centro (terra, país,
+// bioma) e calcula as alturas.
 func New(cfg Config, geo *Geography) (*World, error) {
 	if cfg.Radius <= 0 {
 		return nil, fmt.Errorf("raio inválido: %v", cfg.Radius)
@@ -59,9 +64,16 @@ func New(cfg Config, geo *Geography) (*World, error) {
 		Countries: map[string]string{},
 		Cells:     make([]Cell, len(grid.Centers)),
 	}
+	base := make([]Biome, len(grid.Centers))
+	hills := make([]bool, len(grid.Centers))
 	for i, c := range grid.Centers {
 		lat, lon := VecToLatLon(c)
 		terrain, country := geo.Classify(lat, lon)
+		if terrain == Land {
+			hits := geo.regionsAt(lat, lon)
+			base[i] = baseBiome(lat, country, hits)
+			hills[i] = isHilly(c, hits)
+		}
 		verts := make([][3]float64, len(grid.Vertices[i]))
 		for k, v := range grid.Vertices[i] {
 			verts[k] = round3(v)
@@ -80,7 +92,23 @@ func New(cfg Config, geo *Geography) (*World, error) {
 			w.Countries[country] = names[country]
 		}
 	}
+	assignBiomes(w.Cells, base, hills)
+	bin, err := w.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	sum := sha256.Sum256(bin)
+	w.Version = hex.EncodeToString(sum[:8])
 	return w, nil
+}
+
+// BiomeCounts conta as células de cada bioma.
+func (w *World) BiomeCounts() map[Biome]int {
+	counts := map[Biome]int{}
+	for _, c := range w.Cells {
+		counts[c.Biome]++
+	}
+	return counts
 }
 
 // CellAt devolve a célula que contém o ponto (lat/lon em graus): a de centro mais próximo.
@@ -108,28 +136,48 @@ func (w *World) OceanRatio() float64 {
 }
 
 // Snapshot é o mundo já serializado, gerado uma vez na inicialização e servido do cache.
+// O binário é o formato do jogo; o JSON é para depuração.
 type Snapshot struct {
-	JSON []byte
-	Gzip []byte
-	ETag string
+	Version    string
+	JSON       []byte
+	JSONGzip   []byte
+	Binary     []byte
+	BinaryGzip []byte
 }
 
-// Snapshot serializa o mundo em JSON e em JSON+gzip.
+// ETag é a versão entre aspas, no formato do cabeçalho HTTP.
+func (s *Snapshot) ETag() string { return `"` + s.Version + `"` }
+
+// Snapshot serializa o mundo em JSON e binário, cada um também com gzip.
 func (w *World) Snapshot() (*Snapshot, error) {
 	raw, err := json.Marshal(w)
 	if err != nil {
 		return nil, err
 	}
+	bin, err := w.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	s := &Snapshot{Version: w.Version, JSON: raw, Binary: bin}
+	if s.JSONGzip, err = gzipBytes(raw); err != nil {
+		return nil, err
+	}
+	if s.BinaryGzip, err = gzipBytes(bin); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func gzipBytes(b []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
-	if _, err := zw.Write(raw); err != nil {
+	if _, err := zw.Write(b); err != nil {
 		return nil, err
 	}
 	if err := zw.Close(); err != nil {
 		return nil, err
 	}
-	sum := sha256.Sum256(raw)
-	return &Snapshot{JSON: raw, Gzip: buf.Bytes(), ETag: `"` + hex.EncodeToString(sum[:8]) + `"`}, nil
+	return buf.Bytes(), nil
 }
 
 func round(x float64, digits int) float64 {
