@@ -5,10 +5,13 @@ extends Camera3D
 ## O zoom é contínuo (0 = colado no personagem, 1 = planeta inteiro). Perto, a câmera fica
 ## atrás do personagem; longe, olha para o centro do planeta com o norte para cima e o globo
 ## gira devagar sozinho. Ao voltar o zoom, a câmera volta para o personagem.
+##
+## As distâncias acompanham o raio do planeta (GameConfig), e near/far mudam com o zoom
+## para manter a precisão de profundidade de 3 unidades a 1.650.
 
-@export var min_distance := 3.5
-@export var max_distance := 165.0
-@export var zoom_step := 0.06
+@export var min_distance := GameConfig.CAMERA_MIN_DISTANCE
+@export var max_distance := 1650.0
+@export var zoom_step := 0.05
 @export var zoom := 0.18
 @export var pitch_degrees := 28.0
 @export var mouse_sensitivity := 0.006
@@ -17,19 +20,30 @@ extends Camera3D
 @export var spin_speed := 0.08
 
 var target: Node3D
-var planet_radius := 100.0
-## Luz que acompanha a câmera, para o lado visível do globo estar sempre iluminado.
-var sun: DirectionalLight3D
+var planet_radius := 1000.0
+## Mundo, para a câmera não entrar no chão (montanhas).
+var world: WorldData
+## 0 = câmera no personagem, 1 = planeta inteiro. Usado por céu, nuvens e vegetação.
+var far_amount := 0.0
+## Distância atual da câmera ao personagem.
+var distance := 0.0
 
 var _zoom := zoom
 var _heading := Vector3.FORWARD  # para onde a câmera olha, no plano tangente
 var _spin := 0.0
 var _dragging := false
+var _cam_cell := -1
 
 
 func _ready() -> void:
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_zoom = zoom
+
+
+## Ajusta as distâncias para um planeta de raio `r`.
+func set_planet_radius(r: float) -> void:
+	planet_radius = r
+	max_distance = r * GameConfig.CAMERA_MAX_DISTANCE_RADII
 
 
 ## Coloca a câmera atrás do personagem, olhando para onde ele olha.
@@ -82,6 +96,8 @@ func _process(delta: float) -> void:
 
 	var dist := min_distance * pow(max_distance / min_distance, _zoom)
 	var t := smoothstep(0.4, 0.9, _zoom)
+	far_amount = t
+	distance = dist
 
 	# Perto: atrás e acima do personagem.
 	var pitch := deg_to_rad(pitch_degrees)
@@ -91,7 +107,10 @@ func _process(delta: float) -> void:
 	var far_pos := up * (planet_radius + dist)
 	var pos := near_pos.lerp(far_pos, t)
 	var look := head.lerp(Vector3.ZERO, t)
-	var min_r := planet_radius + 1.5
+	var min_r := planet_radius + 1.0
+	if world:
+		min_r = world.surface_radius(world.find_cell(pos, _cam_cell)) + 1.0
+		_cam_cell = world.find_cell(pos, _cam_cell)
 	if pos.length() < min_r:
 		pos = pos.normalized() * min_r
 
@@ -115,11 +134,8 @@ func _process(delta: float) -> void:
 	if absf(dir.dot(cam_up)) > 0.999:
 		cam_up = rot * _heading
 	look_at_from_position(pos, look, cam_up)
-	far = maxf(2000.0, planet_radius * 6.0)
-
-	if sun:
-		# Luz vindo de trás e um pouco acima/à esquerda da câmera.
-		sun.global_basis = global_basis * Basis.from_euler(Vector3(deg_to_rad(-30.0), deg_to_rad(25.0), 0.0))
+	near = clampf(dist * 0.01, 0.05, 5.0)
+	far = planet_radius * 2.0 + dist * 2.0 + 500.0
 
 
 func _turn(angle: float) -> void:

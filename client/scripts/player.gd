@@ -124,7 +124,7 @@ func _setup_animation(model: Node3D) -> void:
 	locomotion.min_space = 0.0
 	locomotion.max_space = 2.0
 	for point: Array in [["idle", 0.0], ["walk", 1.0], ["sprint", 2.0]]:
-		locomotion.add_blend_point(_anim_node(point[0]), point[1])
+		locomotion.add_blend_point(_anim_node(point[0]), point[1], -1, StringName(point[0]))
 
 	var tree := AnimationNodeBlendTree.new()
 	tree.add_node("locomotion", locomotion, Vector2(0, 0))
