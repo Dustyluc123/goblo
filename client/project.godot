@@ -1,4 +1,10 @@
-; Arquivo de configuração do projeto Godot.
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -17,8 +23,6 @@ window/size/viewport_height=720
 
 [goblo]
 
-; URL do servidor do mundo. Também dá para trocar com GOBLO_SERVER_URL ou com
-; "-- --server=http://..." na linha de comando.
 server_url="http://127.0.0.1:8080"
 
 [physics]

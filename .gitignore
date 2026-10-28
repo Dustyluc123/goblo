@@ -25,3 +25,6 @@ client/.godot/
 *.import.tmp
 *.tmp
 client/export/
+
+# Pacotes originais da Kenney (só o que o jogo usa vai para client/assets/kenney)
+kenney-original/
