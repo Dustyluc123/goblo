@@ -125,6 +125,9 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	_camera.set_planet_radius(world.radius)
 	_camera.world = world
 	_clouds.build(world.radius, Quality.current()["clouds"])
+	t0 = Time.get_ticks_msec()
+	_hud.build_minimap(world)
+	load_stats["minimap_ms"] = Time.get_ticks_msec() - t0
 
 	var spawn := world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(spawn_lat, spawn_lon)))
 	t0 = Time.get_ticks_msec()
@@ -206,6 +209,13 @@ func _process(delta: float) -> void:
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
 	_clouds.update(delta, _camera.far_amount, maxf(_day_night.local_day, _camera.far_amount))
 	_hud.show_time(_day_night.local_hours(world.lons[_player.cell_id]), _day_night.speed)
+	_hud.update_navigation(_camera.global_basis, _player.global_position.normalized(), _day_night.sun_dir)
+	if _hud.perf_visible():
+		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos de vegetação\nqualidade %s" % [
+			Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
+			_vegetation.instance_count, Quality.label()])
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
 		mat.albedo_color.a = 0.45 + 0.15 * sin(Time.get_ticks_msec() / 300.0)
@@ -215,6 +225,8 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match (event as InputEventKey).keycode:
+			KEY_F2:
+				_hud.toggle_perf()
 			KEY_F3:
 				_day_night.faster()
 				_hud.flash("Tempo ×%d" % int(_day_night.speed))

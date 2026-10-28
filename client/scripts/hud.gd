@@ -1,7 +1,8 @@
 class_name Hud
 extends CanvasLayer
-## HUD mínimo: país e coordenadas da célula embaixo do personagem, mensagens de status
-## e a lista de controles. Montado em código para ficar fácil de mexer.
+## HUD: país, bioma, coordenadas e horário local da célula embaixo do personagem, bússola,
+## mini mapa, painel de desempenho (F2), mensagens de status e a lista de controles.
+## Montado em código para ficar fácil de mexer.
 
 const INK := Color("3b3f5c")
 const INK_SOFT := Color("6b6f8c")
@@ -11,6 +12,9 @@ var _coords: Label
 var _time: Label
 var _status_panel: PanelContainer
 var _status: Label
+var _compass: Compass
+var _minimap: Minimap
+var _perf: Label
 
 
 func _ready() -> void:
@@ -40,13 +44,42 @@ func _ready() -> void:
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_panel.add_child(_status)
 
-	var help := _label(14, Color(1, 1, 1, 0.85))
-	help.text = "WASD andar · Shift correr · botão direito arrasta a câmera · Q/E girar · roda do mouse: zoom"
+	var help := _label(13, Color(1, 1, 1, 0.9))
+	help.text = "WASD andar · Shift correr · Espaço pular · botão direito gira a câmera · roda do mouse: zoom\nF2 desempenho · F3 acelera o tempo · F4 hora real · F6 qualidade"
+	help.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
+	help.add_theme_constant_override("outline_size", 4)
 	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	help.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	help.offset_left = 16
 	help.offset_bottom = -12
 	add_child(help)
+
+	_compass = Compass.new()
+	_compass.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_compass.offset_left = -Compass.WIDTH * 0.5
+	_compass.offset_right = Compass.WIDTH * 0.5
+	_compass.offset_top = 14
+	_compass.offset_bottom = 14 + Compass.HEIGHT
+	add_child(_compass)
+
+	_minimap = Minimap.new()
+	_minimap.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	_minimap.offset_left = -Minimap.SIZE - 14
+	_minimap.offset_top = -Minimap.SIZE - 14
+	_minimap.offset_right = -14
+	_minimap.offset_bottom = -14
+	add_child(_minimap)
+
+	_perf = _label(13, INK)
+	var perf_card := PanelContainer.new()
+	perf_card.add_theme_stylebox_override("panel", _card_style())
+	perf_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	perf_card.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	perf_card.offset_right = -16
+	perf_card.offset_top = 16
+	perf_card.add_child(_perf)
+	perf_card.visible = false
+	add_child(perf_card)
 
 
 ## Mensagem rápida no centro da tela, que some sozinha.
@@ -55,6 +88,28 @@ func flash(text: String) -> void:
 	await get_tree().create_timer(1.5).timeout
 	if _status.text == text:
 		hide_status()
+
+
+func build_minimap(world: WorldData) -> void:
+	_minimap.build(world)
+
+
+## Bússola e mini mapa, a cada quadro.
+func update_navigation(camera_basis: Basis, up: Vector3, sun_dir: Vector3) -> void:
+	_compass.update_from(camera_basis, up)
+	_minimap.update_view(up, sun_dir)
+
+
+func toggle_perf() -> void:
+	(_perf.get_parent() as Control).visible = not (_perf.get_parent() as Control).visible
+
+
+func perf_visible() -> bool:
+	return (_perf.get_parent() as Control).visible
+
+
+func show_perf(text: String) -> void:
+	_perf.text = text
 
 
 func show_status(text: String) -> void:
