@@ -53,9 +53,9 @@ void fragment() {
 	vec3 col = mix(shallow_color.rgb, deep_color.rgb, smoothstep(0.0, 1.0, depth));
 	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	col = mix(col, shallow_color.rgb * 1.15, fresnel * 0.35);
-	float band = sin(TIME * 1.4 + dot(world_pos, vec3(0.6, 0.45, 0.35)) * 1.5) * 0.5 + 0.5;
-	float f = foam * (1.0 - depth) * smoothstep(0.45, 0.95, band + h0 * 0.15);
-	col = mix(col, foam_color.rgb, f * 0.55);
+	float band = sin(TIME * 0.9 + dot(world_pos, vec3(0.31, 0.23, 0.19)) * 0.6) * 0.5 + 0.5;
+	float f = foam * (1.0 - depth) * smoothstep(0.55, 1.0, band + h0 * 0.1) * near_fade;
+	col = mix(col, foam_color.rgb, f * 0.45);
 	ALBEDO = col;
 	ROUGHNESS = mix(0.12, 0.6, f);
 	SPECULAR = 0.6;

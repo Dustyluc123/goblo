@@ -43,6 +43,7 @@ var _collision_timer := 0.0
 @onready var _vegetation: Vegetation = $Vegetation
 @onready var _sun: DirectionalLight3D = $Sun
 @onready var _day_night: DayNight = $DayNight
+@onready var _clouds: Clouds = $Clouds
 @onready var _highlight: MeshInstance3D = $Highlight
 @onready var _player: Player = $Player
 @onready var _camera: CameraRig = $Camera
@@ -123,6 +124,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	load_stats["mesh_ms"] = Time.get_ticks_msec() - t0
 	_camera.set_planet_radius(world.radius)
 	_camera.world = world
+	_clouds.build(world.radius, Quality.current()["clouds"])
 
 	var spawn := world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(spawn_lat, spawn_lon)))
 	t0 = Time.get_ticks_msec()
@@ -202,6 +204,7 @@ func _process(delta: float) -> void:
 		_terrain.update_collision(_player.global_position)
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
+	_clouds.update(delta, _camera.far_amount, maxf(_day_night.local_day, _camera.far_amount))
 	_hud.show_time(_day_night.local_hours(world.lons[_player.cell_id]), _day_night.speed)
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
