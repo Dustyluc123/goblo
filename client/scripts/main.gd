@@ -7,6 +7,9 @@ extends Node3D
 ##   --screenshot=ARQ    salva um PNG da tela e fecha (combine com --zoom e --walk)
 ##   --zoom=0..1         zoom inicial da câmera
 ##   --walk=SEGUNDOS     anda para a frente antes do teste/screenshot
+##   --dir=DIREÇÃO       forward (padrão), back, left ou right
+##   --run               segura Shift enquanto anda (corre)
+##   --moving            tira o screenshot ainda andando (para ver a animação)
 ##   --spawn=LAT,LON     onde o personagem nasce (padrão: São Paulo)
 ##   --tour              passeio automático (anda, afasta, gira, volta) e fecha; use com
 ##                       --write-movie do Godot para gravar o GIF do README
@@ -121,24 +124,30 @@ func _run_automation() -> void:
 	var walk := float(_args.get("walk", 3.0 if _args.has("smoke-test") else 0.0))
 	await get_tree().create_timer(0.5).timeout
 	if walk > 0.0:
-		Input.action_press("move_forward")
+		if _args.has("run"):
+			Input.action_press("run")
+		var action := "move_" + str(_args.get("dir", "forward"))
+		Input.action_press(action)
 		await get_tree().create_timer(walk).timeout
-		Input.action_release("move_forward")
-		await get_tree().create_timer(0.5).timeout
+		if not _args.has("moving"):
+			Input.action_release(action)
+			Input.action_release("run")
+			await get_tree().create_timer(0.5).timeout
 
 	if _args.has("smoke-test"):
 		var id := _player.cell_id
 		var r := _player.global_position.length()
 		var expected := world.radius + land_height
-		print("Goblo: smoke-test célula %d → %d, %s (%s), raio do personagem %.2f (superfície %.2f), no chão: %s" % [
+		print("Goblo: smoke-test célula %d → %d, %s (%s), raio do personagem %.2f (superfície %.2f), no chão: %s, animação %.2f" % [
 			start_cell, id, world.country_name(id), WorldData.format_lat_lon(world.lats[id], world.lons[id]),
-			r, expected, _player.is_on_floor()])
+			r, expected, _player.is_on_floor(), _player.anim_blend])
 		var ok := world.is_land(id) and absf(r - expected) < 0.5 and _player.is_on_floor()
 		print("Goblo: smoke-test %s" % ("OK" if ok else "FALHOU"))
 		get_tree().quit(0 if ok else 1)
 		return
 
-	await get_tree().create_timer(1.0).timeout
+	if not _args.has("moving"):
+		await get_tree().create_timer(1.0).timeout
 	await RenderingServer.frame_post_draw
 	var path := str(_args["screenshot"])
 	var err := get_viewport().get_texture().get_image().save_png(path)
