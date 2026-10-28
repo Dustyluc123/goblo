@@ -1,0 +1,28 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Go
+/server/bin/
+/server/server
+*.exe
+*.test
+*.out
+coverage.*
+
+# Dados brutos baixados (o que o servidor usa fica em server/data/naturalearth)
+data/raw/
+server/data/raw/
+
+# Godot 4
+.godot/
+client/.godot/
+*.import.tmp
+*.tmp
+client/export/
+export_presets.cfg
