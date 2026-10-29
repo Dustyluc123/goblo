@@ -100,11 +100,14 @@ static func _nearest(dir: Vector3, segs: Array) -> Dictionary:
 	return out
 
 
-## Direção (no plano do chão em `pos`) que aponta para a fronteira mais perto, e a distância
-## até ela em unidades. Usado pela barreira do passaporte para o personagem deslizar ao
-## longo da linha. {} se não há segmento perto.
-func border_normal(pos: Vector3, cell: int, radius: float) -> Dictionary:
+## Direção (no plano do chão em `pos`) que aponta para a fronteira mais perto (de `country`,
+## se dado), e a distância até ela em unidades. Usado pela barreira do passaporte para o
+## personagem deslizar ao longo da linha. {} se não há segmento perto.
+func border_normal(pos: Vector3, cell: int, radius: float, country := "") -> Dictionary:
 	var segs := segments(cell)
+	if not country.is_empty():
+		# Só a borda daquele país: a direção aponta para ele, não para outra fronteira perto.
+		segs = segs.filter(func(sg: Array) -> bool: return sg[2] == country)
 	if segs.is_empty():
 		return {}
 	var dir := pos.normalized()

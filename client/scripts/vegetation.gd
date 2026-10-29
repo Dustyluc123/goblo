@@ -40,6 +40,8 @@ var _focus := Vector3.ZERO
 var _generation := 0
 ## Fase da estação no norte usada no que está montado (Seasons); < 0 = sem estações.
 var season_north := -1.0
+## Hexágonos sem grama (aeroportos: pista e terminal).
+var bare_cells := {}
 
 
 func setup(w: WorldData, d: ChunkData) -> void:
@@ -371,7 +373,7 @@ const SPRING_PER_CELL := 7.0
 ## grama fica dourada (outono), rala e clara (inverno), e a primavera ganha florzinhas.
 func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary, north := -1.0) -> void:
 	var entries: Array = _decor.get(int(world.biomes[cell]), [])
-	if entries.is_empty():
+	if entries.is_empty() or bare_cells.has(cell):
 		return
 	var autumn := 0.0
 	var winter := 0.0

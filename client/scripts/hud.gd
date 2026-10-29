@@ -25,6 +25,7 @@ var _welcome: PanelContainer
 var _coins: Label
 var _coins_row: HBoxContainer
 var _season_label := ""
+var _fade: ColorRect
 
 
 func _ready() -> void:
@@ -190,6 +191,25 @@ func show_cell(world: WorldData, id: int) -> void:
 ## Estação onde o personagem está ("" entre os trópicos), ao lado da hora.
 func set_season_label(text: String) -> void:
 	_season_label = text
+
+
+## Aeroportos no mini mapa.
+func set_airports(dirs: Array) -> void:
+	_minimap.set_airports(dirs)
+
+
+## Tela escurecendo levemente (viagem de avião): alfa de 0 a 1, em `time` segundos.
+func fade(alpha: float, time := 0.5) -> void:
+	if _fade == null:
+		_fade = ColorRect.new()
+		_fade.color = Color(0.05, 0.07, 0.16, 0.0)
+		_fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_fade)
+		move_child(_fade, 0)
+	var tw := _fade.create_tween()
+	tw.tween_property(_fade, "color:a", alpha, time)
+	await tw.finished
 
 
 ## Fase da estação no norte, para o mini mapa.

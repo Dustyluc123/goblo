@@ -214,7 +214,7 @@ func _update(e: Dictionary, now: float, local_now: float, delta: float) -> void:
 	elif disp != Vector2.ZERO:
 		disp = disp.move_toward(Vector2.ZERO, float(sp["walk"]) * 1.4 * delta)
 		if not _free(cell, path_xy + disp):
-			disp = disp.move_toward(Vector2.ZERO, float(sp["walk"]) * 4.0 * delta)
+			disp = disp.move_toward(Vector2.ZERO, float(sp["walk"]) * 0.2 * delta)
 	st["disp"] = disp
 	var xy := path_xy + disp
 	# Velocidade de verdade (trajeto + desvio) decide andar, galopar ou ficar parado.
@@ -260,7 +260,8 @@ func _update(e: Dictionary, now: float, local_now: float, delta: float) -> void:
 
 
 func _player_running() -> bool:
-	var v := player.get_real_velocity()
+	# A velocidade pedida (não a medida pelo deslocamento): um teleporte não conta como correr.
+	var v := player.velocity
 	var up := player.global_position.normalized()
 	return (v - up * v.dot(up)).length() > player.walk_speed * 1.35
 

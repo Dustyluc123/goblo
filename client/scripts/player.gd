@@ -57,6 +57,9 @@ var auto_run := false
 var input_blocked := false
 ## Modo dev: voa e atravessa tudo.
 var noclip := false
+## Barreira do passaporte (ADR 0035): func(de: Vector3, para: Vector3) -> Vector3 que devolve
+## a direção (no chão) para dentro de um país sem passaporte, ou ZERO se pode passar.
+var border_guard := Callable()
 ## Velocidade do voo (unidades/s), multiplicada por 4 com Shift.
 var fly_speed := 14.0
 
@@ -296,6 +299,7 @@ func _physics_process(delta: float) -> void:
 	var accel := acceleration if is_on_floor() else air_acceleration
 	horizontal = horizontal.lerp(wish * speed, clampf(accel * delta, 0.0, 1.0))
 	horizontal = _block_ocean(horizontal, up, delta)
+	horizontal = _block_border(horizontal, up, delta)
 	_try_step_up(horizontal, up)
 
 	velocity = horizontal + up * vertical_speed
@@ -337,6 +341,27 @@ func _fly(delta: float, up: Vector3) -> void:
 	if id != cell_id:
 		cell_id = id
 		cell_changed.emit(cell_id)
+
+
+## Fronteira sem passaporte: tira a parte do movimento que atravessaria a linha (o
+## personagem desliza ao longo dela). Quem já está dentro do país anda livre.
+func _block_border(horizontal: Vector3, up: Vector3, delta: float) -> Vector3:
+	if not border_guard.is_valid() or horizontal.length_squared() < 0.0001:
+		return horizontal
+	# Confere de novo o que sobrou do movimento (perto de uma tríplice fronteira, deslizar
+	# ao longo de uma linha pode levar a outra); na terceira, para.
+	for attempt in 3:
+		var probe := global_position + horizontal.normalized() * 0.45 + horizontal * delta
+		var n: Vector3 = border_guard.call(global_position, probe)
+		if n == Vector3.ZERO:
+			return horizontal
+		n = (n - up * n.dot(up)).normalized()
+		var into := horizontal.dot(n)
+		if into > 0.0:
+			horizontal -= n * into
+		if horizontal.length_squared() < 0.0001:
+			return Vector3.ZERO
+	return Vector3.ZERO
 
 
 ## Sobe degraus de até `step_height` andando: se algo bloqueia à frente e o mesmo

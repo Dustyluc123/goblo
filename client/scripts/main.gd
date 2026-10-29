@@ -42,6 +42,8 @@ extends Node3D
 ##                       na Goblopédia (moedas só na primeira foto) e abre o álbum
 ##   --season-test       força cada estação (modo dev) e confere árvores, grama, chão, o
 ##                       nome no HUD, os dois hemisférios, os trópicos e a foto de outono
+##   --travel-test       barreira da fronteira sem passaporte, carimbo ao entrar com ele,
+##                       balcão do aeroporto, viagem de avião e livro do passaporte
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
 ##                       que o que fica no caminho está transparente (servidor dev)
@@ -80,6 +82,13 @@ var _animals: Animals
 var _photo: PhotoMode
 var _pedia_art: PediaArt
 var _season_fx: SeasonFx
+var _airports: Airports
+## Voando (viagem de avião): o mundo não carrega pedaços pelo caminho.
+var _flying := false
+## Barreira do passaporte ligada (o modo dev pode desligar).
+var barrier_on := true
+var _barrier_msg_at := -10.0
+var _airport_list: Array = []
 ## Fase da estação aplicada agora (no hemisfério norte; ver Seasons).
 var _season_north := -1.0
 var _season_timer := 0.0
@@ -175,6 +184,9 @@ func _ready() -> void:
 	_season_fx = SeasonFx.new()
 	_season_fx.name = "SeasonFx"
 	add_child(_season_fx)
+	_airports = Airports.new()
+	_airports.name = "Airports"
+	add_child(_airports)
 	_session.equipped_changed.connect(_on_equipped)
 
 	_http = HTTPRequest.new()
@@ -343,6 +355,11 @@ func _load_content() -> bool:
 		return false
 	_session.set_content(r["data"])
 	_session.dev = bool(r["data"].get("dev", false))
+	var ap := await _api.request("GET", "/airports")
+	_airport_list = ap["data"]["airports"] if ap["ok"] else []
+	var pb := await _api.request("GET", "/passport")
+	if pb["ok"]:
+		_session.set_passport_book(pb["data"])
 	return true
 
 
@@ -361,6 +378,7 @@ func _models_to_preload() -> Array:
 		out.append(str(_session.items[id].get("model", "")))
 	for h: Dictionary in _session.houses:
 		out.append(str(h["scene"]))
+	out.append_array(Airports.MODELS)
 	# Versões de estação das árvores (outono, neve) que valem hoje em algum hemisfério.
 	out.append_array(Seasons.models_needed(_session.object_models, Seasons.north_phase(season_now())))
 	return out.filter(func(m: String) -> bool: return not m.is_empty())
@@ -405,6 +423,15 @@ func _setup_game() -> void:
 	_interaction.icons = _icons
 	_interaction.neighborhood = _neighborhood
 	_interaction.animals = _animals
+	_interaction.airports = _airports
+	_airports.setup(world, _data, _airport_list)
+	var dirs: Array = []
+	for a: Dictionary in _airport_list:
+		dirs.append(world.centers[int(a["cell"])])
+		if not bool(a.get("small", false)):
+			_vegetation.bare_cells[int(a["cell"])] = true
+	_hud.set_airports(dirs)
+	_player.border_guard = _border_guard
 	_pedia_art.setup(_session.pedia_catalog, Animals._scenes, _session.animal_species)
 	_ui.pedia.setup(self, _session, _pedia_art)
 	_photo.game = self
@@ -513,11 +540,167 @@ func _on_cell_changed(id: int) -> void:
 	_highlight.mesh = GlobeBuilder.highlight(world, id)
 
 
-## Mudou o país embaixo do personagem (posição exata, ADR 0031).
+## Mudou o país embaixo do personagem (posição exata, ADR 0031). Com passaporte, a
+## primeira visita ganha carimbo (e moedas); andando, aparece a plaquinha de boas-vindas.
 func _on_country_changed(code: String, walked: bool) -> void:
 	_hud.set_country(code, _tracker.name_of(code))
+	var subtitle := ""
+	if _session.has_passport(code) and not _session.stamped(code) and not _flying:
+		var r := await _api.request("POST", "/passport/stamp", {"country": code})
+		if r["ok"] and r["data"].get("stamp") != null:
+			_session.set_passport_book(r["data"]["passport"])
+			subtitle = "Carimbo novo no passaporte!  +%s" % _session.coins_text(int(r["data"]["reward"]))
+			if not walked:
+				_ui.toast(subtitle)
 	if walked:
-		_hud.welcome(_tracker.name_of(code))
+		_hud.welcome(_tracker.name_of(code), subtitle)
+
+
+## Nome de um país (com ou sem hexágono).
+func country_name(code: String) -> String:
+	return _tracker.name_of(code) if _tracker else code
+
+
+## Barreira do passaporte (ADR 0035): devolve a direção para dentro do país proibido, ou
+## ZERO se pode passar. Fica no cliente enquanto o servidor não sabe a posição do jogador.
+func _border_guard(from: Vector3, probe: Vector3) -> Vector3:
+	if not barrier_on or _player.noclip or _flying:
+		return Vector3.ZERO
+	var cell := world.find_cell(probe, _player.cell_id)
+	var lot := _session.lot()
+	if not lot.is_empty() and int(lot["cell"]) == cell:
+		return Vector3.ZERO  # o hexágono de casa é sempre livre
+	var target := _tracker.exact_at(probe, cell)
+	if target.is_empty() or _session.has_passport(target):
+		return Vector3.ZERO
+	if _tracker.exact_at(from, _player.cell_id) == target:
+		return Vector3.ZERO  # já está dentro (chegou por teleporte): anda livre
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _barrier_msg_at > 4.0:
+		_barrier_msg_at = now
+		_ui.toast("Para entrar aqui, você precisa do passaporte deste país: %s. Ele pode ser comprado em qualquer aeroporto." % country_name(target))
+	var bn := _data.borders.border_normal(from, _player.cell_id, world.surface_radius(_player.cell_id), target)
+	if bn.is_empty() or (bn["normal"] as Vector3) == Vector3.ZERO:
+		return (probe - from).normalized()
+	# Perto da linha, a normal da borda; se ainda assim o passo atravessaria, segura tudo.
+	var n: Vector3 = bn["normal"]
+	return n if float(bn["dist"]) > 0.25 else (probe - from).normalized()
+
+
+# --- Viagem ---------------------------------------------------------------------------------
+
+## Compra a passagem (e o passaporte do destino, se `buy`) e voa até lá.
+func travel(from_airport: Dictionary, quote: Dictionary, buy: bool) -> void:
+	var r := await _api.request("POST", "/travel", {"from": from_airport.get("country", ""), "to": quote["country"], "buy_passport": buy})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return
+	await _arrive(from_airport, r["data"])
+
+
+## Compra só o passaporte. Devolve true se deu certo.
+func buy_passport(code: String) -> bool:
+	var r := await _api.request("POST", "/passport/buy", {"country": code})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return false
+	_session.set_passport_book(r["data"]["passport"])
+	_ui.toast(str(r["data"]["message"]))
+	return true
+
+
+func _arrive(from_airport: Dictionary, res: Dictionary) -> void:
+	_session.set_passport_book(res["passport"])
+	var dest: Dictionary = res["airport"]
+	dest["cell"] = int(dest["cell"])
+	var origin := from_airport
+	if origin.is_empty():
+		origin = {"lat": WorldData.vec_to_lat_lon(_player.global_position).x, "lon": WorldData.vec_to_lat_lon(_player.global_position).y}
+	await _fly(origin, dest)
+	var subtitle := str(dest["name"])
+	if res.get("stamp") != null:
+		subtitle += "\nCarimbo novo no passaporte!  +%s" % _session.coins_text(int(res["reward"]))
+	_hud.welcome(country_name(str(dest["country"])), subtitle)
+
+
+## Voo: escurece um pouco, afasta a câmera até o globo, desenha um arco do aeroporto de
+## origem ao de destino com um pontinho viajando (o dia e a noite do globo são os de
+## agora) e aproxima de novo no destino.
+func _fly(from_airport: Dictionary, dest: Dictionary) -> void:
+	_ui.close_windows()
+	_build.exit()
+	_photo.exit()
+	_flying = true
+	var zoom_before := _camera.zoom
+	var visual: Node3D = _player.get_node("Visual")
+	_player.set_physics_process(false)
+	_hud.fade(0.28, 0.6)
+	_camera.zoom = 0.86
+	await get_tree().create_timer(1.3).timeout
+	visual.visible = false
+	var a := WorldData.lat_lon_to_vec(float(from_airport["lat"]), float(from_airport["lon"]))
+	var b := WorldData.lat_lon_to_vec(float(dest["lat"]), float(dest["lon"]))
+	var arc := _flight_arc(a, b)
+	add_child(arc)
+	var dot: MeshInstance3D = arc.get_meta("dot")
+	var angle := a.angle_to(b)
+	var duration := clampf(2.5 + angle * 2.2, 2.5, 6.0)
+	var t := 0.0
+	while t < duration:
+		t += get_process_delta_time()
+		var k := smoothstep(0.0, 1.0, t / duration)
+		var dir := a.slerp(b, k).normalized()
+		dot.position = dir * (world.radius + 18.0 + sin(k * PI) * angle * 70.0)
+		_player.global_position = dir * (world.radius + 1.0)
+		await get_tree().process_frame
+	await _teleport(_airports.arrival_point(dest))
+	_player.set_physics_process(false)
+	arc.queue_free()
+	_camera.zoom = zoom_before
+	visual.visible = true
+	await get_tree().create_timer(1.2).timeout
+	_player.set_physics_process(true)
+	_flying = false
+	_hud.fade(0.0, 0.6)
+
+
+## Arco pontilhado entre dois pontos do globo e o pontinho do avião (meta "dot").
+func _flight_arc(a: Vector3, b: Vector3) -> Node3D:
+	var root := Node3D.new()
+	var angle := a.angle_to(b)
+	var n := maxi(8, int(angle * 60.0))
+	var bead := SphereMesh.new()
+	bead.radius = 2.2
+	bead.height = 4.4
+	bead.radial_segments = 8
+	bead.rings = 4
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("fff3c4")
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	bead.material = mat
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = bead
+	mm.instance_count = n + 1
+	for i in n + 1:
+		var k := float(i) / n
+		var dir := a.slerp(b, k).normalized()
+		mm.set_instance_transform(i, Transform3D(Basis(), dir * (world.radius + 18.0 + sin(k * PI) * angle * 70.0)))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	root.add_child(mmi)
+	var dot := MeshInstance3D.new()
+	var s := SphereMesh.new()
+	s.radius = 6.0
+	s.height = 12.0
+	var dm := StandardMaterial3D.new()
+	dm.albedo_color = Color("ff5a72")
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	s.material = dm
+	dot.mesh = s
+	root.add_child(dot)
+	root.set_meta("dot", dot)
+	return root
 
 
 func _on_equipped() -> void:
@@ -540,11 +723,13 @@ func _process(delta: float) -> void:
 	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
 	_ui.hotbar.visible = not _ui.menu_open()
 	_collision_timer -= delta
-	if _collision_timer <= 0.0:
+	if _collision_timer <= 0.0 and not _flying:
 		_collision_timer = 0.25
 		_terrain.update_collision(_player.global_position)
-	_data.update_focus(_player.global_position, delta)
+	if not _flying:
+		_data.update_focus(_player.global_position, delta)
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
+	_airports.update(_player.global_position, _camera.far_amount, delta)
 	_border_lines.update_view(_camera.far_amount)
 	_animals.update_view(_camera.far_amount)
 	_update_season(delta)
@@ -609,6 +794,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_build.enter()
 	elif event.is_action_pressed("home"):
 		go_home()
+	elif event.is_action_pressed("passport"):
+		var was_open := _ui.passport.visible
+		_ui.close_windows()
+		if not was_open:
+			_ui.passport.toggle()
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("pedia"):
 		var was_open := _ui.pedia.visible
 		_ui.close_windows()
@@ -963,7 +1154,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -996,6 +1187,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("season-test"):
 		await _season_test()
+		return
+	if _args.has("travel-test"):
+		await _travel_test()
 		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
@@ -1285,11 +1479,11 @@ func _set_layer_visible(layer: String, on: bool) -> void:
 ## Animais: existem perto de campos e florestas, ficam no trajeto comum, reagem ao carinho
 ## e à frutinha, o tímido foge de quem corre e nenhuma animação de ataque é usada.
 func _animal_test() -> void:
-	var fails := 0
+	var fails: Array = []
 	var check := func(ok: bool, what: String) -> void:
 		print("Goblo: animal-test %s %s" % ["ok   " if ok else "FALHOU", what])
 		if not ok:
-			fails += 1
+			fails.append(what)
 	# Procura animais de verdade (do servidor) em campos e florestas conhecidos.
 	var found := false
 	for spot: Array in [[-34.6, -60.5], [48.5, 2.0], [46.5, 4.5], [52.0, 20.0], [-31.0, -56.0], [38.0, -97.0]]:
@@ -1333,14 +1527,18 @@ func _animal_test() -> void:
 		_session.inventory = _session.inventory.filter(func(st: Dictionary) -> bool: return st["item"] != "berries")
 		var t: Dictionary = _interaction.target
 		check.call(t.get("type", "") == "animal", "E perto do animal mira nele (%s)" % _interaction._prompt_text(t))
+		_interaction.target = {"type": "animal", "animal": {"id": cid, "species": "cow", "name": "Vaca", "pos": (cow["node"] as Node3D).global_position}}
+		_interaction._timer = 10.0
 		await _interaction.interact()
 		await get_tree().create_timer(0.3).timeout
 		var hold: String = cow["anim"]
 		check.call(hold in ["Idle_2", "Jump_toIdle", "Jump_ToIdle"], "carinho: o animal reage (%s)" % hold)
 		await dev_give("berries", 3)
-		_interaction._timer = 0.0
 		await get_tree().create_timer(2.0).timeout
 		var berries := _session.count("berries")
+		# Mira na vaca (o cervo pode estar mais perto).
+		_interaction.target = {"type": "animal", "animal": {"id": cid, "species": "cow", "name": "Vaca", "pos": (cow["node"] as Node3D).global_position}}
+		_interaction._timer = 10.0
 		await _interaction.interact()
 		await get_tree().create_timer(0.3).timeout
 		check.call(_animals.is_friend(cid) and str(cow["anim"]) == "Eating", "frutinha: come e vira amigo (%s)" % cow["anim"])
@@ -1375,17 +1573,17 @@ func _animal_test() -> void:
 		total += Time.get_ticks_usec() - t0
 		await get_tree().process_frame
 	print("Goblo: animal-test custo: %.3f ms por quadro com %d animais (CPU, sem desenho)" % [total / 120.0 / 1000.0, _animals.active_count])
-	print("Goblo: animal-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
-	get_tree().quit(1 if fails > 0 else 0)
+	print("Goblo: animal-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
+	get_tree().quit(1 if not fails.is_empty() else 0)
 
 
 ## Câmera fotográfica e Goblopédia, do modo foto ao álbum.
 func _photo_test() -> void:
-	var fails := 0
+	var fails: Array = []
 	var check := func(ok: bool, what: String) -> void:
 		print("Goblo: photo-test %s %s" % ["ok   " if ok else "FALHOU", what])
 		if not ok:
-			fails += 1
+			fails.append(what)
 	await _dev("/dev/pedia", {"action": "reset"}, "")
 	await dev_give("camera", 1)
 	_session.equip("camera")
@@ -1430,18 +1628,18 @@ func _photo_test() -> void:
 		"Goblopédia: vaca descoberta na Argentina, 2 fotos (%s)" % str(cow_page))
 	check.call(_ui.pedia._entries.size() >= 15, "álbum com %d páginas" % _ui.pedia._entries.size())
 	_ui.close_windows()
-	print("Goblo: photo-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
-	get_tree().quit(1 if fails > 0 else 0)
+	print("Goblo: photo-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
+	get_tree().quit(1 if not fails.is_empty() else 0)
 
 
 ## Estações: no norte e no sul, árvores trocam de modelo pela estação, o HUD mostra o
 ## nome, os trópicos não mudam e a árvore de outono entra na Goblopédia.
 func _season_test() -> void:
-	var fails := 0
+	var fails: Array = []
 	var check := func(ok: bool, what: String) -> void:
 		print("Goblo: season-test %s %s" % ["ok   " if ok else "FALHOU", what])
 		if not ok:
-			fails += 1
+			fails.append(what)
 	var variants := func() -> Dictionary:
 		var out := {"autumn": 0, "snow": 0, "": 0}
 		for key: int in _data.loaded_keys():
@@ -1511,8 +1709,75 @@ func _season_test() -> void:
 	await settle.call()
 	var real := Seasons.season_at(season_now(), 50.5)
 	check.call(_hud._season_label == Seasons.LABELS[real], "data real na Alemanha: %s (HUD \"%s\")" % [real, _hud._season_label])
-	print("Goblo: season-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
-	get_tree().quit(1 if fails > 0 else 0)
+	print("Goblo: season-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
+	get_tree().quit(1 if not fails.is_empty() else 0)
+
+
+## Passaportes e viagem: a barreira segura quem não tem passaporte, o passaporte libera e
+## carimba, o balcão do aeroporto abre as viagens e o avião leva até o destino.
+func _travel_test() -> void:
+	var fails: Array = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: travel-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	var r := await _api.request("POST", "/dev/passport", {"action": "reset"})
+	_session.set_passport_book(r["data"])
+	var walk_west := func(seconds: float) -> void:
+		_player.autopilot = true
+		_player.auto_run = true
+		var t := 0.0
+		while t < seconds:
+			var up := _player.global_position.normalized()
+			_player.auto_wish = up.cross(Vector3.UP).normalized()
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+		_player.autopilot = false
+	check.call(_session.passports() == ["BRA"], "começa só com o passaporte do Brasil: %s" % str(_session.passports()))
+	await teleport_exact(-25.50, -54.35)
+	await get_tree().create_timer(0.5).timeout
+	_barrier_msg_at = -10.0
+	await walk_west.call(6.0)
+	await get_tree().create_timer(0.3).timeout
+	check.call(_tracker.current == "BRA" and _barrier_msg_at > 0.0, "sem passaporte, a fronteira segura (país: %s, aviso: %s)" % [_tracker.current, _barrier_msg_at > 0.0])
+	r = await _api.request("POST", "/dev/passport", {"action": "give", "country": "PRY"})
+	_session.set_passport_book(r["data"])
+	var coins := _session.coins
+	await walk_west.call(4.0)
+	await get_tree().create_timer(1.0).timeout
+	check.call(_tracker.current == "PRY" and _session.stamped("PRY") and _session.coins > coins, "com passaporte, entra no Paraguai e ganha carimbo (%s, %d → %d moedas)" % [_tracker.current, coins, _session.coins])
+	# Aeroporto do Brasil: o balcão abre as viagens.
+	var bra := _airports.of_country("BRA")
+	check.call(not bra.is_empty(), "aeroporto do Brasil (%s)" % bra.get("name", "?"))
+	await _teleport(_airports.arrival_point(bra))
+	await get_tree().create_timer(1.5).timeout
+	_interaction._timer = 0.0
+	await get_tree().create_timer(0.2).timeout
+	check.call(_interaction.target.get("type", "") == "airport", "E no balcão do aeroporto (%s)" % _interaction._prompt_text(_interaction.target))
+	await _interaction.interact()
+	await get_tree().create_timer(1.0).timeout
+	var quotes: Array = _ui.travel._quotes
+	check.call(_ui.travel.visible and quotes.size() > 100, "balcão com %d destinos" % quotes.size())
+	var arg := {}
+	for q: Dictionary in quotes:
+		if q["country"] == "ARG":
+			arg = q
+	_ui.close_windows()
+	await _dev("/dev/coins", {"amount": 500}, "")
+	coins = _session.coins
+	await travel(bra, arg, true)
+	await get_tree().create_timer(1.0).timeout
+	var paid := int(arg["fare"]) + int(arg["passport_price"])
+	var reward := coins - paid
+	check.call(not _flying and _player.is_physics_processing() and _tracker.current == "ARG", "viagem de avião até a Argentina (%s)" % _tracker.current)
+	check.call(_session.has_passport("ARG") and _session.stamped("ARG") and _session.coins > reward - 1 and _session.coins < coins,
+		"passaporte da Argentina comprado junto e carimbo na chegada (%d → %d moedas, passagem + passaporte %d)" % [coins, _session.coins, paid])
+	_ui.passport.toggle()
+	await get_tree().create_timer(0.8).timeout
+	check.call(_ui.passport._grid.get_child_count() >= 2, "livro do passaporte com %d carimbos" % _ui.passport._grid.get_child_count())
+	_ui.close_windows()
+	print("Goblo: travel-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
+	get_tree().quit(1 if not fails.is_empty() else 0)
 
 
 ## Ponto do chão (topo plano da célula) na lat/lon exata, não no centro do hexágono.
@@ -1549,7 +1814,9 @@ func _border_test() -> void:
 	print("Goblo: border-test %s linhas de fronteira montadas em %d pedaços" % ["ok   " if lines > 0 else "FALHOU", lines])
 	if lines == 0:
 		fails += 1
-	# Anda para o oeste até mudar de país.
+	# Anda para o oeste até mudar de país (sem a barreira do passaporte: aqui o teste é a
+	# detecção; a barreira tem o --travel-test).
+	barrier_on = false
 	var changes: Array = []
 	var on_change := func(code: String, walked: bool) -> void: changes.append([code, walked])
 	_tracker.country_changed.connect(on_change)

@@ -40,6 +40,8 @@ var sell_prices := {}
 var animal_species := {}
 ## Páginas da Goblopédia (do /content, sem o progresso): [{id, name, kind, model, season}].
 var pedia_catalog: Array = []
+## Livro de passaporte (GET /passport): {"passports": [...], "stamps": [{country, name, first_at}]}.
+var passport_book := {}
 
 
 func token_path() -> String:
@@ -103,6 +105,35 @@ func set_coins(n: int) -> void:
 	var delta := n - coins
 	coins = n
 	coins_changed.emit(delta)
+
+
+## Passaportes que o jogador tem (o do país de residência primeiro).
+func passports() -> Array:
+	var list: Variant = me.get("passports")
+	if list is Array and not (list as Array).is_empty():
+		return list
+	return [str(me.get("country", ""))]
+
+
+func has_passport(code: String) -> bool:
+	return passports().has(code)
+
+
+## Guarda o livro de passaporte (resposta de /passport, /travel, /passport/buy…).
+func set_passport_book(book: Dictionary) -> void:
+	passport_book = book
+	if book.has("passports"):
+		me["passports"] = book["passports"]
+	if book.has("coins"):
+		set_coins(int(book["coins"]))
+
+
+## Já tem o carimbo do país?
+func stamped(code: String) -> bool:
+	for st: Dictionary in passport_book.get("stamps", []):
+		if str(st["country"]) == code:
+			return true
+	return false
 
 
 ## "1 moeda", "12 moedas".

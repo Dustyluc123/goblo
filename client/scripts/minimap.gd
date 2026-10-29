@@ -22,6 +22,8 @@ var _overlay: Control
 var _heading := 0.0
 ## Direção da casa (vetor unitário do centro do planeta); ZERO = sem casa.
 var _home := Vector3.ZERO
+## Direções dos aeroportos (aviõezinhos perto do jogador).
+var _airports: Array = []
 
 
 func _ready() -> void:
@@ -85,6 +87,17 @@ func _draw_overlay() -> void:
 			dir = dir.normalized() if dir.length() > 0.001 else Vector2.UP
 			screen = center + dir * size.x * 0.37
 		HomeIcon.draw(_overlay, screen + Vector2(0, -2), 22.0, 1.0 if front else 0.55)
+	# Aviõezinhos dos aeroportos na frente do globinho (perto do jogador).
+	for a: Vector3 in _airports:
+		var q := _globe.basis * a
+		if q.z < 0.6:
+			continue
+		var at := _cam.unproject_position(q) / Vector2(_viewport.size) * size
+		var poly := Airports.plane_polygon(at, 12.0)
+		var ring := poly.duplicate()
+		ring.append(poly[0])
+		_overlay.draw_polyline(ring, Color("3a6ea5"), 3.0, true)
+		_overlay.draw_colored_polygon(poly, Color.WHITE)
 	# Setinha: ponta para onde o jogador está virado (norte = para cima).
 	var fwd := Vector2(sin(_heading), -cos(_heading))
 	var side := Vector2(-fwd.y, fwd.x)
@@ -102,6 +115,12 @@ func _resize_viewport() -> void:
 	var side := int(clampf(SIZE * maxf(px, 1.0), SIZE, 1024))
 	_viewport.size = Vector2i(side, side)
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+
+## Aeroportos (direções a partir do centro do planeta) para os aviõezinhos.
+func set_airports(dirs: Array) -> void:
+	_airports = dirs
+	_overlay.queue_redraw()
 
 
 ## Fase da estação no hemisfério norte (Seasons): o globinho mostra a diferença entre os

@@ -23,6 +23,7 @@ var vegetation: Vegetation
 var icons: ItemIcons
 var neighborhood: Neighborhood
 var animals: Animals
+var airports: Airports
 ## Alvo atual: {"type": "object", "obj": {...}} ou {"type": "workbench", "pos": Vector3}.
 var target := {}
 
@@ -66,6 +67,13 @@ func _find_target() -> Dictionary:
 			if dist < best_score:
 				best_score = dist
 				best = {"type": "animal", "animal": an}
+	if airports:
+		var ap := airports.counter_near(pos)
+		if not ap.is_empty():
+			var dist := airports.counter_point(ap).distance_to(pos) - 0.5
+			if dist < best_score:
+				best_score = dist
+				best = {"type": "airport", "airport": ap, "pos": airports.counter_point(ap)}
 	for kind: String in ["workbench", "sell_box"]:
 		for wb: Vector3 in _own_placements(kind):
 			var dist := wb.distance_to(pos)
@@ -113,6 +121,8 @@ func _prompt_text(t: Dictionary) -> String:
 		return "E: bancada"
 	if t["type"] == "sell_box":
 		return "E: caixa de vendas"
+	if t["type"] == "airport":
+		return "E: balcão do aeroporto (viagens e passaportes)"
 	if t["type"] == "animal":
 		var an: Dictionary = t["animal"]
 		if _wants_fruit(an):
@@ -164,6 +174,10 @@ func interact() -> Dictionary:
 		return {"ok": true}
 	if target["type"] == "animal":
 		return await _animal(target["animal"])
+	if target["type"] == "airport":
+		player.face(target["pos"])
+		ui.travel.open(target["airport"])
+		return {"ok": true}
 	var o: Dictionary = target["obj"]
 	var action := _action(o)
 	if action.is_empty():

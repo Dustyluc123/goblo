@@ -22,6 +22,8 @@ var first_access: FirstAccess
 var settings: SettingsUi
 var sell: SellUi
 var pedia: PediaUi
+var travel: TravelUi
+var passport: PassportUi
 ## Todas as janelas (menus): qualquer uma aberta trava o jogo e solta o cursor. Janela nova
 ## só precisa entrar aqui (add_window).
 var windows: Array[Control] = []
@@ -98,6 +100,8 @@ func _ready() -> void:
 	settings = add_window(SettingsUi.new()) as SettingsUi
 	sell = add_window(SellUi.new()) as SellUi
 	pedia = add_window(PediaUi.new()) as PediaUi
+	travel = add_window(TravelUi.new()) as TravelUi
+	passport = add_window(PassportUi.new()) as PassportUi
 
 
 ## Registra uma janela (menu) e a coloca na tela.
@@ -114,6 +118,8 @@ func setup(game: GameMain, session: Session, icons: ItemIcons, countries: Dictio
 	craft.setup(game, session, icons)
 	dev.setup(game, session, icons, countries)
 	sell.setup(game, session, icons)
+	travel.setup(game, session)
+	passport.setup(game, session)
 
 
 ## Mostra a tela de primeiro acesso.
