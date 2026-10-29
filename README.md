@@ -53,7 +53,7 @@ O ciclo central é o do Animal Crossing: **coletar materiais → fabricar ferram
 
 - Globo low-poly com os países reais, 25.002 hexágonos num planeta de raio 1000, zoom do personagem até o planeta inteiro
 - Personagem animado que anda e pula por cima da esfera; São Paulo → Venezuela leva ~2 min andando
-- Biomas do servidor, dia e noite pelo horário real (UTC), oceano animado, nuvens, bússola, mini mapa, qualidade gráfica (F6)
+- Biomas do servidor, dia e noite pelo horário real (UTC), oceano animado, nuvens, bússola, mini mapa, configurações (F6: qualidade gráfica, tamanho da interface, tela cheia)
 
 **Fase 2: coletar e construir**
 
@@ -296,7 +296,8 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | **F1** | painel do modo dev (servidor com `GOBLO_DEV=1`) |
 | F2 | painel de desempenho |
 | F3 / F4 | acelerar o tempo do céu / voltar ao horário real |
-| F6 | trocar a qualidade (baixa, média, alta) |
+| F6 | configurações: qualidade (baixa, média, alta), tamanho da interface, tela cheia |
+| F11 | tela cheia |
 
 ## Testes
 

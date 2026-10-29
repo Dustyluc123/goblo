@@ -36,17 +36,17 @@ func refresh() -> void:
 	for i in SLOTS:
 		var id: String = tools[i] if i < tools.size() else ""
 		var p := PanelContainer.new()
-		p.custom_minimum_size = Vector2(58, 58)
+		p.custom_minimum_size = Vector2(64, 64)
 		p.add_theme_stylebox_override("panel", UiStyle.slot(not id.is_empty() and id == session.equipped, id.is_empty()))
 		if not id.is_empty():
 			var icon := TextureRect.new()
 			icon.texture = icons.icon(id)
 			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon.custom_minimum_size = Vector2(46, 46)
+			icon.custom_minimum_size = Vector2(52, 52)
 			icon.tooltip_text = session.item_name(id)
 			p.add_child(icon)
-		var n := UiStyle.label(str(i + 1), 12, UiStyle.INK_SOFT)
+		var n := UiStyle.label(str(i + 1), 14, UiStyle.INK_SOFT)
 		n.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 		p.add_child(n)
 		add_child(p)

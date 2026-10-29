@@ -3,8 +3,8 @@ extends Control
 ## Bússola no topo da tela: mostra N, L, S, O (e intermediários) em relação à direção
 ## para onde a câmera olha, no lugar onde o personagem está.
 
-const WIDTH := 380.0
-const HEIGHT := 34.0
+const WIDTH := 440.0
+const HEIGHT := 40.0
 const SPAN := 180.0  # graus visíveis na faixa
 const LABELS := {0: "N", 45: "NE", 90: "L", 135: "SE", 180: "S", 225: "SO", 270: "O", 315: "NO"}
 
@@ -50,7 +50,7 @@ func _draw() -> void:
 		var fade := 1.0 - absf(rel) / (SPAN * 0.5)
 		if LABELS.has(deg):
 			var text: String = LABELS[deg]
-			var fs := 18 if deg % 90 == 0 else 13
+			var fs := 21 if deg % 90 == 0 else 16
 			var col := Color("e0566b") if deg == 0 else ink
 			col.a = 0.35 + 0.65 * fade
 			var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x

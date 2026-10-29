@@ -22,20 +22,20 @@ var _countries: Array = []
 
 func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.panel(22, Color("fdf6ff")))
-	custom_minimum_size = Vector2(520, 470)
+	custom_minimum_size = Vector2(620, 540)
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
 	offset_left = 16
-	offset_top = -235
-	offset_bottom = 235
+	offset_top = -210
+	offset_bottom = 330
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	add_child(box)
 	var head := HBoxContainer.new()
 	box.add_child(head)
-	var title := UiStyle.label("Modo dev", 22, Color("6b4c9a"))
+	var title := UiStyle.label("Modo dev", 24, Color("6b4c9a"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
-	head.add_child(UiStyle.label("F1 fecha", 13, UiStyle.INK_SOFT))
+	head.add_child(UiStyle.label("F1 fecha", 15, UiStyle.INK_SOFT))
 	var tabs := TabContainer.new()
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	UiStyle.tabs(tabs)
@@ -43,7 +43,7 @@ func _ready() -> void:
 	tabs.add_child(_items_tab())
 	tabs.add_child(_world_tab())
 	tabs.add_child(_player_tab())
-	_status = UiStyle.label("", 13, UiStyle.INK_SOFT)
+	_status = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
 	visible = false
@@ -85,12 +85,12 @@ func _items_tab() -> Control:
 	box.add_child(_item_search)
 	_item_list = UiStyle.item_list()
 	_item_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_item_list.fixed_icon_size = Vector2i(28, 28)
+	_item_list.fixed_icon_size = Vector2i(32, 32)
 	_item_list.item_activated.connect(func(_i: int) -> void: _give())
 	box.add_child(_item_list)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
-	row.add_child(UiStyle.label("Quantidade", 15))
+	row.add_child(UiStyle.label("Quantidade", 17))
 	_count = SpinBox.new()
 	_count.min_value = 1
 	_count.max_value = 999
@@ -151,9 +151,9 @@ func _world_tab() -> Control:
 	var row2 := HBoxContainer.new()
 	row2.add_theme_constant_override("separation", 6)
 	_lat = UiStyle.line_edit("lat (ex.: -3)")
-	_lat.custom_minimum_size = Vector2(110, 0)
+	_lat.custom_minimum_size = Vector2(150, 0)
 	_lon = UiStyle.line_edit("lon (ex.: -60)")
-	_lon.custom_minimum_size = Vector2(110, 0)
+	_lon.custom_minimum_size = Vector2(150, 0)
 	row2.add_child(_lat)
 	row2.add_child(_lon)
 	var go := UiStyle.button("Ir")
@@ -179,7 +179,7 @@ func _world_tab() -> Control:
 	real.pressed.connect(func() -> void: game.time_real())
 	row3.add_child(real)
 	box.add_child(row3)
-	box.add_child(UiStyle.label("Voando: WASD, Espaço sobe, Shift desce/acelera.", 12, UiStyle.INK_SOFT))
+	box.add_child(UiStyle.label("Voando: WASD, Espaço sobe, Ctrl desce, Shift acelera.", 15, UiStyle.INK_SOFT))
 	return box
 
 

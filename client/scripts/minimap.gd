@@ -1,32 +1,42 @@
 class_name Minimap
-extends SubViewportContainer
+extends Control
 ## Mini mapa: um globinho no canto da tela, sempre virado para a posição do jogador (com o
 ## norte para cima), com um ponto marcando onde ele está e a linha dia/noite.
 ## Fica num SubViewport com mundo 3D próprio, então não interfere na cena principal.
+## O SubViewport renderiza na resolução real da tela (não na base 1280 × 720), para o
+## globinho ficar nítido em tela Retina; um TextureRect mostra o resultado.
 
-const SIZE := 170
+const SIZE := 210
 const TEX_W := 512
 const TEX_H := 256
 const SHADER := preload("res://shaders/minimap_globe.gdshader")
 
 var _viewport: SubViewport
+var _view: TextureRect
 var _globe: MeshInstance3D
 var _material: ShaderMaterial
 
 
 func _ready() -> void:
-	stretch = true
 	custom_minimum_size = Vector2(SIZE, SIZE)
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_viewport = SubViewport.new()
-	_viewport.size = Vector2i(SIZE, SIZE)
 	_viewport.own_world_3d = true
 	_viewport.transparent_bg = true
 	_viewport.msaa_3d = Viewport.MSAA_2X
 	# Renderiza só 10 vezes por segundo (o globinho muda devagar).
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	add_child(_viewport)
+	_view = TextureRect.new()
+	_view.texture = _viewport.get_texture()
+	_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_view.stretch_mode = TextureRect.STRETCH_SCALE
+	_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_view)
+	_resize_viewport()
+	get_viewport().size_changed.connect(_resize_viewport)
 
 	var cam := Camera3D.new()
 	cam.position = Vector3(0, 0, 3.4)
@@ -67,6 +77,14 @@ func _ready() -> void:
 	ring.position = Vector3(0, 0, 1.03)
 	ring.rotation.x = PI / 2
 	_viewport.add_child(ring)
+
+
+## Tamanho do SubViewport em pixels de verdade (tamanho na tela × escala da interface).
+func _resize_viewport() -> void:
+	var px := get_global_transform_with_canvas().get_scale().x * get_viewport().get_final_transform().get_scale().x
+	var side := int(clampf(SIZE * maxf(px, 1.0), SIZE, 1024))
+	_viewport.size = Vector2i(side, side)
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
 ## Pinta a textura do mapa a partir do mundo (uma vez, ao carregar).

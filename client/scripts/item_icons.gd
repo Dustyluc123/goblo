@@ -6,7 +6,7 @@ extends Node
 
 signal icon_ready(id: String)
 
-const SIZE := 96
+const SIZE := 192
 
 var _icons := {}  # id → Texture2D
 var _queue: Array = []

@@ -59,7 +59,7 @@ static func button(text: String, primary := true) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_size_override("font_size", 16)
+	b.add_theme_font_size_override("font_size", 18)
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		var s := StyleBoxFlat.new()
 		var base := ACCENT if primary else CREAM_DARK
@@ -74,8 +74,8 @@ static func button(text: String, primary := true) -> Button:
 		s.set_corner_radius_all(14)
 		s.content_margin_left = 16
 		s.content_margin_right = 16
-		s.content_margin_top = 7
-		s.content_margin_bottom = 7
+		s.content_margin_top = 10
+		s.content_margin_bottom = 10
 		b.add_theme_stylebox_override(state, s)
 	b.add_theme_color_override("font_color", Color.WHITE if primary else INK)
 	b.add_theme_color_override("font_hover_color", Color.WHITE if primary else INK)
@@ -87,14 +87,14 @@ static func button(text: String, primary := true) -> Button:
 static func line_edit(placeholder: String) -> LineEdit:
 	var e := LineEdit.new()
 	e.placeholder_text = placeholder
-	e.add_theme_font_size_override("font_size", 16)
+	e.add_theme_font_size_override("font_size", 18)
 	var s := StyleBoxFlat.new()
 	s.bg_color = Color.WHITE
 	s.set_corner_radius_all(12)
 	s.content_margin_left = 12
 	s.content_margin_right = 12
-	s.content_margin_top = 6
-	s.content_margin_bottom = 6
+	s.content_margin_top = 10
+	s.content_margin_bottom = 10
 	s.border_color = Color(0.55, 0.42, 0.3, 0.25)
 	s.set_border_width_all(2)
 	e.add_theme_stylebox_override("normal", s)
@@ -108,7 +108,9 @@ static func line_edit(placeholder: String) -> LineEdit:
 
 static func item_list() -> ItemList:
 	var l := ItemList.new()
-	l.add_theme_font_size_override("font_size", 15)
+	l.add_theme_font_size_override("font_size", 17)
+	l.add_theme_constant_override("v_separation", 10)
+	l.add_theme_constant_override("h_separation", 10)
 	l.add_theme_color_override("font_color", INK)
 	l.add_theme_color_override("font_selected_color", INK)
 	var bg := StyleBoxFlat.new()
@@ -153,13 +155,13 @@ static func tabs(tc: TabContainer) -> void:
 		t.corner_radius_top_right = 12
 		t.content_margin_left = 14
 		t.content_margin_right = 14
-		t.content_margin_top = 6
-		t.content_margin_bottom = 6
+		t.content_margin_top = 8
+		t.content_margin_bottom = 8
 		tc.add_theme_stylebox_override(state, t)
 	tc.add_theme_color_override("font_selected_color", INK)
 	tc.add_theme_color_override("font_unselected_color", INK_SOFT)
 	tc.add_theme_color_override("font_hovered_color", INK)
-	tc.add_theme_font_size_override("font_size", 15)
+	tc.add_theme_font_size_override("font_size", 17)
 
 
 ## SpinBox clarinho, combinando com os campos de texto.

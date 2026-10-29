@@ -16,6 +16,8 @@ var _compass: Compass
 var _minimap: Minimap
 var _perf: Label
 var _dev_badge: Label
+var _help: Label
+var _info_box: VBoxContainer
 
 
 func _ready() -> void:
@@ -26,9 +28,10 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
 	card.add_child(box)
-	_country = _label(24, INK)
-	_coords = _label(15, INK_SOFT)
-	_time = _label(15, INK_SOFT)
+	_country = _label(26, INK)
+	_coords = _label(17, INK_SOFT)
+	_time = _label(17, INK_SOFT)
+	_info_box = box
 	box.add_child(_country)
 	box.add_child(_coords)
 	box.add_child(_time)
@@ -41,19 +44,20 @@ func _ready() -> void:
 	_status_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_status_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(_status_panel)
-	_status = _label(18, INK)
+	_status = _label(20, INK)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_panel.add_child(_status)
 
-	var help := _label(13, Color(1, 1, 1, 0.9))
-	help.text = "WASD andar · Shift correr · Espaço pular · E interagir · Tab/I bolso · 1–5 ferramentas · B construir · H casa\nbotão direito gira a câmera (ou Q/C) · roda do mouse: zoom · F2 desempenho · F3 acelera o tempo · F4 hora real · F6 qualidade"
+	var help := _label(15, Color(1, 1, 1, 0.92))
+	help.text = "WASD andar · Shift correr · Espaço pular · E interagir · Tab/I bolso · 1–5 ferramentas · B construir · H casa\nbotão direito gira a câmera (ou Q/C) · roda do mouse: zoom · F2 desempenho · F3/F4 tempo · F6 configurações · F11 tela cheia"
 	help.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
-	help.add_theme_constant_override("outline_size", 4)
+	help.add_theme_constant_override("outline_size", 5)
 	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	help.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	help.offset_left = 16
 	help.offset_bottom = -12
 	add_child(help)
+	_help = help
 
 	_compass = Compass.new()
 	_compass.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -71,7 +75,7 @@ func _ready() -> void:
 	_minimap.offset_bottom = -14
 	add_child(_minimap)
 
-	_perf = _label(13, INK)
+	_perf = _label(15, INK)
 	var perf_card := PanelContainer.new()
 	perf_card.add_theme_stylebox_override("panel", _card_style())
 	perf_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -83,13 +87,18 @@ func _ready() -> void:
 	add_child(perf_card)
 
 
+## A linha de controles some enquanto uma janela está aberta (para não ficar por baixo).
+func set_help_visible(on: bool) -> void:
+	_help.visible = on
+
+
 ## Mostra o selo "MODO DEV · F1" quando o servidor está com GOBLO_DEV=1.
 func set_dev(on: bool) -> void:
 	if _dev_badge == null:
-		_dev_badge = _label(13, Color("6b4c9a"))
+		_dev_badge = _label(15, Color("6b4c9a"))
 		_dev_badge.text = "MODO DEV · F1 abre o painel"
-		_dev_badge.position = Vector2(22, 126)
-		add_child(_dev_badge)
+		# Dentro do cartão (embaixo da hora), para não sobrepor nada com a interface maior.
+		_info_box.add_child(_dev_badge)
 	_dev_badge.visible = on
 
 

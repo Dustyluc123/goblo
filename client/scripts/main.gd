@@ -25,6 +25,10 @@ extends Node3D
 ##   --route=LAT,LON     piloto automático até a coordenada; imprime o tempo e fecha
 ##   --perf-test=SEG     anda pela região medindo fps; imprime média e 1% piores e fecha
 ##   --tour              passeio automático (anda, afasta, gira, volta) e fecha
+##   --fullscreen-test   entra em tela cheia antes do teste (combine com --perf-test)
+##   --ui-scale=1.25     tamanho da interface só nesta execução
+##   --window-size=WxH   abre em janela desse tamanho (em vez de maximizada)
+##   --no-focus          janela de teste que não pega o foco (tools/sem_foco.sh usa)
 
 const DEFAULT_SERVER := "http://127.0.0.1:8080"
 const RETRY_SECONDS := 3.0
@@ -85,8 +89,24 @@ func _ready() -> void:
 		_day_night.set_utc_hour(float(_args["utc"]))
 	if _args.has("quality"):
 		Quality.set_quality(str(_args["quality"]), false)
+	if _args.has("ui-scale"):
+		Quality.set_ui_scale(float(_args["ui-scale"]), false)
+	if _args.has("fullscreen-test"):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	if _args.has("no-focus"):
+		# Testes: janela comum (não maximizada), que não pega o foco nem vem para a frente.
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_NO_FOCUS, true)
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_size(Vector2i(1600, 900))
+	if _args.has("window-size"):
+		var wh := str(_args["window-size"]).split("x")
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		DisplayServer.window_set_size(Vector2i(int(wh[0]), int(wh[1])))
 	Quality.emitter.changed.connect(_apply_quality)
+	Quality.emitter.ui_changed.connect(_apply_ui_scale)
+	get_viewport().size_changed.connect(_apply_render_scale)
 	_apply_quality()
+	_apply_ui_scale()
 
 	_api = Api.new()
 	_api.base_url = _server_url
@@ -238,6 +258,7 @@ func _identify() -> bool:
 	elif _args.get("ui", "") == "first":
 		# Screenshot da tela de primeiro acesso (testes): mostra, fotografa e fecha.
 		_hud.hide_status()
+		_hud.set_help_visible(false)
 		_ui.show_first_access(world.countries, detected, source)
 		await get_tree().create_timer(1.5).timeout
 		await RenderingServer.frame_post_draw
@@ -246,6 +267,7 @@ func _identify() -> bool:
 		return false
 	else:
 		_hud.hide_status()
+		_hud.set_help_visible(false)
 		var screen := _ui.show_first_access(world.countries, detected, source)
 		while true:
 			var sub: Array = await screen.submitted
@@ -397,6 +419,9 @@ func _process(delta: float) -> void:
 	var focus := get_viewport().gui_get_focus_owner()
 	var typing := focus is LineEdit or focus is SpinBox
 	_player.input_blocked = typing or _ui.blocking()
+	_hud.set_help_visible(not _ui.any_open())
+	# A barra rápida some atrás das janelas grandes (bolso, bancada, dev, configurações).
+	_ui.hotbar.visible = not (_ui.blocking() or _ui.dev.visible or _ui.settings.visible)
 	_camera.input_blocked = typing
 	_collision_timer -= delta
 	if _collision_timer <= 0.0:
@@ -434,8 +459,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F4:
 			time_real()
 		KEY_F6:
-			Quality.cycle()
-			_hud.flash("Qualidade: %s" % Quality.label())
+			_ui.settings.toggle()
+		KEY_F11:
+			SettingsUi.toggle_fullscreen()
 	if not _ready_to_play:
 		return
 	if event.is_action_pressed("dev_panel"):
@@ -470,8 +496,24 @@ func _apply_quality() -> void:
 	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if q["big_shadows"] else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	_day_night.set_shadows_wanted(q["shadows"])
 	_sun.directional_shadow_max_distance = maxf(1.0, q["shadow_distance"])
+	_apply_render_scale()
 	if _data:
 		_data.radius = float(q["big_radius"]) + 20.0
+
+
+## Resolução do 3D: em telas grandes (Retina), o 3D é renderizado menor e ampliado com
+## FSR; a interface continua nítida, na resolução cheia (Quality.render_scale).
+func _apply_render_scale() -> void:
+	var vp := get_viewport()
+	var s := Quality.render_scale(float(DisplayServer.window_get_size().y))
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if s < 0.99 else Viewport.SCALING_3D_MODE_BILINEAR
+	vp.scaling_3d_scale = s
+	vp.fsr_sharpness = 0.2
+
+
+## Tamanho da interface escolhido nas configurações (multiplica a escala da janela).
+func _apply_ui_scale() -> void:
+	get_tree().root.content_scale_factor = Quality.ui_scale()
 
 
 # --- Ações chamadas pelas janelas ----------------------------------------------------------
@@ -719,6 +761,8 @@ func _run_automation() -> void:
 			_ui.craft.get_child(0).get_child(1).current_tab = 1
 		"dev":
 			_ui.dev.toggle()
+		"settings":
+			_ui.settings.toggle()
 		"build":
 			_build.enter()
 			Input.warp_mouse(get_viewport().get_visible_rect().size * Vector2(0.55, 0.6))
@@ -916,6 +960,12 @@ func _perf_test() -> void:
 		int(draw_calls / n), primitives / n / 1000.0, _vegetation.instance_count, Engine.get_version_info()["string"]])
 	print("Goblo: tempo médio por quadro: física %.1f ms, render CPU %.1f ms, GPU %.1f ms; GPU: %s" % [
 		phys_ms / n, cpu_ms / n, gpu_ms / n, RenderingServer.get_video_adapter_name()])
+	var vp := get_viewport()
+	var win := DisplayServer.window_get_size()
+	print("Goblo: janela %d × %d (%s), 3D em %d%% (%d × %d, %s), interface %d%%" % [win.x, win.y,
+		"tela cheia" if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else "janela",
+		roundi(vp.scaling_3d_scale * 100.0), int(win.x * vp.scaling_3d_scale), int(win.y * vp.scaling_3d_scale),
+		"FSR" if vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_FSR else "bilinear", roundi(Quality.ui_scale() * 100.0)])
 	get_tree().quit()
 
 

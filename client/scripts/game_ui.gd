@@ -10,6 +10,7 @@ var inventory: InventoryUi
 var craft: CraftUi
 var dev: DevPanel
 var first_access: FirstAccess
+var settings: SettingsUi
 var build_bar: PanelContainer
 var _build_items: HBoxContainer
 var _build_hint: Label
@@ -19,7 +20,7 @@ var _icons: ItemIcons
 
 func _ready() -> void:
 	layer = 2
-	prompt = UiStyle.label("", 18, UiStyle.INK)
+	prompt = UiStyle.label("", 20, UiStyle.INK)
 	var prompt_card := PanelContainer.new()
 	prompt_card.name = "Prompt"
 	prompt_card.add_theme_stylebox_override("panel", UiStyle.panel(16, Color(1, 0.98, 0.94, 0.95), 12))
@@ -27,7 +28,7 @@ func _ready() -> void:
 	prompt_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	prompt_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	prompt_card.offset_bottom = -124
+	prompt_card.offset_bottom = -140
 	prompt_card.visible = false
 	add_child(prompt_card)
 
@@ -35,7 +36,7 @@ func _ready() -> void:
 	hotbar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	hotbar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	hotbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hotbar.offset_bottom = -52
+	hotbar.offset_bottom = -62
 	add_child(hotbar)
 
 	_toasts = VBoxContainer.new()
@@ -51,10 +52,10 @@ func _ready() -> void:
 	build_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	build_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	build_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	build_bar.offset_bottom = -120
+	build_bar.offset_bottom = -138
 	var bb := VBoxContainer.new()
 	build_bar.add_child(bb)
-	_build_hint = UiStyle.label("", 14, UiStyle.INK)
+	_build_hint = UiStyle.label("", 16, UiStyle.INK)
 	_build_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bb.add_child(_build_hint)
 	_build_items = HBoxContainer.new()
@@ -70,6 +71,8 @@ func _ready() -> void:
 	add_child(craft)
 	dev = DevPanel.new()
 	add_child(dev)
+	settings = SettingsUi.new()
+	add_child(settings)
 
 
 func setup(game: GameMain, session: Session, icons: ItemIcons, countries: Dictionary) -> void:
@@ -110,11 +113,11 @@ func toast(text: String, item := "") -> void:
 	if not item.is_empty() and _icons:
 		var ic := TextureRect.new()
 		ic.texture = _icons.icon(item)
-		ic.custom_minimum_size = Vector2(32, 32)
+		ic.custom_minimum_size = Vector2(36, 36)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		row.add_child(ic)
-	row.add_child(UiStyle.label(text, 16))
+	row.add_child(UiStyle.label(text, 17))
 	_toasts.add_child(card)
 	card.pivot_offset = Vector2(60, 20)
 	card.scale = Vector2(0.6, 0.6)
@@ -141,7 +144,7 @@ func show_build_bar(session: Session, current: String, house: bool, on_pick: Cal
 		if not session.is_placeable(id):
 			continue
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(56, 56)
+		b.custom_minimum_size = Vector2(64, 64)
 		b.focus_mode = Control.FOCUS_NONE
 		b.tooltip_text = "%s (%d)" % [session.item_name(id), int(s["count"])]
 		b.icon = _icons.icon(id)
@@ -158,14 +161,20 @@ func hide_build_bar() -> void:
 	build_bar.visible = false
 
 
+## Alguma janela (ou a barra do modo construção) está aberta?
+func any_open() -> bool:
+	return blocking() or dev.visible or settings.visible or build_bar.visible
+
+
 ## Alguma janela que deve travar o personagem está aberta?
 func blocking() -> bool:
 	return inventory.visible or craft.visible or first_access != null
 
 
 func close_windows() -> bool:
-	var any := inventory.visible or craft.visible or dev.visible
+	var any := inventory.visible or craft.visible or dev.visible or settings.visible
 	inventory.visible = false
 	craft.visible = false
 	dev.visible = false
+	settings.visible = false
 	return any

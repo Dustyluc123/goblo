@@ -23,16 +23,16 @@ func _ready() -> void:
 	add_child(box)
 	var head := HBoxContainer.new()
 	box.add_child(head)
-	_title = UiStyle.label("Bolso", 24)
+	_title = UiStyle.label("Bolso", 26)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
-	head.add_child(UiStyle.label("Tab fecha", 13, UiStyle.INK_SOFT))
+	head.add_child(UiStyle.label("Tab fecha", 15, UiStyle.INK_SOFT))
 	_grid = GridContainer.new()
 	_grid.columns = COLUMNS
 	_grid.add_theme_constant_override("h_separation", 8)
 	_grid.add_theme_constant_override("v_separation", 8)
 	box.add_child(_grid)
-	_hint = UiStyle.label("Clique numa ferramenta para segurar, ou num objeto para colocar no lote.", 13, UiStyle.INK_SOFT)
+	_hint = UiStyle.label("Clique numa ferramenta para segurar, ou num objeto para colocar no lote.", 15, UiStyle.INK_SOFT)
 	box.add_child(_hint)
 	visible = false
 
@@ -73,7 +73,7 @@ func refresh() -> void:
 
 func _slot(entry: Array) -> Control:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(76, 76)
+	b.custom_minimum_size = Vector2(84, 84)
 	b.focus_mode = Control.FOCUS_NONE
 	var empty := entry.is_empty()
 	var selected: bool = not empty and session.equipped == entry[0]
@@ -95,7 +95,7 @@ func _slot(entry: Array) -> Control:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(icon)
 	if int(entry[1]) > 1:
-		var n := UiStyle.label(str(entry[1]), 14, UiStyle.INK)
+		var n := UiStyle.label(str(entry[1]), 16, UiStyle.INK)
 		n.add_theme_color_override("font_outline_color", Color.WHITE)
 		n.add_theme_constant_override("outline_size", 6)
 		n.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
