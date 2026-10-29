@@ -4,16 +4,16 @@ extends Node
 ## pedras grandes, casas), para ele nunca sumir atrás de nada.
 ##
 ## Tudo no CPU, por objeto, 10 vezes por segundo: as árvores são instâncias de MultiMesh,
-## então a instância é escondida e uma cópia (MeshInstance3D com `transparency`) aparece
-## no lugar; as casas são MeshInstance3D e só ganham `transparency`. Assim nenhum shader
-## precisa de `discard` (que desligaria o early-z e custaria fps em todo o mundo).
+## então a instância é escondida e uma cópia com material transparente aparece no lugar;
+## nas casas, as superfícies ganham o material transparente. Assim nenhum shader do mundo
+## precisa de `discard` (que desligaria o early-z e custaria fps em todo lugar).
+## (A propriedade `transparency` do GeometryInstance3D não funciona no renderizador Mobile.)
 
 const UPDATE_EVERY := 0.1
-## Transparência dos objetos no caminho (0 = opaco, 1 = invisível).
-const FADED := 0.65
+## Opacidade dos objetos no caminho (0 = invisível, 1 = opaco).
+const ALPHA := 0.32
 ## Só objetos com raio de copa a partir disso (grama, flores e pedrinhas ficam de fora).
 const MIN_RADIUS := 0.45
-const FADE_SPEED := 8.0
 
 var camera: CameraRig
 var player: Node3D
@@ -24,14 +24,28 @@ var neighborhood: Neighborhood
 var _timer := 0.0
 ## id do objeto → {"ghost": MeshInstance3D, "o": Dictionary}
 var _faded := {}
-## casas desbotadas: MeshInstance3D → transparência alvo
+## casas desbotadas: MeshInstance3D → true
 var _houses := {}
+## material original → cópia transparente
+static var _see_through := {}
+
+
+## Cópia transparente de um material (cacheada).
+static func see_through(mat: Material) -> Material:
+	if mat == null or not (mat is BaseMaterial3D):
+		return mat
+	if not _see_through.has(mat):
+		var m := (mat as BaseMaterial3D).duplicate() as BaseMaterial3D
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
+		m.albedo_color.a = ALPHA
+		_see_through[mat] = m
+	return _see_through[mat]
 
 
 func _process(delta: float) -> void:
 	if camera == null or data == null or data.world == null:
 		return
-	_animate_houses(delta)
 	_timer -= delta
 	if _timer > 0.0:
 		return
@@ -80,7 +94,8 @@ func _fade_tree(o: Dictionary) -> void:
 	var ghost := MeshInstance3D.new()
 	ghost.mesh = lib["mesh"]
 	ghost.transform = Transform3D(o["basis"], o["pos"])
-	ghost.transparency = FADED
+	for i in ghost.mesh.get_surface_count():
+		ghost.set_surface_override_material(i, see_through(ghost.mesh.surface_get_material(i)))
 	ghost.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(ghost)
 	vegetation.set_object_visible(o["id"], false)
@@ -119,20 +134,14 @@ func _update_houses(cam: Vector3, head: Vector3, active: bool) -> void:
 		if not is_instance_valid(mi):
 			_houses.erase(mi)
 		elif not hit.has(mi):
-			_houses[mi] = 0.0
+			for i in mi.mesh.get_surface_count():
+				mi.set_surface_override_material(i, null)
+			_houses.erase(mi)
 	for mi: MeshInstance3D in hit:
-		_houses[mi] = FADED
-
-
-func _animate_houses(delta: float) -> void:
-	for mi: MeshInstance3D in _houses.keys():
-		if not is_instance_valid(mi):
-			_houses.erase(mi)
-			continue
-		var goal: float = _houses[mi]
-		mi.transparency = move_toward(mi.transparency, goal, FADE_SPEED * delta * FADED)
-		if goal == 0.0 and mi.transparency == 0.0:
-			_houses.erase(mi)
+		if not _houses.has(mi):
+			for i in mi.mesh.get_surface_count():
+				mi.set_surface_override_material(i, see_through(mi.mesh.surface_get_material(i)))
+			_houses[mi] = true
 
 
 ## Quantos objetos estão desbotados agora (testes).

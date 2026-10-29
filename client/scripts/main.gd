@@ -860,9 +860,14 @@ func _run_automation() -> void:
 	if _args.has("ui"):
 		await get_tree().create_timer(1.0).timeout
 	await RenderingServer.frame_post_draw
+	if _args.has("debug-occlusion"):
+		for id: int in _occlusion._faded:
+			var inst: Array = _vegetation._instances.get(id, [])
+			var g: MeshInstance3D = _occlusion._faded[id]["ghost"]
+			print("DBG id ", id, " instância: ", (inst[0] as MultiMesh).get_instance_transform(inst[1]).basis.get_scale() if not inst.is_empty() else "sem instância", " fantasma transp ", g.transparency, " visível ", g.is_visible_in_tree())
 	var path := str(_args["screenshot"])
 	var err := get_viewport().get_texture().get_image().save_png(path)
-	print("Goblo: screenshot salvo em %s (erro %d)" % [path, err])
+	print("Goblo: screenshot salvo em %s (erro %d, %d objetos transparentes na frente da câmera)" % [path, err, _occlusion.faded_count()])
 	get_tree().quit(0 if err == OK else 1)
 
 
