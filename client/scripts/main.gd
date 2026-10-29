@@ -28,6 +28,7 @@ extends Node3D
 ##   --fullscreen-test   entra em tela cheia antes do teste (combine com --perf-test)
 ##   --ui-scale=1.25     tamanho da interface só nesta execução
 ##   --window-size=WxH   abre em janela desse tamanho (em vez de maximizada)
+##   --fps-limit=N       limite de fps só nesta execução (30, 60 ou 0 = sem limite)
 ##   --no-focus          janela de teste que não pega o foco (tools/sem_foco.sh usa)
 ##   --profile-scene     parado no lugar, mede GPU/CPU/draw calls ligando e desligando cada
 ##                       parte (sombras, árvores, grama, casas, chão, nuvens); com
@@ -44,6 +45,9 @@ extends Node3D
 ##                       nome no HUD, os dois hemisférios, os trópicos e a foto de outono
 ##   --travel-test       barreira da fronteira sem passaporte, carimbo ao entrar com ele,
 ##                       balcão do aeroporto, viagem de avião e livro do passaporte
+##   --hitch-test        passeio pelos momentos suspeitos de travar (correr, afastar a câmera,
+##                       Alemanha no outono, pampa com animais, modo foto, voo, casa, troca de
+##                       estação) e imprime as travadas (> 25 ms) do registro (servidor dev)
 ##   --cursor-test       voo, casa (H), teleporte do modo dev, menus, aviso da fronteira e
 ##                       plaquinha: depois de cada um, o cursor volta a ser capturado e o
 ##                       mouse gira a câmera sem clique (finge a janela na frente)
@@ -88,6 +92,7 @@ var _photo: PhotoMode
 var _pedia_art: PediaArt
 var _season_fx: SeasonFx
 var _airports: Airports
+var _hitches: HitchLog
 ## Voando (viagem de avião): o mundo não carrega pedaços pelo caminho.
 var _flying := false
 ## Barreira do passaporte ligada (o modo dev pode desligar).
@@ -150,6 +155,9 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_apply_render_scale)
 	_apply_quality()
 	_apply_ui_scale()
+	FpsLimit.apply()
+	if _args.has("fps-limit"):
+		FpsLimit.set_value(int(_args["fps-limit"]), false)
 
 	_api = Api.new()
 	_api.base_url = _server_url
@@ -193,6 +201,10 @@ func _ready() -> void:
 	_airports.name = "Airports"
 	add_child(_airports)
 	_session.equipped_changed.connect(_on_equipped)
+	_hitches = HitchLog.new()
+	_hitches.name = "HitchLog"
+	_hitches.game = self
+	add_child(_hitches)
 
 	_http = HTTPRequest.new()
 	_http.timeout = 30.0
@@ -256,6 +268,11 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	await Animals.preload_scenes(_session.animal_species, get_tree())
 	load_stats["models_ms"] = Time.get_ticks_msec() - tm
 	_setup_game()
+	_hud.show_status("Preparando os gráficos…")
+	tm = Time.get_ticks_msec()
+	var warmed := await ShaderWarmup.run(self, _camera, _warm_extras())
+	load_stats["warmup_ms"] = Time.get_ticks_msec() - tm
+	load_stats["warmup_items"] = warmed
 
 	var t1 := Time.get_ticks_msec()
 	var spawn_cell: int
@@ -272,9 +289,14 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	_camera.snap_behind_target()
 	await _data.load_now(spawn_pos, 60.0)
 	_vegetation.load_now(_player.global_position)
+	_neighborhood.flush()
 	load_stats["content_ms"] = Time.get_ticks_msec() - t1
 	_hud.hide_status()
 	_ready_to_play = true
+	var win := DisplayServer.window_get_size()
+	_hitches.start("qualidade %s · janela %d × %d · limite %s · V-Sync %s · %s" % [Quality.label(), win.x, win.y,
+		FpsLimit.label(), "ligado" if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else "desligado",
+		"automação" if _is_automation() else "jogo"])
 	# Cursor capturado durante o jogo (mover o mouse gira a câmera); nunca nas automações
 	# nem nas janelas de teste, para não prender o mouse de quem está usando o Mac.
 	_ui.mouse_capture = not _is_automation() and not _args.has("no-focus")
@@ -562,6 +584,82 @@ func _on_country_changed(code: String, walked: bool) -> void:
 		_ui.restore_control()
 
 
+## Coisas fora da ModelLibrary para o pré-aquecimento dos shaders: animais (com a
+## animação tocando), corações, partículas das estações, linha de fronteira, o arco do voo e
+## o destaque transparente.
+func _warm_extras() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for sp: String in Animals._scenes:
+		var a := (Animals._scenes[sp] as PackedScene).instantiate() as Node3D
+		a.set_meta("warm_size", maxf(Player._model_height(a), 0.1))
+		var aps := a.find_children("*", "AnimationPlayer", true, false)
+		if not aps.is_empty():
+			var ap := aps[0] as AnimationPlayer
+			if ap.has_animation("Idle"):
+				ap.play("Idle")
+		out.append(a)
+	var heart := Sprite3D.new()
+	heart.texture = Animals._heart_texture()
+	heart.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	heart.no_depth_test = true
+	heart.set_meta("warm_size", 0.25)
+	out.append(heart)
+	out.append_array(_season_fx.warm_nodes())
+	out.append_array(_border_lines.warm_nodes())
+	# Arco do voo (contas num MultiMesh e o pontinho), sem a escala do globo.
+	var arc := _flight_arc(Vector3(0, 0, 1), Vector3(0, 0.02, 1).normalized())
+	for c in arc.get_children():
+		arc.remove_child(c)
+		(c as Node3D).position = Vector3.ZERO
+		if c is MultiMeshInstance3D:
+			var mm := (c as MultiMeshInstance3D).multimesh
+			for i in mm.instance_count:
+				mm.set_instance_transform(i, Transform3D.IDENTITY)
+		out.append(c)
+	arc.free()
+	# Destaque da célula (transparente), com os vértices trazidos para perto da origem.
+	var hm := GlobeBuilder.highlight(world, 0)
+	var arrays := hm.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var shift := world.centers[0] * world.surface_radius(0)
+	for i in verts.size():
+		verts[i] -= shift
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var glow_mesh := ArrayMesh.new()
+	glow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	glow_mesh.surface_set_material(0, hm.surface_get_material(0))
+	var glow := MeshInstance3D.new()
+	glow.mesh = glow_mesh
+	out.append(glow)
+	return out
+
+
+## Onde o personagem está, para o registro de travadas.
+func hitch_where() -> String:
+	if world == null or _player.cell_id < 0:
+		return "carregando"
+	var ll := WorldData.vec_to_lat_lon(_player.global_position)
+	return "%s · célula %d (%s) · %s · %d fps · qualidade %s" % [WorldData.format_lat_lon(ll.x, ll.y), _player.cell_id,
+		world.biome_label(_player.cell_id), _tracker.current if _tracker else "?", Engine.get_frames_per_second(), Quality.label()]
+
+
+## O que está acontecendo agora (estado, não eventos), para o registro de travadas.
+func hitch_context() -> PackedStringArray:
+	var out := PackedStringArray()
+	if _flying:
+		out.append("voando")
+	if _camera.far_amount > 0.05:
+		out.append("câmera afastada %.0f%%" % (_camera.far_amount * 100.0))
+	if _photo.active:
+		out.append("modo foto")
+	if _api.in_flight > 0:
+		out.append("%d pedidos ao servidor em andamento" % _api.in_flight)
+	out.append("%d animais carregados" % _animals.active_count)
+	if not get_window().has_focus() and DisplayServer.get_name() != "headless":
+		out.append("janela sem foco (o Mac desacelera)")
+	return out
+
+
 ## Nome de um país (com ou sem hexágono).
 func country_name(code: String) -> String:
 	return _tracker.name_of(code) if _tracker else code
@@ -758,7 +856,8 @@ func _process(delta: float) -> void:
 			Engine.get_frames_per_second(), 1000.0 / maxf(1.0, Engine.get_frames_per_second()),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
-			_vegetation.instance_count, _data.all_lots().size(), _animals.active_count, _api.in_flight, Quality.label()])
+			_vegetation.instance_count, _data.all_lots().size(), _animals.active_count, _api.in_flight, Quality.label()]
+			+ "\n\n" + HitchLog.summary())
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
 		mat.albedo_color.a = 0.22 + 0.08 * sin(Time.get_ticks_msec() / 300.0)
@@ -986,9 +1085,11 @@ func apply_season(north: float) -> void:
 		await ModelLibrary.preload_all(missing, get_tree())
 		_hud.hide_status()
 	_season_north = north
+	var t0 := Time.get_ticks_usec()
 	GlobeBuilder.land_material().set_shader_parameter("season_phase", north)
 	_hud.set_season_phase(north)
 	_vegetation.set_season(north)
+	HitchLog.note("troca de estação (fase %.3f)" % north, (Time.get_ticks_usec() - t0) / 1000.0)
 	_season_busy = false
 
 
@@ -1234,7 +1335,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1271,6 +1372,9 @@ func _run_automation() -> void:
 	if _args.has("cursor-test"):
 		await _cursor_test()
 		return
+	if _args.has("hitch-test"):
+		await _hitch_test()
+		return
 	if _args.has("travel-test"):
 		await _travel_test()
 		return
@@ -1282,6 +1386,8 @@ func _run_automation() -> void:
 		return
 	if not (_args.has("smoke-test") or _args.has("screenshot")):
 		return
+	if _args.has("screenshot"):
+		await _screenshot_setup()
 	var start_cell := _player.cell_id
 	var walk := float(_args.get("walk", 3.0 if _args.has("smoke-test") else 0.0))
 	await get_tree().create_timer(0.5).timeout
@@ -1334,6 +1440,18 @@ func _run_automation() -> void:
 		"build":
 			_build.enter()
 			Input.warp_mouse(get_viewport().get_visible_rect().size * Vector2(0.55, 0.6))
+		"dev-viagem", "dev-natureza":
+			_ui.dev.toggle()
+			var tabs: TabContainer = _ui.dev.find_children("*", "TabContainer", true, false)[0]
+			for i in tabs.get_tab_count():
+				if tabs.get_tab_title(i).to_lower() == str(_args["ui"]).substr(4):
+					tabs.current_tab = i
+		"pedia":
+			_ui.pedia.toggle()
+		"passport":
+			_ui.passport.toggle()
+		"perf":
+			_hud.toggle_perf()
 	if _args.has("ui"):
 		await get_tree().create_timer(1.0).timeout
 	await RenderingServer.frame_post_draw
@@ -1341,6 +1459,72 @@ func _run_automation() -> void:
 	var err := get_viewport().get_texture().get_image().save_png(path)
 	print("Goblo: screenshot salvo em %s (erro %d, %d objetos transparentes na frente da câmera)" % [path, err, _occlusion.faded_count()])
 	get_tree().quit(0 if err == OK else 1)
+
+
+## Cenas das capturas (fase 2.6), antes do `--ui` e da foto (servidor dev):
+##   --season=winter|autumn|spring|summer  força a estação
+##   --look=GRAUS                          gira a câmera em volta do personagem
+##   --ui=welcome | photo | selfie | hearts | travel | flight | airport | pedia-full | passport-full
+func _screenshot_setup() -> void:
+	if _args.has("season"):
+		await dev_force_season(str(_args["season"]))
+		await get_tree().create_timer(1.5).timeout
+	var ui := str(_args.get("ui", ""))
+	match ui:
+		"photo", "selfie":
+			await dev_give("camera", 1)
+			_session.equip("camera")
+			await get_tree().create_timer(0.5).timeout
+			var a := _animals.nearest(_player.global_position, 40.0)
+			_photo.enter()
+			if not a.is_empty():
+				var up := _player.global_position.normalized()
+				var to: Vector3 = (a["pos"] as Vector3) - _player.global_position
+				_camera._heading = (to - up * to.dot(up)).normalized()
+				_camera.photo_pitch = -3.0
+			if ui == "selfie":
+				# De costas para o animal: ele aparece atrás do personagem.
+				_camera._heading = -_camera._heading
+				_photo.set_selfie(true)
+			await get_tree().create_timer(1.5).timeout
+		"hearts":
+			var a := _animals.nearest(_player.global_position, 40.0)
+			if not a.is_empty():
+				var p: Vector3 = a["pos"]
+				var up := p.normalized()
+				var side := up.cross(Vector3.UP).normalized()
+				await _teleport(p + side * 1.8)
+				_player.face(p)
+				_camera.snap_behind_target()
+				_animals.pet(int(a["id"]))
+				await get_tree().create_timer(0.7).timeout
+		"welcome":
+			_hud.welcome(country_name(_tracker.current), "Carimbo novo no passaporte!  +%s" % _session.coins_text(10))
+			await get_tree().create_timer(0.6).timeout
+		"airport", "travel":
+			var a := _airports.of_country(str(_args.get("country", _tracker.current)))
+			await _teleport(_airports.arrival_point(a))
+			await get_tree().create_timer(2.5).timeout
+			if ui == "travel":
+				await dev_coins(300)
+				_ui.travel.open(a)
+				await get_tree().create_timer(1.0).timeout
+				_ui.travel._list.select(3)
+				_ui.travel._show()
+		"flight":
+			dev_travel(str(_args.get("country", "JPN")))
+			await get_tree().create_timer(4.0).timeout
+		"pedia-full":
+			await _dev("/dev/pedia", {"action": "complete"}, "")
+			_ui.pedia.toggle()
+			await get_tree().create_timer(1.0).timeout
+		"passport-full":
+			await dev_passport("complete", "")
+			_ui.passport.toggle()
+			await get_tree().create_timer(1.0).timeout
+	if _args.has("look"):
+		_camera._turn(deg_to_rad(float(_args["look"])))
+		await get_tree().create_timer(0.5).timeout
 
 
 ## Testa o ciclo do jogo de ponta a ponta contra um servidor com GOBLO_DEV=1:
@@ -1891,6 +2075,71 @@ func _travel_test() -> void:
 	_ui.close_windows()
 	print("Goblo: travel-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
 	get_tree().quit(1 if not fails.is_empty() else 0)
+
+
+## Travadas (fase 2.6): passeio pelos momentos que podem travar, com o registro ligado.
+## No headless mede só a CPU; com janela (tools/sem_foco.sh), entra a compilação de shader.
+func _hitch_test() -> void:
+	var start_total := HitchLog.total
+	var marks: Array = []
+	var run := func(seconds: float, turn: float) -> void:
+		_player.autopilot = true
+		_player.auto_run = true
+		var t := 0.0
+		var heading := -_player.global_basis.z
+		while t < seconds:
+			var up := _player.global_position.normalized()
+			heading = (heading - up * heading.dot(up)).normalized().rotated(up, turn * get_physics_process_delta_time())
+			_player.auto_wish = heading
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+		_player.autopilot = false
+	var step := func(what: String) -> void:
+		marks.append([what, HitchLog.total])
+		print("Goblo: hitch-test → %s" % what)
+	await step.call("correndo perto de casa")
+	await run.call(8.0, 0.15)
+	await step.call("câmera afastada até o globo e de volta")
+	_camera.zoom = 1.0
+	await get_tree().create_timer(3.0).timeout
+	_camera.zoom = 0.18
+	await get_tree().create_timer(2.5).timeout
+	await step.call("Alemanha (floresta, estação)")
+	await teleport_exact(50.5, 10.0)
+	await run.call(8.0, -0.1)
+	await step.call("pampa com animais")
+	await teleport_exact(-34.6, -60.5)
+	await run.call(8.0, 0.2)
+	await step.call("modo foto e selfie")
+	await dev_give("camera", 1)
+	_session.equip("camera")
+	await get_tree().create_timer(0.3).timeout
+	_photo.enter()
+	await get_tree().create_timer(1.0).timeout
+	_photo.set_selfie(true)
+	await get_tree().create_timer(1.0).timeout
+	_photo.exit()
+	await step.call("voo até o Japão")
+	await dev_travel("JPN")
+	await run.call(5.0, 0.1)
+	await step.call("casa (H)")
+	await go_home()
+	await run.call(5.0, -0.2)
+	await step.call("inverno forçado e volta")
+	await dev_force_season("winter")
+	await get_tree().create_timer(2.0).timeout
+	await dev_force_season("real")
+	await get_tree().create_timer(2.0).timeout
+	marks.append(["fim", HitchLog.total])
+	print("Goblo: hitch-test travadas por etapa:")
+	for i in marks.size() - 1:
+		print("Goblo: hitch-test   %-40s %d" % [marks[i][0], int(marks[i + 1][1]) - int(marks[i][1])])
+	var worst := 0.0
+	for e: Dictionary in HitchLog.recent:
+		worst = maxf(worst, float(e["ms"]))
+	print("Goblo: hitch-test %d travadas no total (pior das últimas %d: %.0f ms); detalhes em %s" % [
+		HitchLog.total - start_total, HitchLog.recent.size(), worst, ProjectSettings.globalize_path(HitchLog.LOG_FILE)])
+	get_tree().quit(0)
 
 
 ## Cursor (fase 2.6): finge a janela na frente e a captura ligada, passa por todos os fluxos
