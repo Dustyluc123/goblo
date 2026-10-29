@@ -315,6 +315,11 @@ func _setup_game() -> void:
 	_interaction.vegetation = _vegetation
 	_interaction.icons = _icons
 	_interaction.neighborhood = _neighborhood
+	_data.day_changed.connect(func() -> void:
+		var r := await _api.request("GET", "/me")
+		if r["ok"]:
+			_session.set_me(r["data"])
+		_ui.toast("Bom dia! Um novo dia começou no Goblo."))
 	_session.me_changed.connect(func() -> void:
 		var lot := _session.lot()
 		if not lot.is_empty():

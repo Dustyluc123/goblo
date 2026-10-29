@@ -13,6 +13,8 @@ signal chunk_unloaded(key: int)
 signal lot_changed(lot: Dictionary)
 ## O estado de um objeto mudou (sacudiu, colheu…).
 signal object_changed(obj: Dictionary)
+## O dia do jogo virou (5h locais): limites diários zerados, obras prontas.
+signal day_changed
 
 const MAX_REQUESTS := 4
 const UPDATE_EVERY := 0.4
@@ -98,6 +100,12 @@ func update_focus(point: Vector3, delta: float) -> void:
 	if _timer > 0.0:
 		return
 	_timer = UPDATE_EVERY
+	# Passou das 5h locais com o jogo aberto: recarrega tudo (árvores e flores voltam).
+	if next_rollover > 0 and Time.get_unix_time_from_system() > next_rollover + 2:
+		next_rollover = 0
+		refresh_all()
+		day_changed.emit()
+		return
 	var near := world.chunks_near_with_distance(point, radius)
 	near.sort_custom(func(a: Array, b: Array) -> bool: return a[1] < b[1])
 	var now := Time.get_ticks_msec() / 1000.0
