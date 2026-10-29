@@ -6,7 +6,7 @@
 O briefing sugere lotes de 16 × 16 quadradinhos de 1 unidade, "ajuste se ficar grande ou pequeno demais", e que um hexágono comporte vários lotes. Mas um hexágono tem ~500 unidades² (raio interno ~12), e um lote de 16 × 16 unidades ocupa 256: caberia um só. Além disso, a escala que deixa as casas do Fantasy Town Kit proporcionais ao personagem (porta mais alta que ele) é ×1,5, ou seja, cada peça do kit mede 1,5 unidade.
 
 ## Decisão
-- **Quadradinho de 0,5 unidade** (`TileSize`). Uma peça do kit (1,5) ocupa exatamente 3 quadradinhos; uma cerca, 1 × 3; um lampião, 1 × 1. O personagem tem ~0,4 de largura, então 1 quadradinho ≈ a largura dele, como no Animal Crossing.
+- **Quadradinho de 0,5 unidade** (`TileSize`). Uma peça do kit (1,5) ocupa exatamente 3 quadradinhos; uma cerca, 1 × 3; um lampião, 1 × 1. O personagem tem ~0,4 de largura, então 1 quadradinho ≈ a largura dele — uma grade na escala do corpo.
 - **Lote de 14 × 14 quadradinhos** (7 × 7 unidades, `LotTiles`). Com 16 × 16 (8 × 8), só 55% das células comportavam 4 lotes; com 14 × 14, 90% comportam (27.773 lotes no mundo; há teste).
 - Cada célula tem até **4 lotes**, num quadriculado 2 × 2 em volta do centro, com um corredor de 0,5 entre eles, no plano do topo da célula (veja `Frame`). Um lote só existe se os 4 cantos ficam dentro da célula com 0,3 de folga.
 - **id do lote = célula × 4 + posição**: estável, e chave primária no banco, então dois jogadores nunca recebem o mesmo lote.

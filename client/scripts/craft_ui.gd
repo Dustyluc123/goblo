@@ -167,4 +167,4 @@ func _show_house() -> void:
 	else:
 		b.pressed.connect(func() -> void: game.upgrade_house())
 	_house_box.add_child(b)
-	_house_box.add_child(UiStyle.label("A obra fica pronta no dia seguinte, como no Animal Crossing.", 15, UiStyle.INK_SOFT))
+	_house_box.add_child(UiStyle.label("A obra fica pronta no dia seguinte, às 5h.", 15, UiStyle.INK_SOFT))

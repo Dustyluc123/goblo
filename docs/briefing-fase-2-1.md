@@ -14,9 +14,9 @@ Eu pausei você no meio do último pedido (escala da interface, resolução 3D m
 
 ## 1. Nenhuma menção a outros jogos
 
-O jogo diz que "a casa fica pronta no dia seguinte, igual Animal Crossing". **O Goblo não pode citar nenhum outro jogo**: nem na interface, nem nos textos, nem no código (nomes de variáveis, funções, comentários, arquivos), nem no README, `CLAUDE.md`, ADRs, `docs/CONTEUDO.md` e briefings em `docs/`.
+O jogo citava outro jogo ao dizer que a casa fica pronta no dia seguinte. **O Goblo não pode citar nenhum outro jogo**: nem na interface, nem nos textos, nem no código (nomes de variáveis, funções, comentários, arquivos), nem no README, `CLAUDE.md`, ADRs, `docs/CONTEUDO.md` e briefings em `docs/`.
 
-- Procure no repositório inteiro, sem diferenciar maiúsculas de minúsculas, por: `animal crossing`, `nook`, `stardew`, `minecraft`, `palia`, `zelda` e qualquer outro nome de jogo. Reescreva com termos próprios ("cozy", "aconchegante", "a obra fica pronta no dia seguinte").
+- Procure no repositório inteiro, sem diferenciar maiúsculas de minúsculas, por nomes de outros jogos, de personagens e de estúdios (a lista fica em `scripts/verificar-nomes.sh`). Reescreva com termos próprios ("cozy", "aconchegante", "a obra fica pronta no dia seguinte").
 - Adicione ao CI uma verificação que **falha** se algum desses nomes aparecer no código, nos textos do jogo ou na documentação (como a verificação de neutralidade que fiz em outro projeto).
 - Registre isso no `CLAUDE.md` como regra permanente.
 

@@ -13,7 +13,7 @@
 
 ## O jogo (visão geral, para dar contexto)
 
-Um MMO cozy, estilo Animal Crossing, que se passa **no planeta Terra de verdade**, visto como o globo da aula de geografia: pequeno, estilizado, fofo, com os continentes e países reais. No futuro, os jogadores vão andar pelo globo, pegar um terreno perto de uma cidade real, construir, atravessar fronteiras entre países e negociar com uma moeda do jogo, todos no mesmo mundo ao mesmo tempo.
+Um MMO cozy e aconchegante que se passa **no planeta Terra de verdade**, visto como o globo da aula de geografia: pequeno, estilizado, fofo, com os continentes e países reais. No futuro, os jogadores vão andar pelo globo, pegar um terreno perto de uma cidade real, construir, atravessar fronteiras entre países e negociar com uma moeda do jogo, todos no mesmo mundo ao mesmo tempo.
 
 **Nome:** Goblo.
 

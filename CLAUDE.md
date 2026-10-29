@@ -4,7 +4,7 @@ Guia para o Claude Code trabalhar no Goblo. Leia também `docs/ARQUITETURA.md`, 
 
 ## O projeto
 
-MMO cozy no planeta Terra de verdade, visto como um globo de sala de aula, com o ciclo do Animal Crossing: coletar → fabricar → construir e decorar o lote → voltar amanhã. Monorepo:
+MMO cozy no planeta Terra de verdade, visto como um globo de sala de aula, com um ciclo aconchegante: coletar → fabricar → construir e decorar o lote → voltar amanhã. Monorepo:
 
 - `server/` — Go. **Fonte da verdade**: gera o mundo (grade, terra, país, bioma, altura) e aplica as regras do jogo (jogador, lote, objetos interativos, coleta e limites diários, inventário, fabricação, decoração, casa), com SQLite. Rotas em `docs/API.md`.
 - `client/` — Godot 4 (renderizador Mobile) + GDScript. Baixa o mundo (com cache), pede as ações ao servidor e desenha. Só a grama decorativa é sorteada no cliente (determinística).
@@ -57,6 +57,7 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 
 ## Convenções
 
+- **Identidade própria (regra permanente):** o Goblo nunca cita outro jogo, estúdio ou personagem de outro jogo: nem na interface, nem em textos, código (identificadores, comentários, nomes de arquivo), README, `CLAUDE.md`, ADRs ou briefings. Descreva com termos próprios ("cozy", "aconchegante", "a obra fica pronta no dia seguinte"). O CI roda `scripts/verificar-nomes.sh` e falha se achar algum (`--lista` mostra os nomes).
 - **Idioma:** código (identificadores) em inglês; comentários, docs, mensagens de log, mensagens de erro da API, HUD e commits em português.
 - **Commits:** pequenos, um por etapa lógica, no imperativo em português (`Adiciona coleta com E`). Rode `go test ./...` e `go vet ./...` antes de cada commit.
 - **Decisões:** se algo não está no briefing, escolha a opção mais simples e registre um ADR curto em `docs/decisoes/NNNN-titulo.md` (contexto, decisão, consequências).

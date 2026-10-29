@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// RolloverHour é a hora local em que o dia do jogo vira (como no Animal Crossing).
+// RolloverHour é a hora local em que o dia do jogo vira (5h da manhã).
 const RolloverHour = 5
 
 // localOffsetSeconds é o fuso aproximado pela longitude: 15° = 1 hora. É o mesmo horário

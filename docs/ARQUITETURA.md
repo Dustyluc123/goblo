@@ -131,7 +131,7 @@ Todas as rotas, com exemplos, estão em [`API.md`](API.md). O mundo continua em 
 | `scripts/neighborhood.gd` + `scripts/lot_geom.gd` | lotes do bairro: borda, plaquinha, casa ou obra, objetos colocados, lampiões à noite |
 | `scripts/interaction.gd` | tecla E: aviso na tela, animação, pedido ao servidor, árvore balançando, "pop" do item |
 | `scripts/build_mode.gd` | modo construção: prévia verde/vermelha na grade, R gira, clique coloca, X guarda |
-| `scripts/game_ui.gd`, `inventory_ui.gd`, `hotbar.gd`, `craft_ui.gd`, `dev_panel.gd`, `first_access.gd`, `ui_style.gd`, `item_icons.gd` | janelas no estilo Animal Crossing e ícones desenhados a partir dos modelos 3D |
+| `scripts/game_ui.gd`, `inventory_ui.gd`, `hotbar.gd`, `craft_ui.gd`, `dev_panel.gd`, `first_access.gd`, `ui_style.gd`, `item_icons.gd` | janelas aconchegantes (cartões creme) e ícones desenhados a partir dos modelos 3D |
 | `scenes/houses/house_level_N.tscn` + `tools/montar_casas.gd` | as três casas, montadas com o Fantasy Town Kit |
 | `scenes/player.tscn` + `scripts/player.gd` | `CharacterBody3D` com gravidade para o centro, pulo, degraus e bloqueio do oceano; animações num `AnimationTree` |
 | `scripts/camera_rig.gd` | câmera em terceira pessoa com zoom contínuo até o planeta inteiro |

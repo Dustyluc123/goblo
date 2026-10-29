@@ -1,6 +1,6 @@
 class_name UiStyle
 extends RefCounted
-## Estilo dos menus, no espírito dos menus do Animal Crossing: cartões creme com cantos bem
+## Estilo dos menus do Goblo, aconchegante: cartões creme com cantos bem
 ## redondos, texto marrom suave, botões fofinhos. Tudo montado em código.
 
 const CREAM := Color("fffaf0")

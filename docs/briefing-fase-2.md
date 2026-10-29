@@ -6,7 +6,7 @@
 
 As Fases 1 e 1.5 estão prontas e ficaram ótimas: globo grande com grade `n = 50`, biomas, vegetação por pedaços, dia e noite real, oceano, nuvens, bússola, mini mapa e personagem com pulo. **Não refaça o que funciona.**
 
-Esta fase cria o ciclo central do jogo, no espírito do Animal Crossing: **coletar materiais → fabricar ferramentas e objetos → construir a casa e decorar o lote → voltar amanhã.**
+Esta fase cria o ciclo central do jogo, num ritmo cozy: **coletar materiais → fabricar ferramentas e objetos → construir a casa e decorar o lote → voltar amanhã.**
 
 Regras de sempre: commits pequenos em português, `go test ./...` e `go vet ./...` passando antes de cada commit, push no `main` no final, README, `CLAUDE.md` e ADRs atualizados. Desempenho continua sendo requisito: 60 fps no meu Mac Intel na qualidade padrão.
 
@@ -16,7 +16,7 @@ Regras de sempre: commits pequenos em português, `go test ./...` e `go vet ./..
 2. Ele **sacode árvores** para pegar galhos, **colhe flores** e pega pedrinhas no chão.
 3. Na **bancada** do lote, fabrica um **machado** e uma **picareta**.
 4. Com o machado, **bate nas árvores** para tirar madeira (a árvore não cai). Com a picareta, **bate nas pedras grandes** para tirar pedra.
-5. Com os materiais, **constrói a casa** a partir de uma planta pronta. A obra fica **pronta no dia seguinte**, como no Animal Crossing.
+5. Com os materiais, **constrói a casa** a partir de uma planta pronta. A obra fica **pronta no dia seguinte**.
 6. Fabrica e coloca **decorações** livremente no lote: cerca, flores, banco, poste, caminho.
 7. Anda pelo bairro e **vê as casas dos outros jogadores** que moram por perto.
 8. No dia seguinte, as árvores e pedras dão material de novo.
@@ -76,7 +76,7 @@ Eu preciso testar tudo sem ter que jogar de verdade.
 Árvores sem folhas (`*_Dead_*`), cactos e palmeiras também podem ser sacudidos, mas palmeira dá **coco** em vez de galho (1 vez por dia) e cacto não dá nada (só balança). O coco é mais um material para receitas futuras; pode entrar já no inventário.
 
 - **Os limites são por jogador.** Todo mundo vê as mesmas árvores, e o que um jogador coleta não tira nada dos outros.
-- O **dia** vira às **5h da manhã no horário local do jogador** (como no Animal Crossing). Use o horário local aproximado pela longitude, que já existe no jogo.
+- O **dia** vira às **5h da manhã no horário local do jogador** (o dia do jogo). Use o horário local aproximado pela longitude, que já existe no jogo.
 - Animações simples: o personagem usa `interact-right` ou `pick-up`; os itens fazem um "pop" fofinho ao entrar no inventário.
 - **O servidor é a fonte da verdade do inventário.** O cliente pede ("sacudi a árvore X"), e o servidor confere o limite diário e devolve o resultado. Como ainda não há posição do jogador no servidor (isso vem na Fase 3), por enquanto aceite a interação sem conferir a distância, mas deixe um `TODO` e um ADR explicando que a validação de distância entra no multiplayer.
 
@@ -114,7 +114,7 @@ Os animais em glTF vêm com os dados embutidos em base64 (36 MB). Se o import fi
 
 ## 5. Inventário e fabricação
 
-- **Inventário** com 20 espaços (itens iguais se empilham até 99), aberto com **Tab** ou **I**. Visual fofo, no estilo dos menus do Animal Crossing.
+- **Inventário** com 20 espaços (itens iguais se empilham até 99), aberto com **Tab** ou **I**. Visual fofo e aconchegante, com cartões creme.
 - **Barra rápida** para escolher a ferramenta na mão (teclas 1 a 5). A ferramenta aparece na mão do personagem (se não houver modelo nos pacotes, faça um modelo simples low-poly com primitivas).
 - **Bancada de trabalho:** todo lote já começa com uma. Perto dela, **E** abre o menu de **receitas**.
 - Receitas iniciais (ajuste os números para o jogo ficar gostoso). Os modelos de decoração vêm do **Fantasy Town Kit** e do **Ultimate Nature Pack**:
@@ -138,7 +138,7 @@ Os animais em glTF vêm com os dados embutidos em base64 (36 MB). Se o import fi
 
 ### Casa (planta pronta, em níveis)
 
-- Três níveis, como no Animal Crossing: **barraca → casinha → casa grande**. Cada nível pede materiais (exemplo: barraca = 10 madeiras; casinha = 30 madeiras + 20 pedras; casa grande = 60 madeiras + 50 pedras + 10 flores. Ajuste no arquivo de dados).
+- Três níveis: **barraca → casinha → casa grande**. Cada nível pede materiais (exemplo: barraca = 10 madeiras; casinha = 30 madeiras + 20 pedras; casa grande = 60 madeiras + 50 pedras + 10 flores. Ajuste no arquivo de dados).
 - O jogador escolhe onde colocar a casa no lote (com prévia), e o servidor desconta os materiais.
 - A obra aparece com **andaimes ou uma placa "em obras"** e fica **pronta na próxima virada do dia (5h local)**. No modo dev, dá para concluir na hora.
 - Melhorar de nível segue o mesmo processo, no mesmo lugar.
