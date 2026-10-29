@@ -18,6 +18,10 @@ var _perf: Label
 var _dev_badge: Label
 var _help: Label
 var _info_box: VBoxContainer
+## País exato embaixo do personagem (CountryTracker); vazio = usa o do hexágono.
+var _exact_country := ""
+var _exact_code := ""
+var _welcome: PanelContainer
 
 
 func _ready() -> void:
@@ -159,10 +163,72 @@ func show_time(hours: float, speed: float) -> void:
 func show_cell(world: WorldData, id: int) -> void:
 	var code := world.country_codes[id]
 	var title := world.country_name(id)
+	if not _exact_code.is_empty():
+		code = _exact_code
+		title = _exact_country
 	if not code.is_empty():
 		title += "  ·  " + code
 	_country.text = title
 	_coords.text = "%s  ·  %s  ·  célula %d" % [world.biome_label(id), WorldData.format_lat_lon(world.lats[id], world.lons[id]), id]
+
+
+## País exato (pela posição, não pelo hexágono).
+func set_country(code: String, country_name: String) -> void:
+	_exact_code = code
+	_exact_country = country_name
+	_country.text = country_name + ("  ·  " + code if not code.is_empty() else "")
+
+
+## Plaquinha de madeira no alto da tela ao cruzar uma fronteira: "Bem-vindo!" e o nome do
+## país. Desce, fica uns segundos e some.
+func welcome(country_name: String, subtitle := "") -> void:
+	if _welcome:
+		_welcome.queue_free()
+	var card := PanelContainer.new()
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color("c8925a")
+	st.border_color = Color("8a5a32")
+	st.set_border_width_all(4)
+	st.set_corner_radius_all(14)
+	st.content_margin_left = 28
+	st.content_margin_right = 28
+	st.content_margin_top = 10
+	st.content_margin_bottom = 12
+	st.shadow_color = Color(0, 0, 0, 0.18)
+	st.shadow_size = 8
+	st.shadow_offset = Vector2(0, 4)
+	card.add_theme_stylebox_override("panel", st)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 0)
+	card.add_child(box)
+	var top := _label(17, Color("fff3dc"))
+	top.text = "Bem-vindo!"
+	top.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(top)
+	var big := _label(32, Color.WHITE)
+	big.text = country_name
+	big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	big.add_theme_color_override("font_outline_color", Color("8a5a32"))
+	big.add_theme_constant_override("outline_size", 6)
+	box.add_child(big)
+	if not subtitle.is_empty():
+		var sub := _label(15, Color("fff3dc"))
+		sub.text = subtitle
+		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		box.add_child(sub)
+	card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	card.offset_top = 70
+	add_child(card)
+	_welcome = card
+	card.modulate.a = 0.0
+	var tw := card.create_tween()
+	tw.tween_property(card, "modulate:a", 1.0, 0.35)
+	tw.parallel().tween_property(card, "offset_top", 84.0, 0.35).from(50.0).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(3.0)
+	tw.tween_property(card, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(card.queue_free)
 
 
 func _label(size: int, color: Color) -> Label:

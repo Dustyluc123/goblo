@@ -22,6 +22,8 @@ const RETRY_AFTER := 3.0
 
 var world: WorldData
 var api: Api
+## Fronteiras exatas das células carregadas (GET /borders, junto com objetos e lotes).
+var borders := BorderMap.new()
 ## Raio (unidades) em volta do personagem em que os dados ficam carregados.
 var radius := 130.0
 ## Lado do lote em unidades (quadradinhos × tamanho do quadradinho, vem do /content).
@@ -144,11 +146,13 @@ func _fetch(key: int) -> void:
 	var cells := _land_cells(key)
 	var objects: Array = []
 	var lots: Array = []
+	var r3 := {}
 	if not cells.is_empty():
 		var q := ",".join(cells)
 		var r1 := await api.request("GET", "/objects?cells=" + q)
 		var r2 := await api.request("GET", "/lots?cells=" + q)
-		if not r1["ok"] or not r2["ok"]:
+		r3 = await api.request("GET", "/borders?cells=" + q)
+		if not r1["ok"] or not r2["ok"] or not r3["ok"]:
 			_pending.erase(key)
 			_failed[key] = Time.get_ticks_msec() / 1000.0 + RETRY_AFTER
 			return
@@ -168,6 +172,8 @@ func _fetch(key: int) -> void:
 		_objects[int(o["id"])] = o
 	for l: Dictionary in lots:
 		_lots[int(l["id"])] = l
+	if not cells.is_empty():
+		borders.add_response(r3["data"])
 	_chunks[key] = {"objects": objects, "lots": lots}
 	chunk_loaded.emit(key)
 
@@ -199,6 +205,8 @@ func _unload(key: int) -> void:
 		_objects.erase(o["id"])
 	for l: Dictionary in c.get("lots", []):
 		_lots.erase(int(l["id"]))
+	for cell in world.chunk_cells[key]:
+		borders.remove_cell(cell)
 	_chunks.erase(key)
 
 

@@ -34,6 +34,8 @@ extends Node3D
 ##                       --neighbors=N cria N vizinhos falsos antes (servidor dev)
 ##   --off=A,B           (com --profile-scene) desliga desde o começo: nevoa, glow,
 ##                       tonemap, folhagem, sombras; mede só o total
+##   --border-test       teleporta para pontos dos dois lados de fronteiras conhecidas,
+##                       confere o país exato e a linha no chão, e anda até cruzar uma
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
 ##                       que o que fica no caminho está transparente (servidor dev)
@@ -67,6 +69,8 @@ var _ui: GameUi
 var _build: BuildMode
 var _interaction: Interaction
 var _occlusion: CameraOcclusion
+var _border_lines: BorderLines
+var _tracker: CountryTracker
 ## Marcador da casa no globo, visível na visão afastada.
 var _home_marker: Sprite3D
 
@@ -141,6 +145,11 @@ func _ready() -> void:
 	add_child(_interaction)
 	_occlusion = CameraOcclusion.new()
 	add_child(_occlusion)
+	_border_lines = BorderLines.new()
+	_border_lines.name = "BorderLines"
+	add_child(_border_lines)
+	_tracker = CountryTracker.new()
+	add_child(_tracker)
 	_session.equipped_changed.connect(_on_equipped)
 
 	_http = HTTPRequest.new()
@@ -347,6 +356,11 @@ func _setup_game() -> void:
 	_build.camera = _camera
 	_build.player = _player
 	_ui.on_build_close = _build.exit
+	_border_lines.setup(world, _data)
+	_tracker.world = world
+	_tracker.data = _data
+	_tracker.player = _player
+	_tracker.country_changed.connect(_on_country_changed)
 	_occlusion.camera = _camera
 	_occlusion.player = _player
 	_occlusion.data = _data
@@ -452,6 +466,13 @@ func _on_cell_changed(id: int) -> void:
 	_highlight.mesh = GlobeBuilder.highlight(world, id)
 
 
+## Mudou o país embaixo do personagem (posição exata, ADR 0031).
+func _on_country_changed(code: String, walked: bool) -> void:
+	_hud.set_country(code, _tracker.name_of(code))
+	if walked:
+		_hud.welcome(_tracker.name_of(code))
+
+
 func _on_equipped() -> void:
 	var id := _session.equipped
 	if id.is_empty():
@@ -477,6 +498,7 @@ func _process(delta: float) -> void:
 		_terrain.update_collision(_player.global_position)
 	_data.update_focus(_player.global_position, delta)
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
+	_border_lines.update_view(_camera.far_amount)
 	_neighborhood.daylight = _day_night.local_day
 	_neighborhood.update_lights(_player.global_position, delta)
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
@@ -602,6 +624,7 @@ func go_home() -> void:
 
 func _teleport(pos: Vector3) -> void:
 	_build.exit()
+	_tracker.mark_teleport()
 	_player.set_physics_process(false)
 	_player.teleport(pos)
 	_terrain.update_collision(pos, -1)
@@ -788,7 +811,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -809,6 +832,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("camera-test"):
 		await _camera_test()
+		return
+	if _args.has("border-test"):
+		await _border_test()
 		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
@@ -1083,6 +1109,63 @@ func _set_layer_visible(layer: String, on: bool) -> void:
 	for c in _vegetation.get_children():
 		if c.has_meta("layer") and c.get_meta("layer") == layer:
 			(c as Node3D).visible = on
+
+
+## Ponto do chão (topo plano da célula) na lat/lon exata, não no centro do hexágono.
+func ground_at(lat: float, lon: float) -> Vector3:
+	var dir := WorldData.lat_lon_to_vec(lat, lon)
+	var cell := world.find_cell(dir)
+	return dir * (world.surface_radius(cell) / dir.dot(world.centers[cell]))
+
+
+func teleport_exact(lat: float, lon: float) -> void:
+	await _teleport(ground_at(lat, lon))
+
+
+## Fronteiras: país exato em pontos conhecidos (os mesmos do teste em Go), linha no chão perto
+## da tríplice fronteira e uma caminhada que cruza do Brasil para o Paraguai.
+func _border_test() -> void:
+	var fails := 0
+	var points := [
+		[-25.50, -54.35, "BRA"], [-25.45, -54.85, "PRY"], [-25.85, -54.40, "ARG"],
+		[-19.05, -57.40, "BRA"], [-18.95, -57.95, "BOL"], [-4.30, -69.70, "BRA"], [-4.00, -69.95, "COL"],
+		[48.55, 7.45, "FRA"], [48.55, 8.10, "DEU"], [49.70, 6.10, "LUX"], [42.55, 1.57, "AND"],
+	]
+	for p: Array in points:
+		await teleport_exact(p[0], p[1])
+		await get_tree().create_timer(0.3).timeout
+		var got := _tracker.exact_at(_player.global_position, _player.cell_id)
+		var ok: bool = got == p[2]
+		if not ok:
+			fails += 1
+		print("Goblo: border-test %s (%.2f, %.2f): %s, esperado %s (HUD: %s)" % ["ok   " if ok else "FALHOU", p[0], p[1], got, p[2], _tracker.current])
+	await teleport_exact(-25.50, -54.35)
+	await get_tree().create_timer(0.5).timeout
+	var lines := _border_lines.get_child_count()
+	print("Goblo: border-test %s linhas de fronteira montadas em %d pedaços" % ["ok   " if lines > 0 else "FALHOU", lines])
+	if lines == 0:
+		fails += 1
+	# Anda para o oeste até mudar de país.
+	var changes: Array = []
+	var on_change := func(code: String, walked: bool) -> void: changes.append([code, walked])
+	_tracker.country_changed.connect(on_change)
+	_player.autopilot = true
+	_player.auto_run = true
+	var t := 0.0
+	while t < 20.0 and changes.is_empty():
+		var up := _player.global_position.normalized()
+		var west := up.cross(Vector3.UP).normalized()
+		_player.auto_wish = west
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+	_player.autopilot = false
+	_tracker.country_changed.disconnect(on_change)
+	var crossed: bool = not changes.is_empty() and changes[0][1]
+	print("Goblo: border-test %s andando para o oeste: %s em %.1f s" % ["ok   " if crossed else "FALHOU", str(changes), t])
+	if not crossed:
+		fails += 1
+	print("Goblo: border-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
+	get_tree().quit(1 if fails > 0 else 0)
 
 
 ## A câmera só muda de distância quando o jogador mexe: encosta o personagem em casas
