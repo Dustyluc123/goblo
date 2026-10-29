@@ -19,12 +19,7 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	add_child(box)
-	var head := HBoxContainer.new()
-	box.add_child(head)
-	var title := UiStyle.label("Bancada", 26)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(title)
-	head.add_child(UiStyle.label("Esc fecha", 15, UiStyle.INK_SOFT))
+	box.add_child(UiStyle.header(UiStyle.label("Bancada", 26), "Esc", func() -> void: visible = false))
 	_tabs = TabContainer.new()
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	UiStyle.tabs(_tabs)

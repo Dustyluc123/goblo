@@ -123,6 +123,7 @@ func _ready() -> void:
 	add_child(_icons)
 	_ui = GameUi.new()
 	add_child(_ui)
+	_camera.ui = _ui
 	_build = BuildMode.new()
 	add_child(_build)
 	_interaction = Interaction.new()
@@ -328,6 +329,7 @@ func _setup_game() -> void:
 	_build.ui = _ui
 	_build.camera = _camera
 	_build.player = _player
+	_ui.on_build_close = _build.exit
 	_interaction.game = self
 	_interaction.player = _player
 	_interaction.data = _data
@@ -418,11 +420,11 @@ func _process(delta: float) -> void:
 		return
 	var focus := get_viewport().gui_get_focus_owner()
 	var typing := focus is LineEdit or focus is SpinBox
-	_player.input_blocked = typing or _ui.blocking()
+	_player.input_blocked = typing or _ui.menu_open()
 	_hud.set_help_visible(not _ui.any_open())
-	# A barra rápida some atrás das janelas grandes (bolso, bancada, dev, configurações).
-	_ui.hotbar.visible = not (_ui.blocking() or _ui.dev.visible or _ui.settings.visible)
-	_camera.input_blocked = typing
+	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
+	_ui.hotbar.visible = not _ui.menu_open()
+	_camera.input_blocked = typing or _ui.menu_open()
 	_collision_timer -= delta
 	if _collision_timer <= 0.0:
 		_collision_timer = 0.25
@@ -484,7 +486,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_build.enter()
 	elif event.is_action_pressed("home"):
 		go_home()
-	elif key >= KEY_1 and key <= KEY_5:
+	elif key >= KEY_1 and key <= KEY_5 and not _ui.menu_open():
 		_ui.hotbar.press(key - KEY_1)
 
 
@@ -784,6 +786,18 @@ func _play_test() -> void:
 		if not ok:
 			fails.append(what)
 	check.call(_session.dev, "servidor em modo dev")
+	# Menus capturam a roda do mouse: com a bancada aberta, a roda não mexe no zoom.
+	_ui.craft.open()
+	var zoom_before := _camera.zoom
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	wheel.position = get_viewport().get_visible_rect().size * 0.5
+	Input.parse_input_event(wheel)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check.call(is_equal_approx(_camera.zoom, zoom_before) and _player.input_blocked, "menu aberto segura a roda do mouse e o movimento")
+	_ui.close_windows()
 	await dev_starter_kit()
 	check.call(_session.count("axe") == 1 and _session.count("wood") >= 99, "kit inicial (machado e madeira)")
 

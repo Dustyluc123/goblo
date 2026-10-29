@@ -225,6 +225,9 @@ func _rect_mesh(f: Dictionary, lot: Dictionary, tile: float, r: Rect2i) -> Array
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
+	# Cliques e teclas em cima do catálogo ou com um menu aberto ficam com a interface.
+	if ui.captures(event) and not event.is_action_pressed("ui_cancel"):
+		return
 	if event.is_action_pressed("rotate"):
 		rot = (rot + 1) % 4
 		get_viewport().set_input_as_handled()

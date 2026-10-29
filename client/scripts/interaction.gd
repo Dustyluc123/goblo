@@ -127,7 +127,7 @@ func _prompt_text(t: Dictionary) -> String:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") and not event.is_echo() and not ui.blocking() and not game.building():
+	if event.is_action_pressed("interact") and not event.is_echo() and not ui.menu_open() and not game.building():
 		get_viewport().set_input_as_handled()
 		interact()
 

@@ -15,12 +15,7 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	add_child(box)
-	var head := HBoxContainer.new()
-	box.add_child(head)
-	var title := UiStyle.label("Configurações", 26)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(title)
-	head.add_child(UiStyle.label("F6 ou Esc fecha", 15, UiStyle.INK_SOFT))
+	box.add_child(UiStyle.header(UiStyle.label("Configurações", 26), "F6 ou Esc", func() -> void: visible = false))
 	box.add_child(UiStyle.label("Qualidade gráfica", 18))
 	_quality_row = HBoxContainer.new()
 	_quality_row.add_theme_constant_override("separation", 8)

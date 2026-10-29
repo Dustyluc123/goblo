@@ -2,7 +2,12 @@ class_name GameUi
 extends CanvasLayer
 ## Interface do jogo por cima do HUD: aviso de interação ("E: sacudir"), avisos de itens
 ## ganhos, barra rápida, barra do modo construção e as janelas (inventário, bancada, modo
-## dev, primeiro acesso). Montada em código.
+## dev, configurações, primeiro acesso). Montada em código.
+##
+## Também é o gerenciador da interface: `menu_open()` diz se há menu aberto e
+## `captures(evento)` diz se um evento pertence à interface. Câmera, personagem, modo
+## construção e interação perguntam aqui antes de reagir, então nenhum menu precisa
+## tratar isso sozinho.
 
 var prompt: Label
 var hotbar: Hotbar
@@ -16,6 +21,8 @@ var _build_items: HBoxContainer
 var _build_hint: Label
 var _toasts: VBoxContainer
 var _icons: ItemIcons
+## Chamado pelo X da barra do modo construção.
+var on_build_close := Callable()
 
 
 func _ready() -> void:
@@ -57,7 +64,13 @@ func _ready() -> void:
 	build_bar.add_child(bb)
 	_build_hint = UiStyle.label("", 16, UiStyle.INK)
 	_build_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bb.add_child(_build_hint)
+	_build_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var build_head := HBoxContainer.new()
+	build_head.add_child(_build_hint)
+	build_head.add_child(UiStyle.close_button(func() -> void:
+		if on_build_close.is_valid():
+			on_build_close.call()))
+	bb.add_child(build_head)
 	_build_items = HBoxContainer.new()
 	_build_items.add_theme_constant_override("separation", 6)
 	_build_items.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -163,12 +176,34 @@ func hide_build_bar() -> void:
 
 ## Alguma janela (ou a barra do modo construção) está aberta?
 func any_open() -> bool:
-	return blocking() or dev.visible or settings.visible or build_bar.visible
+	return menu_open() or build_bar.visible
 
 
-## Alguma janela que deve travar o personagem está aberta?
+## Há um menu aberto (bolso, bancada, dev, configurações, primeiro acesso)? Enquanto
+## houver, o jogo não recebe teclas de movimento, cliques nem a roda do mouse.
+func menu_open() -> bool:
+	return inventory.visible or craft.visible or dev.visible or settings.visible or first_access != null
+
+
+## Mantido para quem já usava: trava o personagem quando há menu aberto.
 func blocking() -> bool:
-	return inventory.visible or craft.visible or first_access != null
+	return menu_open()
+
+
+## O mouse está em cima de algum controle da interface (janela, barra, HUD)?
+func mouse_over_ui() -> bool:
+	return get_viewport().gui_get_hovered_control() != null
+
+
+## O evento pertence à interface e não deve mexer no jogo? Mouse e gestos: sim se há menu
+## aberto ou se o mouse está em cima da interface (a roda rola a lista, não dá zoom).
+## Teclado: sim se há menu aberto.
+func captures(event: InputEvent) -> bool:
+	if event is InputEventMouse or event is InputEventGesture:
+		return menu_open() or mouse_over_ui()
+	if event is InputEventKey:
+		return menu_open()
+	return false
 
 
 func close_windows() -> bool:

@@ -20,8 +20,10 @@ extends Camera3D
 @export var spin_speed := 0.08
 
 var target: Node3D
-## Quando true (digitando num campo de texto), Q/C não giram a câmera.
+## Quando true (digitando num campo de texto ou com menu aberto), Q/C não giram a câmera.
 var input_blocked := false
+## Gerenciador da interface: eventos que pertencem a ela não mexem na câmera.
+var ui: GameUi
 var planet_radius := 1000.0
 ## Mundo, para a câmera não entrar no chão (montanhas).
 var world: WorldData
@@ -62,6 +64,11 @@ func set_zoom_now(z: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if ui and ui.captures(event):
+		# Soltar o botão direito sempre para de girar (mesmo em cima de uma janela).
+		if event is InputEventMouseButton and not (event as InputEventMouseButton).pressed:
+			_dragging = false
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		var step := zoom_step * (mb.factor if mb.factor > 0.0 else 1.0)

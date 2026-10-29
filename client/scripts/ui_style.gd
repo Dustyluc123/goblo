@@ -47,6 +47,41 @@ static func slot(selected := false, empty := false) -> StyleBoxFlat:
 	return s
 
 
+## Cabeçalho padrão das janelas: título, dica de tecla pequena e botão X no canto direito.
+static func header(title: Label, hint: String, on_close: Callable) -> HBoxContainer:
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	var h := label(hint, 13, INK_SOFT)
+	h.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	head.add_child(h)
+	head.add_child(close_button(on_close))
+	return head
+
+
+## Botão redondo "×" para fechar janelas.
+static func close_button(on_close: Callable) -> Button:
+	var b := Button.new()
+	b.text = "×"
+	b.tooltip_text = "Fechar"
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(40, 40)
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.add_theme_font_size_override("font_size", 26)
+	for state in ["normal", "hover", "pressed"]:
+		var s := StyleBoxFlat.new()
+		s.bg_color = {"normal": CREAM_DARK, "hover": Color("f6d9cf"), "pressed": Color("eec2b4")}[state]
+		s.set_corner_radius_all(20)
+		s.content_margin_bottom = 4
+		b.add_theme_stylebox_override(state, s)
+	b.add_theme_color_override("font_color", INK)
+	b.add_theme_color_override("font_hover_color", WARN)
+	b.add_theme_color_override("font_pressed_color", WARN)
+	b.pressed.connect(on_close)
+	return b
+
+
 static func label(text: String, size := 16, color := INK) -> Label:
 	var l := Label.new()
 	l.text = text

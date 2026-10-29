@@ -21,12 +21,8 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	add_child(box)
-	var head := HBoxContainer.new()
-	box.add_child(head)
 	_title = UiStyle.label("Bolso", 26)
-	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(_title)
-	head.add_child(UiStyle.label("Tab fecha", 15, UiStyle.INK_SOFT))
+	box.add_child(UiStyle.header(_title, "Tab ou Esc", func() -> void: visible = false))
 	_grid = GridContainer.new()
 	_grid.columns = COLUMNS
 	_grid.add_theme_constant_override("h_separation", 8)
