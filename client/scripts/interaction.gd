@@ -56,16 +56,17 @@ func _find_target() -> Dictionary:
 		if score < best_score:
 			best_score = score
 			best = {"type": "object", "obj": o}
-	for wb: Vector3 in _workbenches():
-		var dist := wb.distance_to(pos)
-		if dist < WORKBENCH_REACH and dist - 0.3 < best_score:
-			best_score = dist - 0.3
-			best = {"type": "workbench", "pos": wb}
+	for kind: String in ["workbench", "sell_box"]:
+		for wb: Vector3 in _own_placements(kind):
+			var dist := wb.distance_to(pos)
+			if dist < WORKBENCH_REACH and dist - 0.3 < best_score:
+				best_score = dist - 0.3
+				best = {"type": kind, "pos": wb}
 	return best
 
 
-## Posições das bancadas do lote do jogador.
-func _workbenches() -> Array:
+## Posições dos objetos de um tipo (bancada, caixa de vendas) no lote do jogador.
+func _own_placements(item: String) -> Array:
 	var out: Array = []
 	var lot := session.lot()
 	if lot.is_empty():
@@ -74,7 +75,7 @@ func _workbenches() -> Array:
 	if node == null:
 		return out
 	for c in node.get_children():
-		if c is MeshInstance3D and c.has_meta("placement") and str((c.get_meta("placement") as Dictionary)["item"]) == "workbench":
+		if c is MeshInstance3D and c.has_meta("placement") and str((c.get_meta("placement") as Dictionary)["item"]) == item:
 			out.append((c as Node3D).global_position)
 	return out
 
@@ -100,6 +101,8 @@ func _prompt_text(t: Dictionary) -> String:
 		return ""
 	if t["type"] == "workbench":
 		return "E: bancada"
+	if t["type"] == "sell_box":
+		return "E: caixa de vendas"
 	var o: Dictionary = t["obj"]
 	var st: Dictionary = o.get("state", {}) if o.get("state") is Dictionary else {}
 	match str(o["kind"]):
@@ -139,6 +142,10 @@ func interact() -> Dictionary:
 	if target["type"] == "workbench":
 		player.face(target["pos"])
 		ui.craft.open()
+		return {"ok": true}
+	if target["type"] == "sell_box":
+		player.face(target["pos"])
+		ui.sell.open()
 		return {"ok": true}
 	var o: Dictionary = target["obj"]
 	var action := _action(o)

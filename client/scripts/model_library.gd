@@ -22,6 +22,7 @@ extends RefCounted
 const NATURE_DIR := "res://assets/quaternius/ultimate-nature/"
 const FLOWER_COLORS := {
 	"red": Color("e0484f"), "yellow": Color("f4c542"), "white": Color("f5f2ea"), "purple": Color("9a6ad6"),
+	"blue": Color("4aa8f0"),  # flor rara (Goblopédia)
 }
 ## Cor original das pétalas no Flowers.fbx (a que é trocada nas flores coloridas).
 const PETAL_COLOR := Color("007b7c")
@@ -261,7 +262,8 @@ static func _transform_to_root(node: Node3D, root: Node3D) -> Transform3D:
 
 # --- Modelos primitivos (o que não existe nos pacotes) -------------------------------------
 
-## Machado, picareta, bancada e coco, feitos de caixas e cilindros low-poly.
+## Machado, picareta, bancada, coco, caixa de vendas e câmera, feitos de caixas e cilindros
+## low-poly.
 static func _primitive(kind: String) -> Dictionary:
 	var parts: Array = []  # [Mesh, Transform3D, Color]
 	var wood := Color("a8754a")
@@ -282,6 +284,32 @@ static func _primitive(kind: String) -> Dictionary:
 			parts.append([_box(Vector3(0.8, 0.06, 0.55)), Transform3D(Basis(), Vector3(0, 0.18, 0)), dark_wood])
 			parts.append([_box(Vector3(0.3, 0.04, 0.12)), Transform3D(Basis(Vector3.UP, 0.4), Vector3(-0.15, 0.69, 0.05)), metal])
 			parts.append([_box(Vector3(0.05, 0.25, 0.05)), Transform3D(Basis(Vector3.FORWARD, 1.3), Vector3(0.2, 0.7, -0.1)), wood])
+		"sell_box":
+			# Caixote de madeira com tampa, frestinha e uma moeda dourada na frente.
+			parts.append([_box(Vector3(0.78, 0.5, 0.62)), Transform3D(Basis(), Vector3(0, 0.25, 0)), wood])
+			for y in [0.1, 0.4]:
+				parts.append([_box(Vector3(0.8, 0.06, 0.64)), Transform3D(Basis(), Vector3(0, y, 0)), dark_wood])
+			parts.append([_box(Vector3(0.84, 0.08, 0.68)), Transform3D(Basis(), Vector3(0, 0.54, 0)), dark_wood])
+			parts.append([_box(Vector3(0.3, 0.02, 0.05)), Transform3D(Basis(), Vector3(0, 0.585, 0)), Color("3d2a1a")])
+			var coin := CylinderMesh.new()
+			coin.top_radius = 0.11
+			coin.bottom_radius = 0.11
+			coin.height = 0.03
+			coin.radial_segments = 14
+			coin.rings = 1
+			parts.append([coin, Transform3D(Basis(Vector3.RIGHT, PI / 2), Vector3(0, 0.27, 0.32)), Color("f6c94b")])
+		"camera":
+			# Câmera fotográfica: corpo, lente, botão e visor.
+			parts.append([_box(Vector3(0.26, 0.16, 0.1)), Transform3D(Basis(), Vector3(0, 0.08, 0)), Color("4a4f5c")])
+			var lens := CylinderMesh.new()
+			lens.top_radius = 0.055
+			lens.bottom_radius = 0.065
+			lens.height = 0.08
+			lens.radial_segments = 12
+			lens.rings = 1
+			parts.append([lens, Transform3D(Basis(Vector3.RIGHT, PI / 2), Vector3(0, 0.08, 0.08)), Color("2e3138")])
+			parts.append([_box(Vector3(0.05, 0.03, 0.05)), Transform3D(Basis(), Vector3(0.08, 0.175, 0)), Color("e8665a")])
+			parts.append([_box(Vector3(0.07, 0.05, 0.04)), Transform3D(Basis(), Vector3(-0.07, 0.18, 0)), Color("4a4f5c")])
 		"coconut":
 			var s := SphereMesh.new()
 			s.radius = 0.12

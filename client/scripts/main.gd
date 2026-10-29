@@ -387,6 +387,8 @@ func _setup_game() -> void:
 		_update_home_marker())
 	_update_home_marker()
 	_hud.set_dev(_session.dev)
+	_session.coins_changed.connect(func(delta: int) -> void: _hud.set_coins(_session.coins_text(_session.coins), delta))
+	_hud.set_coins(_session.coins_text(_session.coins))
 
 
 ## Casinha no mini mapa e marcador discreto no globo (visão afastada) onde fica o lote.
@@ -689,6 +691,21 @@ func time_real() -> void:
 func apply_lot_result(res: Dictionary) -> void:
 	_session.set_inventory(res["inventory"], int(res["slots_used"]))
 	_session.set_lot(res["lot"])
+
+
+## Vende na caixa de vendas: [{"item", "count"}].
+func sell(items: Array) -> Dictionary:
+	if items.is_empty():
+		_ui.toast("Nada para vender.")
+		return {}
+	var r := await _api.request("POST", "/sell", {"items": items})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return r
+	_session.set_inventory(r["data"]["inventory"], int(r["data"]["slots_used"]))
+	_session.set_coins(int(r["data"]["coins"]))
+	_ui.toast("+%s" % _session.coins_text(int(r["data"]["earned"])))
+	return r
 
 
 func craft(recipe: String) -> void:
@@ -1002,6 +1019,16 @@ func _play_test() -> void:
 		await store_blockers_and_upgrade(_ui.craft._blockers.duplicate())
 	var hp: Variant = _session.lot().get("house")
 	check.call(hp is Dictionary and int(hp["pending_level"]) == 2, "guardar no bolso e melhorar começa a obra da casinha")
+	# Caixa de vendas: o lote novo já vem com ela; vender madeira credita o preço certo.
+	_ui.close_windows()
+	var sell_box: Array = _interaction._own_placements("sell_box")
+	check.call(not sell_box.is_empty(), "caixa de vendas no lote")
+	var coins_before := _session.coins
+	var wood_before := _session.count("wood")
+	var price := int(_session.sell_prices.get("wood", 0))
+	await sell([{"item": "wood", "count": 2}])
+	check.call(_session.coins == coins_before + 2 * price and _session.count("wood") == wood_before - 2,
+		"vender 2 madeiras: %d → %d moedas" % [coins_before, _session.coins])
 	_ui.close_windows()
 	print("Goblo: play-test %s (%d falhas)" % ["OK" if fails.is_empty() else "FALHOU", fails.size()])
 	if _args.has("screenshot"):

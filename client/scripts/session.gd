@@ -7,6 +7,8 @@ extends Node
 signal inventory_changed
 signal me_changed
 signal equipped_changed
+## O saldo de moedas mudou (delta = quanto mudou).
+signal coins_changed(delta: int)
 
 const PROFILE_DIR := "user://"
 
@@ -28,6 +30,12 @@ var lot_tiles := 14
 var dev := false
 ## Item de ferramenta na mão ("" = mão vazia).
 var equipped := ""
+## Saldo de moedas (o servidor é a fonte da verdade).
+var coins := 0
+## Nome da moeda (economy.json): {"singular", "plural"}.
+var currency := {"singular": "moeda", "plural": "moedas"}
+## Quanto a caixa de vendas paga por unidade de cada item.
+var sell_prices := {}
 
 
 func token_path() -> String:
@@ -63,12 +71,29 @@ func set_content(data: Dictionary) -> void:
 	tile_size = float(data.get("tile_size", 0.5))
 	lot_tiles = int(data.get("lot_tiles", 14))
 	slots_max = int(data.get("inventory_slots", 20))
+	if data.get("currency") is Dictionary:
+		currency = data["currency"]
+	sell_prices = data.get("sell_prices", {})
 
 
 func set_me(data: Dictionary) -> void:
 	me = data
 	set_inventory(data.get("inventory", []), int(data.get("slots_used", 0)))
+	set_coins(int(data.get("coins", coins)))
 	me_changed.emit()
+
+
+func set_coins(n: int) -> void:
+	if n == coins:
+		return
+	var delta := n - coins
+	coins = n
+	coins_changed.emit(delta)
+
+
+## "1 moeda", "12 moedas".
+func coins_text(n: int) -> String:
+	return "%d %s" % [n, currency["singular"] if absi(n) == 1 else currency["plural"]]
 
 
 func set_inventory(inv: Array, used: int) -> void:

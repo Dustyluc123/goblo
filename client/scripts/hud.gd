@@ -22,6 +22,8 @@ var _info_box: VBoxContainer
 var _exact_country := ""
 var _exact_code := ""
 var _welcome: PanelContainer
+var _coins: Label
+var _coins_row: HBoxContainer
 
 
 func _ready() -> void:
@@ -41,6 +43,16 @@ func _ready() -> void:
 	box.add_child(_time)
 	_country.text = "Goblo"
 	_coords.text = "carregando o mundo…"
+	_coins_row = HBoxContainer.new()
+	_coins_row.add_theme_constant_override("separation", 6)
+	var coin := CoinIcon.new()
+	coin.diameter = 20.0
+	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_coins_row.add_child(coin)
+	_coins = _label(18, Color("a06a10"))
+	_coins_row.add_child(_coins)
+	_coins_row.visible = false
+	box.add_child(_coins_row)
 
 	_status_panel = PanelContainer.new()
 	_status_panel.add_theme_stylebox_override("panel", _card_style())
@@ -170,6 +182,28 @@ func show_cell(world: WorldData, id: int) -> void:
 		title += "  ·  " + code
 	_country.text = title
 	_coords.text = "%s  ·  %s  ·  célula %d" % [world.biome_label(id), WorldData.format_lat_lon(world.lats[id], world.lons[id]), id]
+
+
+## Saldo de moedas. Com `delta` > 0, um "+N" sobe ao lado e some.
+func set_coins(text: String, delta := 0) -> void:
+	_coins_row.visible = true
+	_coins.text = text
+	if delta == 0 or not is_inside_tree():
+		return
+	var pop := _label(18, Color("4f9a70") if delta > 0 else Color("d9705b"))
+	pop.text = ("+%d" if delta > 0 else "%d") % delta
+	pop.add_theme_color_override("font_outline_color", Color.WHITE)
+	pop.add_theme_constant_override("outline_size", 5)
+	add_child(pop)
+	pop.global_position = _coins.global_position + Vector2(_coins.size.x + 10, -2)
+	var tw := pop.create_tween()
+	tw.tween_property(pop, "position:y", pop.position.y - 26, 1.1).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(pop, "modulate:a", 0.0, 1.1).set_delay(0.4)
+	tw.tween_callback(pop.queue_free)
+	var bump := _coins.create_tween()
+	_coins.pivot_offset = _coins.size * 0.5
+	bump.tween_property(_coins, "scale", Vector2(1.18, 1.18), 0.12)
+	bump.tween_property(_coins, "scale", Vector2.ONE, 0.18)
 
 
 ## País exato (pela posição, não pelo hexágono).

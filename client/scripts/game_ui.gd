@@ -20,6 +20,10 @@ var craft: CraftUi
 var dev: DevPanel
 var first_access: FirstAccess
 var settings: SettingsUi
+var sell: SellUi
+## Todas as janelas (menus): qualquer uma aberta trava o jogo e solta o cursor. Janela nova
+## só precisa entrar aqui (add_window).
+var windows: Array[Control] = []
 var build_bar: PanelContainer
 var _build_items: HBoxContainer
 var _build_hint: Label
@@ -87,14 +91,18 @@ func _ready() -> void:
 	build_bar.visible = false
 	add_child(build_bar)
 
-	inventory = InventoryUi.new()
-	add_child(inventory)
-	craft = CraftUi.new()
-	add_child(craft)
-	dev = DevPanel.new()
-	add_child(dev)
-	settings = SettingsUi.new()
-	add_child(settings)
+	inventory = add_window(InventoryUi.new()) as InventoryUi
+	craft = add_window(CraftUi.new()) as CraftUi
+	dev = add_window(DevPanel.new()) as DevPanel
+	settings = add_window(SettingsUi.new()) as SettingsUi
+	sell = add_window(SellUi.new()) as SellUi
+
+
+## Registra uma janela (menu) e a coloca na tela.
+func add_window(w: Control) -> Control:
+	add_child(w)
+	windows.append(w)
+	return w
 
 
 func setup(game: GameMain, session: Session, icons: ItemIcons, countries: Dictionary) -> void:
@@ -103,6 +111,7 @@ func setup(game: GameMain, session: Session, icons: ItemIcons, countries: Dictio
 	inventory.setup(session, icons)
 	craft.setup(game, session, icons)
 	dev.setup(game, session, icons, countries)
+	sell.setup(game, session, icons)
 
 
 ## Mostra a tela de primeiro acesso.
@@ -188,10 +197,15 @@ func any_open() -> bool:
 	return menu_open() or build_bar.visible
 
 
-## Há um menu aberto (bolso, bancada, dev, configurações, primeiro acesso)? Enquanto
+## Há um menu aberto (qualquer janela de `windows` ou o primeiro acesso)? Enquanto
 ## houver, o jogo não recebe teclas de movimento, cliques nem a roda do mouse.
 func menu_open() -> bool:
-	return inventory.visible or craft.visible or dev.visible or settings.visible or first_access != null
+	if first_access != null:
+		return true
+	for w in windows:
+		if w.visible:
+			return true
+	return false
 
 
 ## Mantido para quem já usava: trava o personagem quando há menu aberto.
@@ -257,9 +271,8 @@ func _input(event: InputEvent) -> void:
 
 
 func close_windows() -> bool:
-	var any := inventory.visible or craft.visible or dev.visible or settings.visible
-	inventory.visible = false
-	craft.visible = false
-	dev.visible = false
-	settings.visible = false
+	var any := false
+	for w in windows:
+		any = any or w.visible
+		w.visible = false
 	return any
