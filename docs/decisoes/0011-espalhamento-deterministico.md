@@ -1,6 +1,6 @@
 # 0011 — Espalhamento determinístico da vegetação
 
-**Status:** aceita (fase 1.5)
+**Status:** aceita (fase 1.5); na fase 2 vale só para a grama e as plantinhas do cliente. Árvores, pedras e flores agora vêm do servidor ([ADR 0020](0020-objetos-interativos-no-servidor.md)).
 
 ## Contexto
 No multiplayer, todos os jogadores precisam ver as mesmas árvores no mesmo lugar, principalmente as que têm colisão. A vegetação é decoração do cliente (não vem do servidor), então precisa ser reproduzível.
