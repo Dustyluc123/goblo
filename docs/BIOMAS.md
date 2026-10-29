@@ -54,6 +54,10 @@ O "anel" é a distância, em células, até a borda da montanha (busca em largur
 | gelo | 647 |
 | tundra | 402 |
 
+## Vegetação de cada bioma
+
+Desde a fase 2, árvores, pedras, flores e arbustos de cada bioma vêm do **Ultimate Nature Pack** e são gerados pelo servidor (`server/data/game/objects.json`); a grama decorativa é do cliente (`client/data/decoracao.json`). O mapeamento completo está em [`CONTEUDO.md`](CONTEUDO.md#objetos-do-mundo-objectsjson).
+
 ## Limites conhecidos
 
 - O Natural Earth não tem relevo: as montanhas saem dos polígonos de cordilheira, não de altitude real. Cordilheiras estreitas ficam com 1 ou 2 anéis.
