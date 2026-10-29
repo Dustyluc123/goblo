@@ -27,5 +27,17 @@ curl -fsSL "${BASE}/ne_50m_geography_regions_polys.geojson" -o "${BRUTO}/ne_50m_
 echo "Filtrando regiões para biomas..."
 (cd "$SERVER" && go run ./cmd/filtra-regioes "${BRUTO}/ne_50m_geography_regions_polys.geojson" "${DESTINO}/regioes.geojson")
 
+# Base IP → país "IP to Country Lite" da DB-IP (CC BY 4.0, atualizada todo mês). Opcional:
+# sem ela, o país do jogador novo vem só do idioma do sistema. Fica fora do Git.
+MES="$(date +%Y-%m)"
+MES_ANTERIOR="$(date -v-1m +%Y-%m 2>/dev/null || date -d '1 month ago' +%Y-%m)"
+echo "Baixando a base IP → país da DB-IP..."
+for m in "$MES" "$MES_ANTERIOR"; do
+  if curl -fsSL "https://download.db-ip.com/free/dbip-country-lite-${m}.csv.gz" -o "${BRUTO}/dbip-country-lite.csv.gz"; then
+    echo "  dbip-country-lite ${m} (IP Geolocation by DB-IP, https://db-ip.com, CC BY 4.0)"
+    break
+  fi
+done
+
 echo "Pronto: ${DESTINO}"
 ls -lh "$DESTINO"
