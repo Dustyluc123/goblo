@@ -71,12 +71,36 @@ type ObjectRule struct {
 	Solid     bool       `json:"solid,omitempty"`
 }
 
+// Economy são os números do dinheiro (economy.json).
+type Economy struct {
+	Currency struct {
+		Singular string `json:"singular"`
+		Plural   string `json:"plural"`
+	} `json:"currency"`
+	StartingCoins int64            `json:"starting_coins"`
+	SellPrices    map[string]int64 `json:"sell_prices"`
+	Rewards       struct {
+		PediaFirst int64 `json:"pedia_first"`
+		StampFirst int64 `json:"stamp_first"`
+	} `json:"rewards"`
+	Travel struct {
+		Base     float64 `json:"base"`
+		Per1000K float64 `json:"per_1000_km"`
+		Min      int64   `json:"min"`
+	} `json:"travel"`
+	Passport struct {
+		Default   int64            `json:"default"`
+		Countries map[string]int64 `json:"countries"`
+	} `json:"passport"`
+}
+
 // Content é todo o conteúdo balanceável do jogo, lido de server/data/game.
 type Content struct {
 	Items   []Item                  `json:"items"`
 	Recipes []Recipe                `json:"recipes"`
 	Houses  []HouseLevel            `json:"houses"`
 	Objects map[string][]ObjectRule `json:"-"`
+	Economy Economy                 `json:"-"`
 
 	items   map[string]*Item
 	recipes map[string]*Recipe
@@ -116,6 +140,7 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 	}{
 		{"game/items.json", &items}, {"game/recipes.json", &recipes},
 		{"game/houses.json", &houses}, {"game/objects.json", &objects},
+		{"game/economy.json", &c.Economy},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -166,6 +191,14 @@ func (c *Content) index() error {
 			return fmt.Errorf("casa nível %d: maior que o lote", h.Level)
 		}
 	}
+	if c.Economy.Currency.Plural == "" || c.Economy.Passport.Default <= 0 || c.Economy.Travel.Min <= 0 {
+		return fmt.Errorf("economy.json: moeda, passaporte e passagem mínima são obrigatórios")
+	}
+	for id, price := range c.Economy.SellPrices {
+		if c.items[id] == nil || price <= 0 {
+			return fmt.Errorf("economy.json: preço de venda inválido para %s", id)
+		}
+	}
 	for biome, rules := range c.Objects {
 		for _, r := range rules {
 			if len(r.Models) == 0 || r.Spacing <= 0 {
@@ -197,6 +230,17 @@ func (c *Content) checkCost(cost map[string]int) error {
 		}
 	}
 	return nil
+}
+
+// SellPrice é quanto a caixa de vendas paga por uma unidade (0 = não vende).
+func (c *Content) SellPrice(item string) int64 { return c.Economy.SellPrices[item] }
+
+// PassportPrice é o preço do passaporte de um país.
+func (c *Content) PassportPrice(country string) int64 {
+	if p, ok := c.Economy.Passport.Countries[country]; ok {
+		return p
+	}
+	return c.Economy.Passport.Default
 }
 
 // Item devolve o item pelo id (nil se não existe).

@@ -29,6 +29,8 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /lot/place", s.auth(s.place))
 	mux.HandleFunc("POST /lot/remove", s.auth(s.remove))
 	mux.HandleFunc("POST /lot/house", s.auth(s.house))
+	mux.HandleFunc("POST /sell", s.auth(s.sell))
+	mux.HandleFunc("GET /transactions", s.auth(s.transactions))
 }
 
 type authedHandler func(w http.ResponseWriter, r *http.Request, p *game.Player)
@@ -114,6 +116,8 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"inventory_slots": game.InventorySlots,
 		"rollover_hour":   game.RolloverHour,
 		"dev":             s.Dev,
+		"currency":        c.Economy.Currency,
+		"sell_prices":     c.Economy.SellPrices,
 	})
 }
 
@@ -302,4 +306,30 @@ func (s *Server) house(w http.ResponseWriter, r *http.Request, p *game.Player) {
 		return
 	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) sell(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Items []game.StackView `json:"items"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	res, err := s.Game.Sell(r.Context(), p, body.Items)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) transactions(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	list, err := s.Game.Transactions(r.Context(), p, limit)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": list})
 }

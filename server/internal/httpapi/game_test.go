@@ -103,6 +103,7 @@ func TestDevRoutesBlockedWithoutDevMode(t *testing.T) {
 	for _, r := range []struct{ method, path string }{
 		{"GET", "/dev/status"}, {"POST", "/dev/give"}, {"POST", "/dev/finish-house"}, {"POST", "/dev/next-day"},
 		{"POST", "/dev/country"}, {"POST", "/dev/reset"}, {"POST", "/dev/fake-neighbors"}, {"GET", "/dev/qualquer-coisa"},
+		{"POST", "/dev/coins"},
 	} {
 		rec, out := call(t, h, r.method, r.path, token, map[string]any{"item": "wood", "count": 99})
 		if rec.Code != http.StatusForbidden || out["error"] != "dev_only" {
@@ -254,5 +255,26 @@ func TestBordersRoute(t *testing.T) {
 	}
 	if c := cells[1].(map[string]any)["country"]; c != "BRA" {
 		t.Errorf("interior do Brasil: %v", cells[1])
+	}
+}
+
+func TestSellAndCoinsOverHTTP(t *testing.T) {
+	h := gameServer(t, true)
+	token := newPlayer(t, h, "Feirante")
+	_, me := call(t, h, "GET", "/me", token, nil)
+	start := me["coins"].(float64)
+	call(t, h, "POST", "/dev/give", token, map[string]any{"item": "coconut", "count": 3})
+	rec, out := call(t, h, "POST", "/sell", token, map[string]any{"items": []map[string]any{{"item": "coconut", "count": 3}}})
+	price := float64(gameData.SellPrice("coconut"))
+	if rec.Code != http.StatusOK || out["coins"].(float64) != start+3*price {
+		t.Fatalf("/sell: %d %s", rec.Code, rec.Body.String())
+	}
+	rec, out = call(t, h, "POST", "/dev/coins", token, map[string]any{"amount": 100})
+	if rec.Code != http.StatusOK || out["coins"].(float64) != start+3*price+100 {
+		t.Fatalf("/dev/coins: %d %s", rec.Code, rec.Body.String())
+	}
+	rec, out = call(t, h, "GET", "/transactions", token, nil)
+	if list := out["transactions"].([]any); rec.Code != http.StatusOK || len(list) < 2 {
+		t.Fatalf("/transactions: %d %s", rec.Code, rec.Body.String())
 	}
 }

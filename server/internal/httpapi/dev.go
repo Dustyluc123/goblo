@@ -23,6 +23,20 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dev/country", s.auth(s.devCountry))
 	mux.HandleFunc("POST /dev/reset", s.auth(s.devReset))
 	mux.HandleFunc("POST /dev/fake-neighbors", s.auth(s.devFakeNeighbors))
+	mux.HandleFunc("POST /dev/coins", s.auth(s.devCoins))
+}
+
+func (s *Server) devCoins(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Amount int64 `json:"amount"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	s.devMe(func(ctx context.Context, p *game.Player) (*game.MeView, error) {
+		return s.Game.DevCoins(ctx, p, body.Amount)
+	})(w, r, p)
 }
 
 // devMe adapta uma ação dev que devolve o estado do jogador.

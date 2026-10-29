@@ -56,4 +56,6 @@ var (
 	ErrBusy             = &Error{"busy", 409, "A obra ainda não terminou.", nil}
 	ErrMaxLevel         = &Error{"max_level", 409, "A casa já está no nível máximo.", nil}
 	ErrDevOnly          = &Error{"dev_only", 403, "Só no modo dev (GOBLO_DEV=1).", nil}
+	ErrNoCoins          = &Error{"no_coins", 409, "Moedas insuficientes.", nil}
+	ErrNotForSale       = &Error{"not_for_sale", 400, "A caixa de vendas não aceita isso.", nil}
 )

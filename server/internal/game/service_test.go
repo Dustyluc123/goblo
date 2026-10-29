@@ -140,8 +140,8 @@ func TestCreatePlayerGetsLotInOwnCountry(t *testing.T) {
 	default:
 		t.Fatalf("lote em bioma %s; o Brasil tem biomas agradáveis de sobra", cell.Biome)
 	}
-	if len(me.Lot.Placements) != 1 || me.Lot.Placements[0].Item != "workbench" {
-		t.Fatalf("o lote precisa começar com uma bancada: %+v", me.Lot.Placements)
+	if len(me.Lot.Placements) != 2 || me.Lot.Placements[0].Item != "workbench" || me.Lot.Placements[1].Item != "sell_box" {
+		t.Fatalf("o lote precisa começar com a bancada e a caixa de vendas: %+v", me.Lot.Placements)
 	}
 	if me.Lot.Owner != "Lucas" {
 		t.Fatalf("dono %q", me.Lot.Owner)
@@ -432,7 +432,7 @@ func TestPlacementRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count(res.Inventory, "fountain") != 0 || count(res.Inventory, "lantern") != 1 || len(res.Lot.Placements) != 3 {
+	if count(res.Inventory, "fountain") != 0 || count(res.Inventory, "lantern") != 1 || len(res.Lot.Placements) != 4 {
 		t.Fatalf("depois de colocar: %+v", res)
 	}
 	// Guardar de volta.

@@ -436,3 +436,51 @@ func (s *Store) DeleteLotPlacements(ctx context.Context, lot int64) error {
 	_, err := s.q.ExecContext(ctx, `DELETE FROM placements WHERE lot_id = ?`, lot)
 	return err
 }
+
+// --- Moedas ---------------------------------------------------------------------------------
+
+func (s *Store) Coins(ctx context.Context, player int64) (int64, error) {
+	var c int64
+	err := s.q.QueryRowContext(ctx, `SELECT coins FROM players WHERE id = ?`, player).Scan(&c)
+	return c, notFound(err)
+}
+
+func (s *Store) AddCoins(ctx context.Context, player, delta int64, reason, ref string, at time.Time) (int64, error) {
+	res, err := s.q.ExecContext(ctx, `UPDATE players SET coins = coins + ? WHERE id = ? AND coins + ? >= 0`, delta, player, delta)
+	if err != nil {
+		return 0, err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		if _, err := s.Coins(ctx, player); err != nil {
+			return 0, err
+		}
+		return 0, game.ErrNoCoins
+	}
+	bal, err := s.Coins(ctx, player)
+	if err != nil {
+		return 0, err
+	}
+	_, err = s.q.ExecContext(ctx, `INSERT INTO transactions (player_id, delta, balance, reason, ref, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		player, delta, bal, reason, ref, at.Unix())
+	return bal, err
+}
+
+func (s *Store) Transactions(ctx context.Context, player int64, limit int) ([]game.Transaction, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT id, delta, balance, reason, ref, created_at FROM transactions
+		WHERE player_id = ? ORDER BY id DESC LIMIT ?`, player, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []game.Transaction
+	for rows.Next() {
+		var t game.Transaction
+		var at int64
+		if err := rows.Scan(&t.ID, &t.Delta, &t.Balance, &t.Reason, &t.Ref, &at); err != nil {
+			return nil, err
+		}
+		t.CreatedAt = time.Unix(at, 0).UTC()
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}

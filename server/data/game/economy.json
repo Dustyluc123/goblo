@@ -1,0 +1,30 @@
+{
+  "_doc": "Economia da fase 2.5 (versão inicial; loja e troca entre jogadores ficam para a fase 4). currency: nome provisório da moeda (singular e plural), mostrado no HUD. starting_coins: saldo de quem começa agora. sell_prices: quanto a caixa de vendas paga por unidade de cada item (itens fora da lista não são vendidos). rewards: moedas pela primeira foto de cada espécie ou coisa da Goblopédia (pedia_first) e pelo primeiro carimbo de cada país no passaporte (stamp_first). travel: preço da passagem de avião = base + per_1000_km × distância entre os aeroportos (km), arredondado, com mínimo min. passport: preço de um passaporte (default) e exceções por país (countries, código ISO A3 → preço).",
+  "currency": {"singular": "moeda", "plural": "moedas"},
+  "starting_coins": 30,
+  "sell_prices": {
+    "branch": 1,
+    "wood": 3,
+    "stone": 2,
+    "flower_red": 2,
+    "flower_yellow": 2,
+    "flower_white": 2,
+    "flower_purple": 2,
+    "flower_blue": 6,
+    "berries": 1,
+    "coconut": 4
+  },
+  "rewards": {
+    "pedia_first": 25,
+    "stamp_first": 10
+  },
+  "travel": {
+    "base": 20,
+    "per_1000_km": 8,
+    "min": 25
+  },
+  "passport": {
+    "default": 60,
+    "countries": {}
+  }
+}

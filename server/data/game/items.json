@@ -8,12 +8,14 @@
     {"id": "flower_yellow", "name": "Flor amarela", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:yellow", "scale": 0.8},
     {"id": "flower_white", "name": "Flor branca", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:white", "scale": 0.8},
     {"id": "flower_purple", "name": "Flor roxa", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:purple", "scale": 0.8},
+    {"id": "flower_blue", "name": "Flor azul (rara)", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:blue", "scale": 0.8},
     {"id": "berries", "name": "Frutinhas", "category": "material", "stack": 99, "model": "res://assets/quaternius/ultimate-nature/BushBerries_2.fbx", "scale": 0.3},
     {"id": "coconut", "name": "Coco", "category": "material", "stack": 99, "model": "primitive:coconut", "scale": 1.0},
 
     {"id": "axe", "name": "Machado", "category": "tool", "stack": 1, "model": "primitive:axe", "scale": 1.0},
     {"id": "pickaxe", "name": "Picareta", "category": "tool", "stack": 1, "model": "primitive:pickaxe", "scale": 1.0},
 
+    {"id": "sell_box", "name": "Caixa de vendas", "category": "placeable", "stack": 1, "footprint": [2, 2], "model": "primitive:sell_box", "scale": 1.0, "height": 0.7},
     {"id": "workbench", "name": "Bancada", "category": "placeable", "stack": 1, "footprint": [2, 2], "model": "primitive:workbench", "scale": 1.0, "height": 0.9},
     {"id": "fence", "name": "Cerca de madeira", "category": "placeable", "stack": 99, "footprint": [1, 3], "model": "res://assets/kenney/fantasy-town-kit/fence.glb", "scale": 1.5, "height": 0.6},
     {"id": "fence_curved", "name": "Cerca curva", "category": "placeable", "stack": 99, "footprint": [3, 3], "model": "res://assets/kenney/fantasy-town-kit/fence-curved.glb", "scale": 1.5, "height": 0.6},

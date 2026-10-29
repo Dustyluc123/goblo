@@ -159,7 +159,7 @@ func (s *Service) DevReset(ctx context.Context, p *Player, what string) (*MeView
 			if err := tx.UpdateLot(ctx, lot); err != nil {
 				return err
 			}
-			if err := tx.CreatePlacement(ctx, &Placement{LotID: lot.ID, Item: "workbench", X: workbenchX, Y: workbenchY}); err != nil {
+			if err := s.starterPlacements(ctx, tx, lot.ID); err != nil {
 				return err
 			}
 		default:

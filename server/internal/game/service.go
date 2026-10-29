@@ -126,6 +126,9 @@ func (s *Service) CreatePlayer(ctx context.Context, nickname, country string) (*
 		if err := tx.CreatePlayer(ctx, p); err != nil {
 			return err
 		}
+		if _, err := s.grant(ctx, tx, p, s.content.Economy.StartingCoins, "start", ""); err != nil {
+			return err
+		}
 		_, err := s.assignLot(ctx, tx, p, country)
 		return err
 	})
@@ -180,14 +183,26 @@ func (s *Service) firstFreeLot(ctx context.Context, tx Store, p *Player, cells [
 			if err := tx.CreateLot(ctx, lot); err != nil {
 				return nil, err
 			}
-			wb := &Placement{LotID: lot.ID, Item: "workbench", X: workbenchX, Y: workbenchY}
-			if err := tx.CreatePlacement(ctx, wb); err != nil {
+			if err := s.starterPlacements(ctx, tx, lot.ID); err != nil {
 				return nil, err
 			}
 			return lot, nil
 		}
 	}
 	return nil, nil
+}
+
+// starterPlacements põe num lote novo (ou resetado) a bancada e a caixa de vendas.
+func (s *Service) starterPlacements(ctx context.Context, tx Store, lot int64) error {
+	for _, pl := range []Placement{
+		{LotID: lot, Item: "workbench", X: workbenchX, Y: workbenchY},
+		{LotID: lot, Item: "sell_box", X: sellBoxX, Y: sellBoxY},
+	} {
+		if err := tx.CreatePlacement(ctx, &pl); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // homeLon é a longitude da casa do jogador, que define quando o dia dele vira.
@@ -260,6 +275,7 @@ type MeView struct {
 	SlotsUsed   int         `json:"slots_used"`
 	SlotsMax    int         `json:"slots_max"`
 	Day         DayView     `json:"day"`
+	Coins       int64       `json:"coins"`
 }
 
 // Me devolve o estado do jogador.
@@ -288,6 +304,9 @@ func (s *Service) meView(ctx context.Context, st Store, p *Player) (*MeView, err
 		return nil, err
 	}
 	me.Inventory, me.SlotsUsed = s.inventoryView(inv)
+	if me.Coins, err = st.Coins(ctx, p.ID); err != nil {
+		return nil, err
+	}
 	me.Day = DayView{Index: DayIndex(now, lon), NextRollover: NextRollover(now, lon).Unix(), ServerTime: now.Unix()}
 	return me, nil
 }

@@ -98,6 +98,25 @@ type PlacementRepository interface {
 	DeleteLotPlacements(ctx context.Context, lot int64) error
 }
 
+// Transaction é uma linha do histórico de moedas.
+type Transaction struct {
+	ID        int64     `json:"id"`
+	Delta     int64     `json:"delta"`
+	Balance   int64     `json:"balance"`
+	Reason    string    `json:"reason"`
+	Ref       string    `json:"ref"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// WalletRepository guarda o saldo de moedas e o histórico.
+type WalletRepository interface {
+	Coins(ctx context.Context, player int64) (int64, error)
+	// AddCoins soma delta ao saldo e grava no histórico. ErrNoCoins se o saldo ficaria
+	// negativo (nada é gravado). Devolve o saldo novo.
+	AddCoins(ctx context.Context, player, delta int64, reason, ref string, at time.Time) (int64, error)
+	Transactions(ctx context.Context, player int64, limit int) ([]Transaction, error)
+}
+
 // Store junta os repositórios. As regras só conhecem esta interface; a implementação
 // atual é SQLite (internal/store/sqlite), e dá para trocar por PostgreSQL (ADR 0018).
 type Store interface {
@@ -106,6 +125,7 @@ type Store interface {
 	InventoryRepository
 	CollectionRepository
 	PlacementRepository
+	WalletRepository
 	// InTx roda fn numa transação: ou tudo é gravado, ou nada.
 	InTx(ctx context.Context, fn func(Store) error) error
 }
