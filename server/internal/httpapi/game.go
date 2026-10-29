@@ -31,6 +31,8 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /lot/house", s.auth(s.house))
 	mux.HandleFunc("POST /sell", s.auth(s.sell))
 	mux.HandleFunc("POST /animal/feed", s.auth(s.feed))
+	mux.HandleFunc("GET /pedia", s.auth(s.pedia))
+	mux.HandleFunc("POST /pedia/register", s.auth(s.pediaRegister))
 	mux.HandleFunc("GET /transactions", s.auth(s.transactions))
 }
 
@@ -120,6 +122,7 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"currency":        c.Economy.Currency,
 		"sell_prices":     c.Economy.SellPrices,
 		"animals":         c.Animals.Species,
+		"pedia":           c.PediaEntries(),
 	})
 }
 
@@ -352,6 +355,33 @@ func (s *Server) feed(w http.ResponseWriter, r *http.Request, p *game.Player) {
 		return
 	}
 	res, err := s.Game.FeedAnimal(r.Context(), p, body.Animal)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) pedia(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	list, err := s.Game.Pedia(r.Context(), p)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"entries": list})
+}
+
+func (s *Server) pediaRegister(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Entry   string `json:"entry"`
+		Country string `json:"country"`
+		Biome   string `json:"biome"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	res, err := s.Game.RegisterPedia(r.Context(), p, body.Entry, body.Country, body.Biome)
 	if err != nil {
 		writeError(w, s, err)
 		return

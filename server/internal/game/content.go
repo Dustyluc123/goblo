@@ -68,6 +68,8 @@ type ObjectRule struct {
 	Chop      bool       `json:"chop,omitempty"`
 	NearWater bool       `json:"near_water,omitempty"`
 	Colors    []string   `json:"colors,omitempty"`
+	RareColor string     `json:"rare_color,omitempty"`
+	RareP     float64    `json:"rare_chance,omitempty"`
 	Solid     bool       `json:"solid,omitempty"`
 }
 
@@ -102,6 +104,9 @@ type Content struct {
 	Objects map[string][]ObjectRule `json:"-"`
 	Economy Economy                 `json:"-"`
 	Animals *AnimalContent          `json:"-"`
+	Pedia   struct {
+		Extras []PediaEntry `json:"extras"`
+	} `json:"-"`
 
 	items   map[string]*Item
 	recipes map[string]*Recipe
@@ -142,6 +147,7 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 		{"game/items.json", &items}, {"game/recipes.json", &recipes},
 		{"game/houses.json", &houses}, {"game/objects.json", &objects},
 		{"game/economy.json", &c.Economy}, {"game/animals.json", &c.Animals},
+		{"game/goblopedia.json", &c.Pedia},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -231,6 +237,9 @@ func (c *Content) index() error {
 				return fmt.Errorf("objetos de %s: %s sem modelos ou sem spacing", biome, r.Kind)
 			}
 			if r.Kind == KindFlower {
+				if r.RareColor != "" && c.items["flower_"+r.RareColor] == nil {
+					return fmt.Errorf("objetos de %s: flor rara %s sem item", biome, r.RareColor)
+				}
 				for _, col := range r.Colors {
 					if c.items["flower_"+col] == nil {
 						return fmt.Errorf("objetos de %s: flor %s sem item", biome, col)

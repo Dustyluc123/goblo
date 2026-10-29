@@ -1,5 +1,5 @@
 {
- "_doc": "Objetos que o servidor gera em cada célula de terra (determinístico pelo id da célula). kind: tree (sacudir; com machado, cortar), rock (picareta), flower (colher), pebble e branch (pegar), bush (colher frutinhas), decor (só enfeite, sem interação). models: nomes dos modelos do Ultimate Nature Pack (client/assets/quaternius/ultimate-nature). autumn: versões de outono, reservadas para as estações da fase 2.5 (ainda não usadas). per_cell: média por célula (~500 unidades²). scale: escala mín/máx do modelo. spacing: distância mínima até o vizinho. drop: o que a árvore dá ao sacudir (branch, coconut ou none). chop: se o machado tira madeira. near_water: só em células que encostam no oceano. colors: cores das flores (viram itens flower_<cor>). solid: o enfeite tem colisão.",
+ "_doc": "Objetos que o servidor gera em cada célula de terra (determinístico pelo id da célula). kind: tree (sacudir; com machado, cortar), rock (picareta), flower (colher), pebble e branch (pegar), bush (colher frutinhas), decor (só enfeite, sem interação). models: nomes dos modelos do Ultimate Nature Pack (client/assets/quaternius/ultimate-nature). autumn: versões de outono (o cliente troca o modelo pela estação; veja client/scripts/seasons.gd). per_cell: média por célula (~500 unidades²). scale: escala mín/máx do modelo. spacing: distância mínima até o vizinho. drop: o que a árvore dá ao sacudir (branch, coconut ou none). chop: se o machado tira madeira. near_water: só em células que encostam no oceano. colors: cores das flores (viram itens flower_<cor>). rare_color e rare_chance: cor rara (Goblopédia) e a chance de cada flor sair nela (sorteio pelo id da flor, que não muda os outros objetos). solid: o enfeite tem colisão.",
  "biomes": {
   "tropical_forest": [
    {
@@ -130,7 +130,9 @@
      "yellow",
      "white",
      "purple"
-    ]
+    ],
+    "rare_color": "blue",
+    "rare_chance": 0.04
    },
    {
     "kind": "pebble",
@@ -323,7 +325,9 @@
      "yellow",
      "white",
      "purple"
-    ]
+    ],
+    "rare_color": "blue",
+    "rare_chance": 0.04
    },
    {
     "kind": "pebble",
@@ -450,7 +454,9 @@
      "yellow",
      "white",
      "purple"
-    ]
+    ],
+    "rare_color": "blue",
+    "rare_chance": 0.04
    },
    {
     "kind": "pebble",

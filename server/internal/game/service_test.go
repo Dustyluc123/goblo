@@ -17,6 +17,7 @@ import (
 var (
 	worldOnce sync.Once
 	testWorld *world.World
+	testGeo   *world.Geography
 	content   *game.Content
 )
 
@@ -28,6 +29,7 @@ func sharedWorld(t *testing.T) (*world.World, *game.Content) {
 		if err != nil {
 			panic(err)
 		}
+		testGeo = geo
 		if testWorld, err = world.New(world.DefaultConfig, geo); err != nil {
 			panic(err)
 		}
@@ -57,7 +59,9 @@ func newFixture(t *testing.T) *fixture {
 	}
 	t.Cleanup(func() { store.Close() })
 	clock := game.NewOffsetClock(game.FixedClock{T: start})
-	return &fixture{svc: game.NewService(w, c, store, clock), clock: clock, world: w, ctx: context.Background()}
+	svc := game.NewService(w, c, store, clock)
+	svc.SetGeography(testGeo)
+	return &fixture{svc: svc, clock: clock, world: w, ctx: context.Background()}
 }
 
 func (f *fixture) player(t *testing.T, nick, country string) (*game.Player, *game.MeView) {

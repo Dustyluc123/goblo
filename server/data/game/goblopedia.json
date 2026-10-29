@@ -1,0 +1,8 @@
+{
+  "_doc": "Goblopédia (tecla G): uma página por espécie ou coisa. Os animais entram sozinhos (todas as espécies de animals.json, kind animal). extras: o que mais dá para fotografar: flores raras (kind flower; a flor azul aparece pouco, veja rare_color em objects.json) e árvores em estação (kind tree; season autumn ou snow: a primeira foto de uma árvore de outono e de uma com neve). model: modelo usado no desenho da página (silhueta enquanto não foi descoberto). A recompensa do primeiro registro de cada coisa fica em economy.json (rewards.pedia_first).",
+  "extras": [
+    {"id": "flower_blue", "name": "Flor azul", "kind": "flower", "model": "flower:blue"},
+    {"id": "tree_autumn", "name": "Árvore de outono", "kind": "tree", "season": "autumn", "model": "CommonTree_Autumn_1"},
+    {"id": "tree_snow", "name": "Árvore com neve", "kind": "tree", "season": "snow", "model": "PineTree_Snow_1"}
+  ]
+}

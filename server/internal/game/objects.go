@@ -123,6 +123,11 @@ func GenerateObjects(w *world.World, content *Content, cell int) []Object {
 			}
 			if rule.Kind == KindFlower && color != "" {
 				o.Item = "flower_" + color
+				// Cor rara: sorteio à parte pelo id da flor, que não mexe na sequência dos
+				// outros objetos (ids e posições continuam os mesmos).
+				if rule.RareColor != "" && newRNG(mix(uint64(o.ID), 0xF10E5)).float() < rule.RareP {
+					o.Item = "flower_" + rule.RareColor
+				}
 			}
 			out = append(out, o)
 			spacing = append(spacing, rule.Spacing)

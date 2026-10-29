@@ -117,6 +117,25 @@ type WalletRepository interface {
 	Transactions(ctx context.Context, player int64, limit int) ([]Transaction, error)
 }
 
+// PediaRecord é uma linha da Goblopédia de um jogador.
+type PediaRecord struct {
+	Entry     string
+	FirstAt   time.Time // zero = ainda sem foto
+	Country   string
+	Biome     string
+	Sightings int
+	Friend    bool
+}
+
+// PediaRepository guarda a Goblopédia de cada jogador.
+type PediaRepository interface {
+	Pedia(ctx context.Context, player int64) ([]PediaRecord, error)
+	// PediaSighting soma uma foto; na primeira, grava país, bioma e data e devolve first = true.
+	PediaSighting(ctx context.Context, player int64, entry, country, biome string, at time.Time) (first bool, err error)
+	PediaFriend(ctx context.Context, player int64, entry string) error
+	ClearPedia(ctx context.Context, player int64) error
+}
+
 // Store junta os repositórios. As regras só conhecem esta interface; a implementação
 // atual é SQLite (internal/store/sqlite), e dá para trocar por PostgreSQL (ADR 0018).
 type Store interface {
@@ -126,6 +145,7 @@ type Store interface {
 	CollectionRepository
 	PlacementRepository
 	WalletRepository
+	PediaRepository
 	// InTx roda fn numa transação: ou tudo é gravado, ou nada.
 	InTx(ctx context.Context, fn func(Store) error) error
 }

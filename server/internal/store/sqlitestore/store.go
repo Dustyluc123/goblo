@@ -484,3 +484,52 @@ func (s *Store) Transactions(ctx context.Context, player int64, limit int) ([]ga
 	}
 	return out, rows.Err()
 }
+
+// --- Goblopédia -----------------------------------------------------------------------------
+
+func (s *Store) Pedia(ctx context.Context, player int64) ([]game.PediaRecord, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT entry, first_at, country, biome, sightings, friend FROM pedia
+		WHERE player_id = ? ORDER BY entry`, player)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []game.PediaRecord
+	for rows.Next() {
+		var r game.PediaRecord
+		var first int64
+		if err := rows.Scan(&r.Entry, &first, &r.Country, &r.Biome, &r.Sightings, &r.Friend); err != nil {
+			return nil, err
+		}
+		if first > 0 {
+			r.FirstAt = time.Unix(first, 0).UTC()
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) PediaSighting(ctx context.Context, player int64, entry, country, biome string, at time.Time) (bool, error) {
+	if _, err := s.q.ExecContext(ctx, `INSERT INTO pedia (player_id, entry) VALUES (?, ?) ON CONFLICT DO NOTHING`, player, entry); err != nil {
+		return false, err
+	}
+	res, err := s.q.ExecContext(ctx, `UPDATE pedia SET first_at = ?, country = ?, biome = ? WHERE player_id = ? AND entry = ? AND first_at = 0`,
+		at.Unix(), country, biome, player, entry)
+	if err != nil {
+		return false, err
+	}
+	first, _ := res.RowsAffected()
+	_, err = s.q.ExecContext(ctx, `UPDATE pedia SET sightings = sightings + 1 WHERE player_id = ? AND entry = ?`, player, entry)
+	return first > 0, err
+}
+
+func (s *Store) PediaFriend(ctx context.Context, player int64, entry string) error {
+	_, err := s.q.ExecContext(ctx, `INSERT INTO pedia (player_id, entry, friend) VALUES (?, ?, 1)
+		ON CONFLICT (player_id, entry) DO UPDATE SET friend = 1`, player, entry)
+	return err
+}
+
+func (s *Store) ClearPedia(ctx context.Context, player int64) error {
+	_, err := s.q.ExecContext(ctx, `DELETE FROM pedia WHERE player_id = ?`, player)
+	return err
+}

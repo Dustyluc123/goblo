@@ -105,8 +105,10 @@ func run(log *slog.Logger) error {
 		clock = game.NewOffsetClock(nil) // o modo dev pode adiantar o relógio ("dia seguinte")
 		log.Warn("MODO DEV LIGADO: rotas /dev/… liberadas (não use em produção)")
 	}
+	svc := game.NewService(w, content, store, clock)
+	svc.SetGeography(geoData)
 	api := &httpapi.Server{
-		World: w, Geo: geoData, Snapshot: snap, Game: game.NewService(w, content, store, clock),
+		World: w, Geo: geoData, Snapshot: snap, Game: svc,
 		GeoIP: geo, A2ToA3: a2, Dev: dev, Log: log,
 	}
 	srv := &http.Server{

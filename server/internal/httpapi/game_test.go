@@ -61,8 +61,10 @@ func gameServer(t *testing.T, dev bool) http.Handler {
 	if err != nil {
 		t.Fatal(err)
 	}
+	svc := game.NewService(gameWorld, gameData, store, game.NewOffsetClock(nil))
+	svc.SetGeography(gameGeo)
 	s := &Server{
-		World: gameWorld, Geo: gameGeo, Snapshot: gameSnap, Game: game.NewService(gameWorld, gameData, store, game.NewOffsetClock(nil)),
+		World: gameWorld, Geo: gameGeo, Snapshot: gameSnap, Game: svc,
 		GeoIP: db, A2ToA3: a2, Dev: dev, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 	return s.Handler()

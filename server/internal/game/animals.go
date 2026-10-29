@@ -340,8 +340,3 @@ func (s *Service) FeedAnimal(ctx context.Context, p *Player, id int64) (*FeedRes
 	})
 	return res, err
 }
-
-// markFriend guarda na Goblopédia que o jogador ficou amigo da espécie (fase 2.5, parte 4).
-func (s *Service) markFriend(ctx context.Context, tx Store, p *Player, species string) error {
-	return nil
-}

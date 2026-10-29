@@ -40,6 +40,9 @@ type Service struct {
 
 	mu        sync.Mutex // as escritas são em série (SQLite tem um escritor só)
 	byCountry map[string][]int
+	geo       *world.Geography // países pela posição exata (SetGeography)
+	airports  []Airport
+	airportBy map[string]*Airport
 }
 
 // NewService monta as regras. clock nil = relógio real.
