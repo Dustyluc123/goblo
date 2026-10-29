@@ -61,8 +61,8 @@ const PHOTO_FOV_MAX := 70.0
 ## Altura dos olhos (o personagem tem 1 de altura) e distância do selfie (braço esticado
 ## mais um pouco, para caber o corpo e o cenário).
 const EYE_HEIGHT := 0.78
-const SELFIE_DISTANCE := 1.9
-const SELFIE_PITCH := 8.0
+const SELFIE_DISTANCE := 2.8
+const SELFIE_PITCH := 10.0
 var _normal_fov := 75.0
 
 

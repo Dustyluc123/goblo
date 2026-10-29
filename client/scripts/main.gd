@@ -440,6 +440,7 @@ func _setup_game() -> void:
 	_occlusion.data = _data
 	_occlusion.vegetation = _vegetation
 	_occlusion.neighborhood = _neighborhood
+	_occlusion.airports = _airports
 	_interaction.game = self
 	_interaction.player = _player
 	_interaction.data = _data
@@ -829,7 +830,7 @@ func _process(delta: float) -> void:
 	_player.input_blocked = typing or _ui.menu_open() or _photo.selfie()
 	_hud.set_help_visible(not _ui.any_open())
 	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
-	_ui.hotbar.visible = not _ui.menu_open()
+	_ui.hotbar.visible = not _ui.menu_open() and not _photo.active
 	_collision_timer -= delta
 	if _collision_timer <= 0.0 and not _flying:
 		_collision_timer = 0.25

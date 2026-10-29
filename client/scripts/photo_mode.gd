@@ -150,6 +150,7 @@ func enter() -> void:
 	player.set_body_visible(false)  # primeira pessoa: o corpo sai da frente
 	player.set_pose(false)
 	_frame.visible = true
+	hud.visible = false  # o visor fica limpo: só a moldura
 	_update_hint()
 	ui.show_prompt("")
 
@@ -162,6 +163,7 @@ func exit() -> void:
 	player.set_body_visible(true)
 	player.set_pose(false)
 	_frame.visible = false
+	hud.visible = true
 
 
 ## Tira a foto: acha o que está enquadrado, fotografa sem a moldura e sem a interface,
