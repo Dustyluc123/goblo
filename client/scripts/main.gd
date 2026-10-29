@@ -1042,8 +1042,8 @@ func _profile_scene() -> void:
 				"sombras": _day_night.set_shadows_wanted(false)
 		await get_tree().create_timer(3.0).timeout
 		var only: Dictionary = await measure.call()
-		print("Goblo: perfil-off %s (qualidade %s): GPU %.1f ms, CPU render %.1f ms, %d draw calls" % [
-			str(_args["off"]), Quality.current_name(), only["gpu"], only["cpu"], int(only["dc"])])
+		print("Goblo: perfil-off %s (qualidade %s): %.1f fps (quadro %.1f ms), GPU %.1f ms, CPU render %.1f ms, %d draw calls" % [
+			str(_args["off"]), Quality.current_name(), 1000.0 / maxf(0.1, only["frame"]), only["frame"], only["gpu"], only["cpu"], int(only["dc"])])
 		get_tree().quit()
 		return
 	var base: Dictionary = await measure.call()

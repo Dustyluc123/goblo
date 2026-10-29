@@ -46,7 +46,9 @@ godot --headless --path . --import                                    # importa 
 godot --headless --path . -- --smoke-test --jump --profile=t1          # nasce no lote, anda, pula
 godot --headless --path . -- --play-test --profile=t2                  # ciclo inteiro (servidor com GOBLO_DEV=1)
 godot --headless --fixed-fps 60 --path . -- --route=4.5,-61.1 --spawn=-23.55,-46.63
-godot --path . -- --perf-test=20 --spawn=-3,-60 --quality=medium      # fps e GPU (precisa de janela)
+godot --path . -- --perf-test=20 --spawn=-3,-60 --quality=medium      # fps e GPU (janela NA FRENTE, avise antes)
+tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930 --profile=perf   # o que pesa na GPU
+godot --headless --path . -- --camera-test --profile=t3                # câmera não entra em nada (servidor dev)
 godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, build, first)
 godot --path . -s tools/montar_casas.gd -- --fotos=/tmp/casas          # regera as casas e fotografa (sobrescreve as cenas!)
 ```
@@ -80,7 +82,9 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 - **Assets:** Kenney e Quaternius (CC0), em `client/assets/<autor>/<pacote>/`, com créditos em `client/assets/CREDITOS.md`. Kenney: GLB + `Textures/` + `License.txt`. Quaternius: Nature Pack só `FBX/`; animais em `.glb` (`tools/gltf_para_glb.py`). Nada de OBJ/Blends/prévias. Os `.import` vão para o Git. Pacotes originais (`kenney_*/`, `Ultimate */`) ficam fora do Git. Do Graveyard Kit, nada de Halloween (ADR 0017).
 - **Modelos:** sempre pela `ModelLibrary.get_model(nome)` (junta as malhas, gera LOD, cacheia). Modelo novo nos JSON entra sozinho no pré-carregamento (lista `object_models` do `/content`).
 - **Personagem:** escolhido por `@export_enum var character` em `player.gd` e escalado para `model_height`. Os modelos olham para +Z e são girados 180°. Animações num `AnimationTree`: `locomotion`, `air` e a ação única `action` (interact-right, pick-up). Ferramenta presa ao osso `arm-right`.
-- **Desempenho:** o alvo é 60 fps na qualidade média no MacBook Intel do autor (hoje: 60 fps, GPU ~10 ms na floresta tropical). Antes e depois de mudar algo pesado, rode `--perf-test` com a janela em primeiro plano. Trabalho caro vai para threads (`WorkerThreadPool`) ou é espalhado entre quadros; nada de carregar modelo no meio do jogo nem criar centenas de nós num quadro.
+- **Desempenho:** metas: média com 60 fps estáveis e alta com no mínimo 45 fps, na janela maximizada do Mac Intel do autor (3136 × 1930 pixels, Retina), no bairro com 20 vizinhos e na floresta tropical (ADR 0028, tabela no README). O gargalo é a GPU. Para saber o que pesa, use `--profile-scene` (desliga uma parte por vez e mede a GPU) com `--window-size=3136x1930`; os fps de verdade só com `--perf-test` e a janela na frente. Trabalho caro vai para threads (`WorkerThreadPool`) ou é espalhado entre quadros; nada de carregar modelo no meio do jogo nem criar centenas de nós num quadro. Lotes de vizinhos viram uma malha por material (`Neighborhood._merge`); distâncias de desenho, LOD, sombras e resolução do 3D ficam nos presets de `quality.gd`.
+- **Renderizador Mobile, armadilhas:** não tem SSAO/SSIL/névoa volumétrica; `GeometryInstance3D.transparency` não tem efeito (use um material com alfa, como `CameraOcclusion.see_through`). Evite `discard` em shaders do mundo (desliga o early-z).
+- **Interface:** o `GameUi` é o gerenciador: `menu_open()` e `captures(evento)` dizem se o mouse/teclado é da interface. Câmera, personagem, modo construção e interação perguntam a ele; janela nova só precisa entrar em `menu_open()` e usar `UiStyle.header(...)` (título + dica + botão X).
 - **Escala:** raio 1000, personagem ~1, andar 5,3, correr ×2,3, pulo 1,3, peças do Fantasy Town Kit ×1,5, árvores 3 a 5 de altura. Números do cliente em `game_config.gd`; tabela completa em `docs/ARQUITETURA.md`.
 
 ## Onde fica cada coisa
@@ -114,7 +118,11 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 | qualidade gráfica | `client/scripts/quality.gd` |
 | malha do chão e do oceano | `client/scripts/globe_builder.gd`, `terrain.gd` |
 | dia e noite, céu | `client/scripts/day_night.gd`, `client/shaders/sky.gdshader` |
-| HUD, bússola, mini mapa | `client/scripts/hud.gd`, `compass.gd`, `minimap.gd` |
+| HUD, bússola, mini mapa (seta e casinha) | `client/scripts/hud.gd`, `compass.gd`, `minimap.gd`, `home_icon.gd` |
+| câmera (colisão) e objetos transparentes na frente dela | `client/scripts/camera_rig.gd`, `camera_occlusion.gd` |
+| vento e variação da vegetação, névoa, tonemapping | `client/shaders/foliage.gdshader`, `client/scripts/day_night.gd` |
+| configurações (F6): qualidade, tamanho da interface, tela cheia | `client/scripts/settings_ui.gd`, `quality.gd` |
+| verificação de nomes de outros jogos (CI) | `scripts/verificar-nomes.sh` |
 | inicialização, identidade, atalhos, ações do dev, automações | `client/scripts/main.gd` |
 | assets e créditos | `client/assets/` |
 

@@ -70,7 +70,28 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 - [x] **Banco SQLite** (Go puro, sem cgo) com migrações e repositórios trocáveis
 - [x] **Modo dev (F1)** para testar tudo sem jogar: dar itens, obra na hora, dia seguinte, voar, teleportar, trocar país, resets e 20 vizinhos falsos
 
+**Fase 2.1: polimento** ✅
+
+- [x] **Câmera que não atravessa nada:** para antes de casas, troncos e morros (e sobe quando o espaço aperta); árvores e casas entre a câmera e o personagem ficam transparentes
+- [x] **Melhorar a casa funciona:** a casa cresce no lugar, com a porta do mesmo lado, acha sozinha uma posição que caiba e, se decorações atrapalharem, diz quais, marca em vermelho e guarda no bolso com um clique
+- [x] **Sem texturas piscando** nos cantos das casas, no telhado e na sacada
+- [x] **Menus capturam mouse e teclado** (a roda rola a lista, não dá zoom) e todos têm botão **X**
+- [x] **Mini mapa** com a casinha do seu lote e uma setinha para onde você está virado; na visão afastada, um marcador mostra a sua casa
+- [x] **Desempenho:** lotes dos vizinhos juntados numa malha por material, LOD e distâncias por tipo, sombras e resolução do 3D ajustadas por qualidade ([ADR 0028](docs/decisoes/0028-desempenho-da-fase-2-1.md))
+- [x] **Mais bonito:** tonemapping AgX, luz do céu, névoa de distância na cor do horizonte, glow leve, vento na vegetação, AO nos vértices e paleta pastel ([ADR 0029](docs/decisoes/0029-visual-luz-nevoa-vento.md))
+- [x] **Relógio do modo dev** volta para a hora real sem reiniciar o servidor
+- [x] O Goblo não cita outros jogos (verificação no CI)
+
 ## Telas
+
+**Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
+
+| | Antes | Depois |
+| --- | --- | --- |
+| Bairro, 11h | <img src="docs/imagens/antes-bairro.jpg" alt="Bairro antes: verde saturado e chapado, sem névoa" width="400" /> | <img src="docs/imagens/depois-bairro.jpg" alt="Bairro depois: cores pastel, névoa ao fundo e luz mais suave" width="400" /> |
+| Floresta tropical | <img src="docs/imagens/antes-floresta.jpg" alt="Floresta antes" width="400" /> | <img src="docs/imagens/depois-floresta.jpg" alt="Floresta depois, com névoa e sombras mais macias" width="400" /> |
+| Fim de tarde, 17h24 | <img src="docs/imagens/antes-tarde.jpg" alt="Fim de tarde antes" width="400" /> | <img src="docs/imagens/depois-tarde.jpg" alt="Fim de tarde depois, com luz quente nas copas" width="400" /> |
+| Noite, 22h | <img src="docs/imagens/antes-noite.jpg" alt="Noite antes" width="400" /> | <img src="docs/imagens/depois-noite.jpg" alt="Noite depois" width="400" /> |
 
 | Primeiro acesso | Bancada | Bolso (inventário) |
 | --- | --- | --- |
@@ -104,7 +125,7 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 11. **Resets:** aba **Jogador**: trocar de país (muda o lote), resetar lote, inventário, coletas de hoje ou apagar o jogador (volta à tela de primeiro acesso).
 
 > [!TIP]
-> O relógio adiantado pelo "dia seguinte" vale até reiniciar o servidor. O banco fica em `server/goblo.db`; apague o arquivo para começar do zero.
+> O relógio adiantado pelo "dia seguinte" volta para a hora real no botão **Voltar o relógio do servidor para a hora real** (aba Jogador), sem reiniciar o servidor. O banco fica em `server/goblo.db`; apague o arquivo para começar do zero.
 
 ## Medições
 
@@ -289,7 +310,7 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | **B** | modo construção (no seu lote) |
 | **R** / clique / **X** | no modo construção: girar, colocar, guardar |
 | **H** | voltar para casa |
-| Esc | fechar janelas, sair do modo construção |
+| Esc ou o **X** no canto | fechar janelas, sair do modo construção |
 | Botão direito (ou do meio) + arrastar | girar a câmera |
 | Q / C | girar a câmera |
 | Roda do mouse / dois dedos no trackpad | zoom, do personagem até o planeta inteiro |
@@ -316,7 +337,8 @@ go vet ./...
 - a coleta de um jogador não afeta outro; flor colhida some só para quem colheu;
 - fabricação consome os materiais certos (inclusive "qualquer flor") e falha sem materiais, sem gastar nada;
 - não dá para construir no lote dos outros, fora da grade ou sobrepondo; guardar devolve ao inventário; 20 espaços;
-- a casa só fica pronta depois da virada do dia, e cresce no mesmo lugar;
+- a casa só fica pronta depois da virada do dia; a melhoria cresce a partir da casa atual (sozinha no lote funciona, perto da borda acha uma posição que caiba, com decoração no caminho falha listando os objetos);
+- o relógio do modo dev volta para a hora real depois do "dia seguinte";
 - objetos determinísticos, dentro da célula e sem encavalar; objetos somem dos lotes ocupados;
 - 90% das células comportam 4 lotes;
 - país: IP local cai no idioma do sistema; IPs conhecidos (linhas reais da DB-IP) dão o país certo, inclusive IPv6;
@@ -329,7 +351,9 @@ O cliente tem testes automáticos que rodam sem janela (com o servidor no ar; o 
 cd client
 godot --headless --path . -- --smoke-test --jump --profile=teste          # nasce no lote, anda, pula
 godot --headless --path . -- --play-test --profile=teste2                 # coleta, fabricação, decoração e casa
-godot --path . -- --perf-test=20 --spawn=-3,-60                           # fps na floresta tropical (com janela)
+godot --headless --path . -- --camera-test --profile=teste3               # a câmera nunca entra em casas, árvores ou no chão
+godot --path . -- --perf-test=20 --spawn=-3,-60                           # fps na floresta tropical (janela na frente)
+tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930   # o que pesa na GPU (sem roubar o foco)
 ```
 
 ## Privacidade
