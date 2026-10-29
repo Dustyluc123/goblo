@@ -1,6 +1,6 @@
 # 0006 — Na visão afastada, a câmera gira em volta do planeta (o globo fica parado)
 
-**Status:** aceita (fase 1)
+**Status:** aceita; a parte da luz que acompanhava a câmera foi substituída pela [0015](0015-dia-e-noite-pelo-utc.md) na fase 1.5
 
 ## Contexto
 O briefing pede que, na visão afastada, o globo gire devagar sozinho. Girar o nó do planeta de verdade giraria também a colisão e o personagem, misturando física com efeito visual.
