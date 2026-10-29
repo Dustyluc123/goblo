@@ -19,6 +19,16 @@ MMO cozy no planeta Terra de verdade, visto como um globo de sala de aula, com o
 - Envolva comandos do Godot em `perl -e 'alarm 200; exec @ARGV' …` para não travar a sessão se o jogo não fechar.
 - Automações do cliente criam jogadores no banco. Use `--profile=NOME` (token em `user://NOME.cfg`) para não mexer no jogador do autor (`user://player.cfg`).
 
+## Testes sem atrapalhar o Lucas
+
+Regra permanente: o autor usa o Mac enquanto você trabalha (vídeo, outras janelas). Abrir o jogo não pode roubar o foco.
+
+- **Prefira sempre `--headless`**: testes automáticos, import, validação de cenas, smoke/play-test e tudo que não precise de imagem.
+- **Precisa de imagem (captura)?** Use `client/tools/sem_foco.sh -- <argumentos>`: abre com `open -g` (sem ativar o app), em janela comum 1600 × 900 com `--no-focus` (flag de janela sem foco do Godot), espera fechar e imprime a saída. Só nos testes; a configuração normal do jogo não muda.
+- **Medição de fps** precisa da janela na frente (o macOS desacelera janelas em segundo plano): junte todas as medições num momento só, no fim do trabalho, e avise antes no terminal ("vou abrir o jogo na frente por uns 2 minutos para medir o desempenho").
+- Feche o jogo assim que o teste terminar (as automações já fecham sozinhas; o script mata o processo se estourar o tempo).
+- Não use `osascript`/System Events para conferir janelas: pede permissão e trava esperando.
+
 ## Comandos
 
 ```bash
@@ -41,9 +51,9 @@ godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   #
 godot --path . -s tools/montar_casas.gd -- --fotos=/tmp/casas          # regera as casas e fotografa (sobrescreve as cenas!)
 ```
 
-Argumentos do cliente (depois de `--`): `--server=URL`, `--profile=NOME`, `--nickname=X` (+ `--country=BRA`), `--quality=…`, `--spawn=LAT,LON`, `--zoom=0..1`, `--utc=HORA`, `--no-cache`, `--equip=ITEM`, `--walk=SEG`, `--dir=…`, `--run`, `--moving`, `--jump`, `--smoke-test`, `--play-test`, `--screenshot=ARQ`, `--ui=…`, `--route=LAT,LON`, `--perf-test=SEG`, `--tour`. Lista completa no topo de `client/scripts/main.gd`.
+Argumentos do cliente (depois de `--`): `--server=URL`, `--profile=NOME`, `--nickname=X` (+ `--country=BRA`), `--quality=…`, `--spawn=LAT,LON`, `--zoom=0..1`, `--utc=HORA`, `--no-cache`, `--equip=ITEM`, `--walk=SEG`, `--dir=…`, `--run`, `--moving`, `--jump`, `--smoke-test`, `--play-test`, `--screenshot=ARQ`, `--ui=…`, `--route=LAT,LON`, `--perf-test=SEG`, `--tour`, `--window-size=WxH`, `--ui-scale=X`, `--fullscreen-test`, `--no-focus`. Lista completa no topo de `client/scripts/main.gd`.
 
-Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira, clique coloca, X guarda), H casa, F1 modo dev, F2 desempenho, F3/F4 tempo, F6 qualidade, Q/C câmera.
+Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira, clique coloca, X guarda), H casa, F1 modo dev, F2 desempenho, F3/F4 tempo, F6 configurações (qualidade, tamanho da interface, tela cheia), F11 tela cheia, Q/C câmera.
 
 ## Convenções
 
