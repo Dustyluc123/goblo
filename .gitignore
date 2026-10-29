@@ -31,3 +31,11 @@ kenney-original/
 
 # Pacotes originais baixados da Kenney (copie só o necessário para client/assets/kenney)
 /kenney_*/
+
+# Banco do servidor (SQLite)
+*.db
+*.db-shm
+*.db-wal
+
+# Pacotes originais baixados do Quaternius (copie só o necessário para client/assets/quaternius)
+/Ultimate */
