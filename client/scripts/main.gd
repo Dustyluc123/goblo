@@ -1557,12 +1557,12 @@ func _animal_test() -> void:
 			break
 	check.call(found, "animais do servidor perto (%d com modelo)" % _animals.active_count)
 	if found:
-		# Sem reação, o animal fica exatamente no trajeto comum (todo mundo vê igual).
+		# Sem reação, o animal fica exatamente no trajeto comum (todo mundo vê igual). Compara
+		# com a pose do horário da última atualização dele (os mais longe atualizam menos).
 		var worst := 0.0
-		var now := _data.server_time()
 		for id: int in _animals._active:
 			var e: Dictionary = _animals._active[id]
-			var pose := AnimalPath.at(e["animal"], now)
+			var pose := AnimalPath.at(e["animal"], float(e.get("t", _data.server_time())))
 			var f := _data.frame(int(e["animal"]["cell"]))
 			var want := WorldData.frame_point(f, pose["x"], pose["y"])
 			worst = maxf(worst, (e["node"] as Node3D).global_position.distance_to(want))
@@ -1609,10 +1609,16 @@ func _animal_test() -> void:
 	if not deer.is_empty():
 		# Corre na direção do cervo: ele foge galopando e depois volta ao trajeto.
 		var did := int(deer["animal"]["id"])
+		# Começa a 5 unidades do cervo (sem árvore no caminho atrapalhando a corrida).
+		var dp: Vector3 = (deer["node"] as Node3D).global_position
+		var dup := dp.normalized()
+		var side := _player.global_position - dp
+		side = (side - dup * side.dot(dup)).normalized()
+		await _teleport(dp + side * 5.0)
 		_player.autopilot = true
 		_player.auto_run = true
 		var fled := false
-		for i in 120:
+		for i in 180:
 			var to := (deer["node"] as Node3D).global_position - _player.global_position
 			_player.auto_wish = to - _player.global_position.normalized() * to.dot(_player.global_position.normalized())
 			await get_tree().physics_frame

@@ -183,6 +183,7 @@ func _update(e: Dictionary, now: float, local_now: float, delta: float) -> void:
 	var cell := int(a["cell"])
 	var f := data.frame(cell)
 	var pose := AnimalPath.at(a, now)
+	e["t"] = now  # horário (do servidor) da última atualização
 	var path_xy := Vector2(float(pose["x"]), float(pose["y"]))
 	var st := _local_state(id)
 	st["seen"] = local_now
