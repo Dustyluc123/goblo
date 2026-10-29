@@ -1,0 +1,28 @@
+{
+  "_doc": "Animais (fase 2.5). species: cada espécie com nome, modelo (client/assets/quaternius/ultimate-animated-animals), altura no jogo (o personagem tem ~1), shy (tímido: foge galopando se o jogador correr perto), walk e run (velocidades em unidades/s), roam (raio da área de passeio em volta da casa do grupo), leg (segundos de cada trecho do passeio: anda até um ponto e depois fica parado, pastando ou olhando) e jump (nome da animação de pulinho, que muda entre os pacotes). biomes: em cada bioma, grupos de animais; species é a lista sorteada, per_cell a média de grupos por célula e group o tamanho do grupo (mín., máx.). neighborhood: cachorros perto dos bairros (células com lotes ocupados em biomas agradáveis): per_lot grupos por lote ocupado, até max_per_cell. Os animais são os mesmos para todos os jogadores: o servidor sorteia por célula e a posição em cada instante sai de uma conta com o id e o horário do servidor (ADR 0032).",
+  "species": {
+    "cow":         {"name": "Vaca",          "model": "Cow",         "height": 1.35, "shy": false, "walk": 0.8, "run": 4.0, "roam": 5.5, "leg": 16, "jump": "Jump_toIdle"},
+    "bull":        {"name": "Touro",         "model": "Bull",        "height": 1.45, "shy": false, "walk": 0.8, "run": 4.0, "roam": 5.5, "leg": 18, "jump": "Jump_toIdle"},
+    "horse":       {"name": "Cavalo",        "model": "Horse",       "height": 1.6,  "shy": false, "walk": 1.1, "run": 6.0, "roam": 6.5, "leg": 14, "jump": "Jump_toIdle"},
+    "horse_white": {"name": "Cavalo branco", "model": "Horse_White", "height": 1.6,  "shy": false, "walk": 1.1, "run": 6.0, "roam": 6.5, "leg": 14, "jump": "Jump_toIdle"},
+    "donkey":      {"name": "Burro",         "model": "Donkey",      "height": 1.15, "shy": false, "walk": 0.8, "run": 4.0, "roam": 5.0, "leg": 16, "jump": "Jump_toIdle"},
+    "deer":        {"name": "Cervo",         "model": "Deer",        "height": 1.2,  "shy": true,  "walk": 1.0, "run": 6.5, "roam": 6.0, "leg": 13, "jump": "Jump_toIdle"},
+    "stag":        {"name": "Alce-macho",    "model": "Stag",        "height": 1.45, "shy": true,  "walk": 1.0, "run": 6.5, "roam": 6.0, "leg": 15, "jump": "Jump_toIdle"},
+    "fox":         {"name": "Raposa",        "model": "Fox",         "height": 0.55, "shy": true,  "walk": 1.1, "run": 6.0, "roam": 6.0, "leg": 11, "jump": "Jump_ToIdle"},
+    "alpaca":      {"name": "Alpaca",        "model": "Alpaca",      "height": 1.3,  "shy": false, "walk": 0.8, "run": 4.0, "roam": 5.0, "leg": 15, "jump": "Jump_toIdle"},
+    "wolf":        {"name": "Lobo",          "model": "Wolf",        "height": 0.75, "shy": true,  "walk": 1.2, "run": 6.5, "roam": 7.0, "leg": 12, "jump": "Jump_ToIdle"},
+    "husky":       {"name": "Husky",         "model": "Husky",       "height": 0.65, "shy": false, "walk": 1.2, "run": 5.5, "roam": 5.0, "leg": 10, "jump": "Jump_ToIdle"},
+    "shiba":       {"name": "Shiba",         "model": "ShibaInu",    "height": 0.6,  "shy": false, "walk": 1.2, "run": 5.5, "roam": 5.0, "leg": 10, "jump": "Jump_ToIdle"}
+  },
+  "biomes": {
+    "grassland":       [{"species": ["cow", "bull", "horse", "horse_white", "donkey"], "per_cell": 0.9, "group": [1, 3]}],
+    "forest":          [{"species": ["deer", "stag", "fox"], "per_cell": 0.7, "group": [1, 2]}],
+    "tropical_forest": [{"species": ["deer", "fox"], "per_cell": 0.45, "group": [1, 2]}],
+    "mountain":        [{"species": ["alpaca"], "per_cell": 0.7, "group": [1, 3]}],
+    "tundra":          [{"species": ["wolf", "husky"], "per_cell": 0.45, "group": [1, 2]}],
+    "beach":           [],
+    "desert":          [],
+    "ice":             []
+  },
+  "neighborhood": {"species": ["shiba", "husky"], "per_lot": 0.35, "max_per_cell": 2}
+}

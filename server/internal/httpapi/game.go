@@ -30,6 +30,7 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /lot/remove", s.auth(s.remove))
 	mux.HandleFunc("POST /lot/house", s.auth(s.house))
 	mux.HandleFunc("POST /sell", s.auth(s.sell))
+	mux.HandleFunc("POST /animal/feed", s.auth(s.feed))
 	mux.HandleFunc("GET /transactions", s.auth(s.transactions))
 }
 
@@ -118,6 +119,7 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"dev":             s.Dev,
 		"currency":        c.Economy.Currency,
 		"sell_prices":     c.Economy.SellPrices,
+		"animals":         c.Animals.Species,
 	})
 }
 
@@ -199,7 +201,14 @@ func (s *Server) objects(w http.ResponseWriter, r *http.Request, p *game.Player)
 		writeError(w, s, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"day": day, "objects": objs})
+	animals, err := s.Game.Animals(r.Context(), cells)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	// now_ms: horário do servidor, para o cliente acertar o relógio dos animais (ADR 0032).
+	writeJSON(w, http.StatusOK, map[string]any{"day": day, "objects": objs, "animals": animals,
+		"now_ms": s.Game.Clock().Now().UnixMilli()})
 }
 
 func (s *Server) interact(w http.ResponseWriter, r *http.Request, p *game.Player) {
@@ -332,4 +341,20 @@ func (s *Server) transactions(w http.ResponseWriter, r *http.Request, p *game.Pl
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"transactions": list})
+}
+
+func (s *Server) feed(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Animal int64 `json:"animal"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	res, err := s.Game.FeedAnimal(r.Context(), p, body.Animal)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
 }

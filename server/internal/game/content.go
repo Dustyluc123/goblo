@@ -101,6 +101,7 @@ type Content struct {
 	Houses  []HouseLevel            `json:"houses"`
 	Objects map[string][]ObjectRule `json:"-"`
 	Economy Economy                 `json:"-"`
+	Animals *AnimalContent          `json:"-"`
 
 	items   map[string]*Item
 	recipes map[string]*Recipe
@@ -140,7 +141,7 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 	}{
 		{"game/items.json", &items}, {"game/recipes.json", &recipes},
 		{"game/houses.json", &houses}, {"game/objects.json", &objects},
-		{"game/economy.json", &c.Economy},
+		{"game/economy.json", &c.Economy}, {"game/animals.json", &c.Animals},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -197,6 +198,31 @@ func (c *Content) index() error {
 	for id, price := range c.Economy.SellPrices {
 		if c.items[id] == nil || price <= 0 {
 			return fmt.Errorf("economy.json: preço de venda inválido para %s", id)
+		}
+	}
+	if c.Animals == nil || len(c.Animals.Species) == 0 {
+		return fmt.Errorf("animals.json: sem espécies")
+	}
+	for id, sp := range c.Animals.Species {
+		if sp.Walk <= 0 || sp.Run <= 0 || sp.Roam <= 0 || sp.Leg <= 0 || sp.Height <= 0 || sp.Model == "" {
+			return fmt.Errorf("animals.json: espécie %s com números inválidos", id)
+		}
+	}
+	for biome, rules := range c.Animals.Biomes {
+		for _, r := range rules {
+			if len(r.Species) == 0 || r.Group[0] < 1 || r.Group[1] < r.Group[0] {
+				return fmt.Errorf("animals.json: grupo de %s inválido", biome)
+			}
+			for _, sp := range r.Species {
+				if _, ok := c.Animals.Species[sp]; !ok {
+					return fmt.Errorf("animals.json: %s usa a espécie %s, que não existe", biome, sp)
+				}
+			}
+		}
+	}
+	for _, sp := range c.Animals.Neighborhood.Species {
+		if _, ok := c.Animals.Species[sp]; !ok {
+			return fmt.Errorf("animals.json: bairro usa a espécie %s, que não existe", sp)
 		}
 	}
 	for biome, rules := range c.Objects {
