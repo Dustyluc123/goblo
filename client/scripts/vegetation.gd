@@ -199,6 +199,7 @@ func _collect_finished() -> void:
 
 func _build_objects(key: int) -> Node3D:
 	var node := Node3D.new()
+	node.set_meta("layer", "big")
 	add_child(node)
 	var by_model := {}  # modelo → Array de objetos
 	for o: Dictionary in data.chunk(key).get("objects", []):
@@ -368,6 +369,7 @@ func _apply_small(key: int, result: Dictionary) -> void:
 	if (_chunks[key] as Dictionary).has("small"):
 		return
 	var node := Node3D.new()
+	node.set_meta("layer", "small")
 	add_child(node)
 	var count := 0
 	for name: String in result["buffers"]:

@@ -29,6 +29,9 @@ extends Node3D
 ##   --ui-scale=1.25     tamanho da interface só nesta execução
 ##   --window-size=WxH   abre em janela desse tamanho (em vez de maximizada)
 ##   --no-focus          janela de teste que não pega o foco (tools/sem_foco.sh usa)
+##   --profile-scene     parado no lugar, mede GPU/CPU/draw calls ligando e desligando cada
+##                       parte (sombras, árvores, grama, casas, chão, nuvens); com
+##                       --neighbors=N cria N vizinhos falsos antes (servidor dev)
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que ela
 ##                       nunca entra em nada (servidor com GOBLO_DEV=1)
 
@@ -326,6 +329,7 @@ func _setup_game() -> void:
 	_data.radius = float(Quality.current()["big_radius"]) + 20.0
 	_vegetation.setup(world, _data)
 	_neighborhood.setup(world, _data, _session)
+	_neighborhood.set_view_distance(float(Quality.current()["lot_radius"]))
 	_icons.setup(_session.items)
 	_ui.setup(self, _session, _icons, world.countries)
 	_ui.inventory.place_requested.connect(func(item: String) -> void: _build.enter(item))
@@ -536,7 +540,11 @@ func _apply_quality() -> void:
 	var q := Quality.current()
 	get_viewport().msaa_3d = q["msaa"]
 	get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q["fxaa"] else Viewport.SCREEN_SPACE_AA_DISABLED
-	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if q["big_shadows"] else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	var splits := {1: DirectionalLight3D.SHADOW_ORTHOGONAL, 2: DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS, 4: DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS}
+	_sun.directional_shadow_mode = splits.get(int(q["shadow_splits"]), DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS)
+	get_viewport().mesh_lod_threshold = float(q["lod_threshold"])
+	if _neighborhood:
+		_neighborhood.set_view_distance(float(q["lot_radius"]))
 	_day_night.set_shadows_wanted(q["shadows"])
 	_sun.directional_shadow_max_distance = maxf(1.0, q["shadow_distance"])
 	_apply_render_scale()
@@ -770,7 +778,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene"]:
 		if _args.has(k):
 			return true
 	return false
@@ -791,6 +799,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("camera-test"):
 		await _camera_test()
+		return
+	if _args.has("profile-scene"):
+		await _profile_scene()
 		return
 	if not (_args.has("smoke-test") or _args.has("screenshot")):
 		return
@@ -962,6 +973,65 @@ func _play_test() -> void:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(str(_args["screenshot"]))
 	get_tree().quit(0 if fails.is_empty() else 1)
+
+
+## Mede quanto cada parte da cena custa, parado no mesmo lugar e com a mesma câmera:
+## desliga uma parte por vez e compara GPU, CPU de render e draw calls com tudo ligado.
+func _profile_scene() -> void:
+	if _args.has("neighbors"):
+		await dev_fake_neighbors(int(_args["neighbors"]))
+		await get_tree().create_timer(2.0).timeout
+	var vp := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
+	await get_tree().create_timer(2.0).timeout
+	var measure := func() -> Dictionary:
+		await get_tree().create_timer(0.6).timeout
+		var n := 0
+		var gpu := 0.0
+		var cpu := 0.0
+		var dc := 0.0
+		var prim := 0.0
+		var t0 := Time.get_ticks_usec()
+		while n < 90:
+			await get_tree().process_frame
+			gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp)
+			cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
+			dc += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+			prim += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+			n += 1
+		var frame_ms := (Time.get_ticks_usec() - t0) / 1000.0 / n
+		return {"gpu": gpu / n, "cpu": cpu / n, "dc": dc / n, "prim": prim / n / 1000.0, "frame": frame_ms}
+	var parts := {
+		"sombras": [func() -> void: _day_night.set_shadows_wanted(false), func() -> void: _apply_quality()],
+		"antisserrilhado (MSAA/FXAA)": [func() -> void:
+			get_viewport().msaa_3d = Viewport.MSAA_DISABLED
+			get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED, func() -> void: _apply_quality()],
+		"árvores e pedras (servidor)": [func() -> void: _set_layer_visible("big", false), func() -> void: _set_layer_visible("big", true)],
+		"grama e plantinhas (cliente)": [func() -> void: _set_layer_visible("small", false), func() -> void: _set_layer_visible("small", true)],
+		"casas e lotes": [func() -> void: _neighborhood.visible = false, func() -> void: _neighborhood.visible = true],
+		"chão e oceano": [func() -> void: _terrain.visible = false, func() -> void: _terrain.visible = true],
+		"nuvens": [func() -> void: _clouds.visible = false, func() -> void: _clouds.visible = true],
+		"céu": [func() -> void: (get_node("WorldEnvironment") as WorldEnvironment).environment.background_mode = Environment.BG_COLOR,
+			func() -> void: (get_node("WorldEnvironment") as WorldEnvironment).environment.background_mode = Environment.BG_SKY],
+	}
+	var base: Dictionary = await measure.call()
+	var win := DisplayServer.window_get_size()
+	print("Goblo: perfil (%s, qualidade %s, janela %d × %d, 3D em %d%%): tudo ligado: GPU %.1f ms, CPU render %.1f ms, quadro %.1f ms, %d draw calls, %.0f mil triângulos, %d objetos" % [
+		world.biome_label(_player.cell_id), Quality.current_name(), win.x, win.y, roundi(get_viewport().scaling_3d_scale * 100.0),
+		base["gpu"], base["cpu"], base["frame"], int(base["dc"]), base["prim"], _vegetation.instance_count])
+	for name: String in parts:
+		(parts[name][0] as Callable).call()
+		var m: Dictionary = await measure.call()
+		(parts[name][1] as Callable).call()
+		print("Goblo: perfil   sem %s: GPU %.1f ms (−%.1f), CPU render %.1f ms (−%.1f), draw calls %d (−%d), triângulos −%.0f mil" % [
+			name, m["gpu"], base["gpu"] - m["gpu"], m["cpu"], base["cpu"] - m["cpu"], int(m["dc"]), int(base["dc"] - m["dc"]), base["prim"] - m["prim"]])
+	get_tree().quit()
+
+
+func _set_layer_visible(layer: String, on: bool) -> void:
+	for c in _vegetation.get_children():
+		if c.has_meta("layer") and c.get_meta("layer") == layer:
+			(c as Node3D).visible = on
 
 
 ## A câmera nunca pode ficar dentro de nada: encosta o personagem em casas (vizinhos

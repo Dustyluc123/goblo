@@ -7,6 +7,11 @@ extends Node3D
 ## As casas são cenas montadas com o Fantasy Town Kit (scenes/houses/), juntadas numa
 ## malha só pela ModelLibrary (1 draw call por casa). Os lampiões acendem à noite; só os
 ## mais perto ganham luz de verdade, para não pesar.
+##
+## Desempenho: o lote de um vizinho (casa, decorações, plaquinha, obra) vira UMA malha por
+## material (2 a 4 draw calls em vez de ~25). O lote do jogador fica peça por peça, porque
+## o modo construção, a bancada e o destaque dos objetos que atrapalham precisam disso.
+## Lotes além de `view_distance` (do preset de qualidade) não são desenhados.
 
 const MAX_LIGHTS := 6
 const SIGN_VISIBLE := 45.0
@@ -22,6 +27,13 @@ var _lanterns: Array = []  # [OmniLight3D, MeshInstance3D]
 var _light_timer := 0.0
 var _border_mat: StandardMaterial3D
 var _own_border_mat: StandardMaterial3D
+## Materiais compartilhados (para as malhas dos lotes se juntarem).
+var _wood_mat: StandardMaterial3D
+var _paint_mat: StandardMaterial3D
+var _own_paint_mat: StandardMaterial3D
+var _scaffold_mat: StandardMaterial3D
+## Até onde os lotes aparecem.
+var view_distance := 120.0
 
 
 func setup(w: WorldData, d: ChunkData, s: Session) -> void:
@@ -30,6 +42,10 @@ func setup(w: WorldData, d: ChunkData, s: Session) -> void:
 	session = s
 	_border_mat = _line_material(Color(1, 1, 1, 0.22))
 	_own_border_mat = _line_material(Color(1, 0.97, 0.75, 0.6))
+	_wood_mat = _solid(Color("8a5a3b"))
+	_paint_mat = _solid(Color("f3e3c3"))
+	_own_paint_mat = _solid(Color("ffe9a8"))
+	_scaffold_mat = _solid(Color("b98a5a"))
 	data.chunk_loaded.connect(_on_chunk_loaded)
 	data.chunk_unloaded.connect(_on_chunk_unloaded)
 	data.lot_changed.connect(build_lot)
@@ -42,6 +58,28 @@ func _line_material(c: Color) -> StandardMaterial3D:
 	m.albedo_color = c
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return m
+
+
+static func _solid(c: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	return m
+
+
+## Distância máxima em que os lotes são desenhados (preset de qualidade).
+func set_view_distance(d: float) -> void:
+	view_distance = d
+	for node: Node3D in _lots.values():
+		_apply_range(node)
+
+
+func _apply_range(root: Node) -> void:
+	for c in root.find_children("*", "GeometryInstance3D", true, false):
+		if c is Label3D:
+			continue
+		var gi := c as GeometryInstance3D
+		gi.visibility_range_end = view_distance
+		gi.visibility_range_end_margin = 8.0
 
 
 func _on_chunk_loaded(key: int) -> void:
@@ -104,6 +142,87 @@ func build_lot(l: Dictionary) -> void:
 		_build_house(root, body, f, l, tile, house)
 	for p: Dictionary in l.get("placements", []):
 		_build_placement(root, body, f, l, tile, p)
+	if not own:
+		_merge(root)
+	_apply_range(root)
+
+
+## Junta todas as malhas do lote numa ArrayMesh com uma superfície por material.
+## Fica de fora: borda (transparente), textos e luzes. A malha juntada mantém o meta
+## "house" (para ficar transparente na frente da câmera).
+func _merge(root: Node3D) -> void:
+	var groups := {}  # material → {v, n, uv, c, i}
+	var had_house := false
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null or mi.material_override == _border_mat or mi.material_override == _own_border_mat:
+			continue
+		had_house = had_house or mi.has_meta("house")
+		var xf := _local_to(mi, root)
+		var nb := xf.basis.inverse().transposed()
+		for si in mi.mesh.get_surface_count():
+			var mat: Material = mi.material_override if mi.material_override else mi.mesh.surface_get_material(si)
+			var arrays := mi.mesh.surface_get_arrays(si)
+			if not groups.has(mat):
+				groups[mat] = {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(), "i": PackedInt32Array()}
+			var g: Dictionary = groups[mat]
+			var gv: PackedVector3Array = g["v"]
+			var gn: PackedVector3Array = g["n"]
+			var guv: PackedVector2Array = g["uv"]
+			var gc: PackedColorArray = g["c"]
+			var gi: PackedInt32Array = g["i"]
+			var base := gv.size()
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+			var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV] if arrays[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+			var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR] if arrays[Mesh.ARRAY_COLOR] != null else PackedColorArray()
+			for k in verts.size():
+				gv.append(xf * verts[k])
+				gn.append((nb * normals[k]).normalized() if k < normals.size() else Vector3.UP)
+				guv.append(uvs[k] if k < uvs.size() else Vector2.ZERO)
+				gc.append(cols[k] if k < cols.size() else Color.WHITE)
+			if arrays[Mesh.ARRAY_INDEX] == null:
+				for k in verts.size():
+					gi.append(base + k)
+			else:
+				for k in (arrays[Mesh.ARRAY_INDEX] as PackedInt32Array):
+					gi.append(base + k)
+			g["v"] = gv
+			g["n"] = gn
+			g["uv"] = guv
+			g["c"] = gc
+			g["i"] = gi
+		mi.get_parent().remove_child(mi)
+		mi.queue_free()
+	if groups.is_empty():
+		return
+	var mesh := ArrayMesh.new()
+	for mat: Material in groups:
+		var g: Dictionary = groups[mat]
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = g["v"]
+		arrays[Mesh.ARRAY_NORMAL] = g["n"]
+		arrays[Mesh.ARRAY_TEX_UV] = g["uv"]
+		arrays[Mesh.ARRAY_COLOR] = g["c"]
+		arrays[Mesh.ARRAY_INDEX] = g["i"]
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
+	var merged := MeshInstance3D.new()
+	merged.name = "Merged"
+	merged.mesh = mesh
+	if had_house:
+		merged.set_meta("house", true)
+	root.add_child(merged)
+
+
+static func _local_to(node: Node3D, root: Node3D) -> Transform3D:
+	var t := Transform3D.IDENTITY
+	var n: Node = node
+	while n != null and n != root:
+		t = (n as Node3D).transform * t
+		n = n.get_parent()
+	return t
 
 
 func _border(f: Dictionary, l: Dictionary, tile: float, n: int, own: bool) -> MeshInstance3D:
@@ -141,18 +260,14 @@ func _sign(f: Dictionary, l: Dictionary, tile: float, n: int, owner: String, own
 	box.size = Vector3(0.08, 0.7, 0.08)
 	post.mesh = box
 	post.position = Vector3(0, 0.35, 0)
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color("8a5a3b")
-	post.material_override = wood
+	post.material_override = _wood_mat
 	node.add_child(post)
 	var board := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.9, 0.32, 0.05)
 	board.mesh = bm
 	board.position = Vector3(0, 0.78, 0)
-	var paint := StandardMaterial3D.new()
-	paint.albedo_color = Color("f3e3c3") if not own else Color("ffe9a8")
-	board.material_override = paint
+	board.material_override = _own_paint_mat if own else _paint_mat
 	node.add_child(board)
 	var label := Label3D.new()
 	label.text = owner
@@ -242,8 +357,7 @@ func _scaffold(f: Dictionary, l: Dictionary, tile: float, r: Vector2i, x: int, y
 	var node := Node3D.new()
 	var center := LotGeom.point(f, l, tile, x + r.x * 0.5, y + r.y * 0.5)
 	node.transform = Transform3D(WorldData.frame_basis(f, 0.0), center)
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color("b98a5a")
+	var wood := _scaffold_mat
 	var hx := r.x * tile * 0.5
 	var hz := r.y * tile * 0.5
 	var parts: Array = []  # [tamanho, posição, rotação em z]

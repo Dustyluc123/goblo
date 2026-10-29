@@ -16,24 +16,30 @@ signal ui_changed
 const SETTINGS_FILE := "user://settings.cfg"
 const NAMES := ["low", "medium", "high"]
 const LABELS := {"low": "baixa", "medium": "média", "high": "alta"}
+## Números da fase 2.1 (medidos com --profile-scene na janela maximizada do Mac Intel,
+## 3136 × 1930): veja a tabela de desempenho no README.
+##   big_radius: árvores e pedras do servidor; small_radius: grama; collider_radius: colisão
+##   shadow_splits: cascatas da sombra do sol (cada uma redesenha os objetos)
+##   lod_threshold: erro (em pixels) aceito ao trocar para um nível de detalhe mais simples
+##   lot_radius: até onde as casas e lotes aparecem (somem com fade)
 const PRESETS := {
 	"low": {
-		"small_density": 0.4, "small_radius": 30.0, "big_radius": 75.0,
-		"collider_radius": 35.0, "shadows": false, "big_shadows": false,
+		"small_density": 0.4, "small_radius": 30.0, "big_radius": 70.0,
+		"collider_radius": 35.0, "shadows": false, "big_shadows": false, "shadow_splits": 1,
 		"shadow_distance": 0.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": false, "clouds": 30,
-		"scale_3d": 0.5,
+		"scale_3d": 0.5, "lod_threshold": 6.0, "lot_radius": 90.0,
 	},
 	"medium": {
-		"small_density": 0.7, "small_radius": 45.0, "big_radius": 115.0,
-		"collider_radius": 40.0, "shadows": true, "big_shadows": false,
+		"small_density": 0.7, "small_radius": 40.0, "big_radius": 100.0,
+		"collider_radius": 40.0, "shadows": true, "big_shadows": false, "shadow_splits": 2,
 		"shadow_distance": 40.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": true, "clouds": 50,
-		"scale_3d": 0.67,
+		"scale_3d": 0.67, "lod_threshold": 3.0, "lot_radius": 120.0,
 	},
 	"high": {
-		"small_density": 1.0, "small_radius": 70.0, "big_radius": 170.0,
-		"collider_radius": 45.0, "shadows": true, "big_shadows": true,
-		"shadow_distance": 90.0, "msaa": Viewport.MSAA_4X, "fxaa": false, "clouds": 80,
-		"scale_3d": 0.85,
+		"small_density": 1.0, "small_radius": 60.0, "big_radius": 140.0,
+		"collider_radius": 45.0, "shadows": true, "big_shadows": true, "shadow_splits": 2,
+		"shadow_distance": 60.0, "msaa": Viewport.MSAA_2X, "fxaa": false, "clouds": 80,
+		"scale_3d": 0.75, "lod_threshold": 1.5, "lot_radius": 160.0,
 	},
 }
 const DEFAULT := "medium"
