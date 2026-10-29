@@ -36,6 +36,8 @@ extends Node3D
 ##                       tonemap, folhagem, sombras; mede só o total
 ##   --border-test       teleporta para pontos dos dois lados de fronteiras conhecidas,
 ##                       confere o país exato e a linha no chão, e anda até cruzar uma
+##   --animal-test       acha animais, confere a posição contra o trajeto comum, faz
+##                       carinho, dá frutinha, assusta um tímido correndo e mede o custo
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
 ##                       que o que fica no caminho está transparente (servidor dev)
@@ -70,6 +72,7 @@ var _build: BuildMode
 var _interaction: Interaction
 var _occlusion: CameraOcclusion
 var _border_lines: BorderLines
+var _animals: Animals
 var _tracker: CountryTracker
 ## Marcador da casa no globo, visível na visão afastada.
 var _home_marker: Sprite3D
@@ -150,6 +153,9 @@ func _ready() -> void:
 	add_child(_border_lines)
 	_tracker = CountryTracker.new()
 	add_child(_tracker)
+	_animals = Animals.new()
+	_animals.name = "Animals"
+	add_child(_animals)
 	_session.equipped_changed.connect(_on_equipped)
 
 	_http = HTTPRequest.new()
@@ -211,6 +217,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	_hud.show_status("Carregando árvores e casas…")
 	var tm := Time.get_ticks_msec()
 	await ModelLibrary.preload_all(_models_to_preload(), get_tree())
+	await Animals.preload_scenes(_session.animal_species, get_tree())
 	load_stats["models_ms"] = Time.get_ticks_msec() - tm
 	_setup_game()
 
@@ -357,6 +364,7 @@ func _setup_game() -> void:
 	_build.player = _player
 	_ui.on_build_close = _build.exit
 	_border_lines.setup(world, _data)
+	_animals.setup(world, _data, _player, _session.animal_species)
 	_tracker.world = world
 	_tracker.data = _data
 	_tracker.player = _player
@@ -375,6 +383,7 @@ func _setup_game() -> void:
 	_interaction.vegetation = _vegetation
 	_interaction.icons = _icons
 	_interaction.neighborhood = _neighborhood
+	_interaction.animals = _animals
 	_data.day_changed.connect(func() -> void:
 		var r := await _api.request("GET", "/me")
 		if r["ok"]:
@@ -501,6 +510,7 @@ func _process(delta: float) -> void:
 	_data.update_focus(_player.global_position, delta)
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
 	_border_lines.update_view(_camera.far_amount)
+	_animals.update_view(_camera.far_amount)
 	_neighborhood.daylight = _day_night.local_day
 	_neighborhood.update_lights(_player.global_position, delta)
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
@@ -512,11 +522,11 @@ func _process(delta: float) -> void:
 		_home_marker.visible = far > 0.25
 		_home_marker.modulate.a = smoothstep(0.25, 0.6, far)
 	if _hud.perf_visible():
-		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d pedidos\nqualidade %s" % [
+		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d animais · %d pedidos\nqualidade %s" % [
 			Engine.get_frames_per_second(), 1000.0 / maxf(1.0, Engine.get_frames_per_second()),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
-			_vegetation.instance_count, _data.all_lots().size(), _api.in_flight, Quality.label()])
+			_vegetation.instance_count, _data.all_lots().size(), _animals.active_count, _api.in_flight, Quality.label()])
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
 		mat.albedo_color.a = 0.22 + 0.08 * sin(Time.get_ticks_msec() / 300.0)
@@ -693,6 +703,11 @@ func apply_lot_result(res: Dictionary) -> void:
 	_session.set_lot(res["lot"])
 
 
+## Um animal comeu a frutinha (Goblopédia: amigos).
+func on_animal_fed(_species: String) -> void:
+	pass
+
+
 ## Vende na caixa de vendas: [{"item", "count"}].
 func sell(items: Array) -> Dictionary:
 	if items.is_empty():
@@ -828,7 +843,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -852,6 +867,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("border-test"):
 		await _border_test()
+		return
+	if _args.has("animal-test"):
+		await _animal_test()
 		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
@@ -1136,6 +1154,103 @@ func _set_layer_visible(layer: String, on: bool) -> void:
 	for c in _vegetation.get_children():
 		if c.has_meta("layer") and c.get_meta("layer") == layer:
 			(c as Node3D).visible = on
+
+
+## Animais: existem perto de campos e florestas, ficam no trajeto comum, reagem ao carinho
+## e à frutinha, o tímido foge de quem corre e nenhuma animação de ataque é usada.
+func _animal_test() -> void:
+	var fails := 0
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: animal-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails += 1
+	# Procura animais de verdade (do servidor) em campos e florestas conhecidos.
+	var found := false
+	for spot: Array in [[-34.6, -60.5], [48.5, 2.0], [46.5, 4.5], [52.0, 20.0], [-31.0, -56.0], [38.0, -97.0]]:
+		await teleport_exact(spot[0], spot[1])
+		await get_tree().create_timer(1.2).timeout
+		if _animals.active_count > 0:
+			found = true
+			break
+	check.call(found, "animais do servidor perto (%d com modelo)" % _animals.active_count)
+	if found:
+		# Sem reação, o animal fica exatamente no trajeto comum (todo mundo vê igual).
+		var worst := 0.0
+		var now := _data.server_time()
+		for id: int in _animals._active:
+			var e: Dictionary = _animals._active[id]
+			var pose := AnimalPath.at(e["animal"], now)
+			var f := _data.frame(int(e["animal"]["cell"]))
+			var want := WorldData.frame_point(f, pose["x"], pose["y"])
+			worst = maxf(worst, (e["node"] as Node3D).global_position.distance_to(want))
+		check.call(worst < 0.3, "animais no trajeto comum (maior diferença %.3f)" % worst)
+	# Animais criados aqui (modo dev) para testar as reações num lugar conhecido.
+	await teleport_exact(-34.6, -60.5)
+	await get_tree().create_timer(0.6).timeout
+	var made := _animals.spawn_debug("cow", _player.global_position) and _animals.spawn_debug("deer", _player.global_position + _player.global_basis.x * 2.0)
+	await get_tree().create_timer(1.0).timeout
+	check.call(made and _animals.active_count >= 2, "criar animais perto (modo dev)")
+	var cow := {}
+	var deer := {}
+	for id: int in _animals._active:
+		var sp := str(_animals._active[id]["animal"]["species"])
+		if id < 0 and sp == "cow":
+			cow = _animals._active[id]
+		elif id < 0 and sp == "deer":
+			deer = _animals._active[id]
+	if not cow.is_empty():
+		var cid := int(cow["animal"]["id"])
+		await _teleport((cow["node"] as Node3D).global_position + _player.global_basis.z * 1.2)
+		await get_tree().create_timer(0.4).timeout
+		_interaction._timer = 0.0
+		await get_tree().create_timer(0.2).timeout
+		_session.inventory = _session.inventory.filter(func(st: Dictionary) -> bool: return st["item"] != "berries")
+		var t: Dictionary = _interaction.target
+		check.call(t.get("type", "") == "animal", "E perto do animal mira nele (%s)" % _interaction._prompt_text(t))
+		await _interaction.interact()
+		await get_tree().create_timer(0.3).timeout
+		var hold: String = cow["anim"]
+		check.call(hold in ["Idle_2", "Jump_toIdle", "Jump_ToIdle"], "carinho: o animal reage (%s)" % hold)
+		await dev_give("berries", 3)
+		_interaction._timer = 0.0
+		await get_tree().create_timer(2.0).timeout
+		var berries := _session.count("berries")
+		await _interaction.interact()
+		await get_tree().create_timer(0.3).timeout
+		check.call(_animals.is_friend(cid) and str(cow["anim"]) == "Eating", "frutinha: come e vira amigo (%s)" % cow["anim"])
+		check.call(_session.count("berries") == berries, "animal do modo dev não gasta frutinha do servidor")
+	if not deer.is_empty():
+		# Corre na direção do cervo: ele foge galopando e depois volta ao trajeto.
+		var did := int(deer["animal"]["id"])
+		_player.autopilot = true
+		_player.auto_run = true
+		var fled := false
+		for i in 120:
+			var to := (deer["node"] as Node3D).global_position - _player.global_position
+			_player.auto_wish = to - _player.global_position.normalized() * to.dot(_player.global_position.normalized())
+			await get_tree().physics_frame
+			if str(deer["anim"]) == "Gallop":
+				fled = true
+		_player.autopilot = false
+		_player.auto_wish = Vector3.ZERO
+		var disp: Vector2 = _animals._local_state(did)["disp"]
+		check.call(fled and disp.length() > 1.0, "tímido foge galopando (desvio %.1f)" % disp.length())
+	var bad := []
+	for id: int in _animals._active:
+		var ap: AnimationPlayer = _animals._active[id]["ap"]
+		if ap and (ap.current_animation.begins_with("Attack") or ap.current_animation == "Death"):
+			bad.append(ap.current_animation)
+	check.call(bad.is_empty(), "nenhuma animação de ataque ou morte")
+	# Custo: tempo do _process dos animais por quadro (headless: só CPU).
+	var total := 0
+	for i in 120:
+		var t0 := Time.get_ticks_usec()
+		_animals._process(1.0 / 60.0)
+		total += Time.get_ticks_usec() - t0
+		await get_tree().process_frame
+	print("Goblo: animal-test custo: %.3f ms por quadro com %d animais (CPU, sem desenho)" % [total / 120.0 / 1000.0, _animals.active_count])
+	print("Goblo: animal-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
+	get_tree().quit(1 if fails > 0 else 0)
 
 
 ## Ponto do chão (topo plano da célula) na lat/lon exata, não no centro do hexágono.

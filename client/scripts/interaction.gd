@@ -10,6 +10,8 @@ extends Node
 ## Até onde o personagem alcança, por tipo (a partir do centro do objeto).
 const REACH := {"tree": 1.7, "rock": 1.6, "bush": 1.4, "flower": 1.1, "pebble": 1.0, "branch": 1.0}
 const WORKBENCH_REACH := 1.8
+## Até onde alcança um animal (a partir da borda dele).
+const ANIMAL_REACH := 1.3
 
 var game: GameMain
 var player: Player
@@ -20,6 +22,7 @@ var ui: GameUi
 var vegetation: Vegetation
 var icons: ItemIcons
 var neighborhood: Neighborhood
+var animals: Animals
 ## Alvo atual: {"type": "object", "obj": {...}} ou {"type": "workbench", "pos": Vector3}.
 var target := {}
 
@@ -56,6 +59,13 @@ func _find_target() -> Dictionary:
 		if score < best_score:
 			best_score = score
 			best = {"type": "object", "obj": o}
+	if animals:
+		var an := animals.nearest(pos, ANIMAL_REACH)
+		if not an.is_empty():
+			var dist := (an["pos"] as Vector3).distance_to(pos) - 0.4
+			if dist < best_score:
+				best_score = dist
+				best = {"type": "animal", "animal": an}
 	for kind: String in ["workbench", "sell_box"]:
 		for wb: Vector3 in _own_placements(kind):
 			var dist := wb.distance_to(pos)
@@ -103,6 +113,11 @@ func _prompt_text(t: Dictionary) -> String:
 		return "E: bancada"
 	if t["type"] == "sell_box":
 		return "E: caixa de vendas"
+	if t["type"] == "animal":
+		var an: Dictionary = t["animal"]
+		if _wants_fruit(an):
+			return "%s  ·  E: dar frutinha" % an["name"]
+		return "%s  ·  E: fazer carinho" % an["name"]
 	var o: Dictionary = t["obj"]
 	var st: Dictionary = o.get("state", {}) if o.get("state") is Dictionary else {}
 	match str(o["kind"]):
@@ -147,6 +162,8 @@ func interact() -> Dictionary:
 		player.face(target["pos"])
 		ui.sell.open()
 		return {"ok": true}
+	if target["type"] == "animal":
+		return await _animal(target["animal"])
 	var o: Dictionary = target["obj"]
 	var action := _action(o)
 	if action.is_empty():
@@ -170,6 +187,36 @@ func interact() -> Dictionary:
 		_pop(o, str(g["item"]))
 	if (res.get("gained", []) as Array).is_empty() and str(res.get("message", "")) != "":
 		ui.toast(str(res["message"]))
+	_timer = 0.0
+	return r
+
+
+## Com frutinha no bolso, o E dá a frutinha (o animal vira amigo); com o amigo, faz carinho.
+func _wants_fruit(an: Dictionary) -> bool:
+	return session.count("berries") > 0 and not animals.is_friend(int(an["id"]))
+
+
+## Carinho ou frutinha. Nunca há forma de machucar os animais.
+func _animal(an: Dictionary) -> Dictionary:
+	var id := int(an["id"])
+	player.face(an["pos"])
+	player.play_action("interact-right")
+	if not _wants_fruit(an):
+		animals.pet(id)
+		return {"ok": true, "action": "pet"}
+	if id < 0:  # animal criado pelo modo dev: só existe aqui
+		animals.fed(id)
+		return {"ok": true, "action": "feed"}
+	_busy = true
+	var r := await api.request("POST", "/animal/feed", {"animal": id})
+	_busy = false
+	if not r["ok"]:
+		ui.toast(str(r["message"]))
+		return r
+	session.set_inventory(r["data"]["inventory"], int(r["data"]["slots_used"]))
+	animals.fed(id)
+	ui.toast(str(r["data"]["message"]), "berries")
+	game.on_animal_fed(str(r["data"]["species"]))
 	_timer = 0.0
 	return r
 

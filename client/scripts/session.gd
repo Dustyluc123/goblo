@@ -36,6 +36,8 @@ var coins := 0
 var currency := {"singular": "moeda", "plural": "moedas"}
 ## Quanto a caixa de vendas paga por unidade de cada item.
 var sell_prices := {}
+## Espécies de animais (animals.json): id → {name, model, height, shy, walk, run, roam, leg, jump}.
+var animal_species := {}
 
 
 func token_path() -> String:
@@ -74,6 +76,7 @@ func set_content(data: Dictionary) -> void:
 	if data.get("currency") is Dictionary:
 		currency = data["currency"]
 	sell_prices = data.get("sell_prices", {})
+	animal_species = data.get("animals", {})
 
 
 func set_me(data: Dictionary) -> void:

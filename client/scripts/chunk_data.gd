@@ -24,6 +24,9 @@ var world: WorldData
 var api: Api
 ## Fronteiras exatas das células carregadas (GET /borders, junto com objetos e lotes).
 var borders := BorderMap.new()
+## Diferença (ms) entre o relógio do servidor e o daqui, para os animais (ADR 0032).
+var server_offset_ms := 0.0
+var _has_offset := false
 ## Raio (unidades) em volta do personagem em que os dados ficam carregados.
 var radius := 130.0
 ## Lado do lote em unidades (quadradinhos × tamanho do quadradinho, vem do /content).
@@ -145,6 +148,7 @@ func _land_cells(key: int) -> PackedStringArray:
 func _fetch(key: int) -> void:
 	var cells := _land_cells(key)
 	var objects: Array = []
+	var animals: Array = []
 	var lots: Array = []
 	var r3 := {}
 	if not cells.is_empty():
@@ -157,6 +161,8 @@ func _fetch(key: int) -> void:
 			_failed[key] = Time.get_ticks_msec() / 1000.0 + RETRY_AFTER
 			return
 		objects = r1["data"]["objects"]
+		animals = r1["data"].get("animals", [])
+		_sync_clock(float(r1["data"].get("now_ms", 0)))
 		lots = r2["data"]["lots"]
 		var d: Dictionary = r1["data"]["day"]
 		day = int(d["index"])
@@ -174,8 +180,38 @@ func _fetch(key: int) -> void:
 		_lots[int(l["id"])] = l
 	if not cells.is_empty():
 		borders.add_response(r3["data"])
-	_chunks[key] = {"objects": objects, "lots": lots}
+	for a: Dictionary in animals:
+		a["id"] = int(a["id"])
+		a["cell"] = int(a["cell"])
+	_chunks[key] = {"objects": objects, "lots": lots, "animals": animals}
 	chunk_loaded.emit(key)
+
+
+## Acerta o relógio do servidor pela resposta (a demora do pedido entra como meio erro;
+## só aceita saltos grandes, como o "dia seguinte" do modo dev).
+func _sync_clock(now_ms: float) -> void:
+	if now_ms <= 0.0:
+		return
+	var off := now_ms - Time.get_unix_time_from_system() * 1000.0
+	if not _has_offset or absf(off - server_offset_ms) > 1500.0:
+		server_offset_ms = off
+		_has_offset = true
+	else:
+		server_offset_ms = lerpf(server_offset_ms, off, 0.1)
+
+
+## Agora, no relógio do servidor (segundos unix).
+func server_time() -> float:
+	return Time.get_unix_time_from_system() + server_offset_ms / 1000.0
+
+
+## Animais dos pedaços carregados a até `r` unidades do ponto (só a casa deles conta).
+func animals_near(point: Vector3, r: float) -> Array:
+	var out: Array = []
+	for key: int in world.chunks_near(point, r):
+		for a: Dictionary in _chunks.get(key, {}).get("animals", []):
+			out.append(a)
+	return out
 
 
 func _prepare_object(o: Dictionary) -> void:
