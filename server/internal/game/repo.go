@@ -136,6 +136,23 @@ type PediaRepository interface {
 	ClearPedia(ctx context.Context, player int64) error
 }
 
+// Stamp é o carimbo de um país no passaporte (primeira visita).
+type Stamp struct {
+	Country string
+	FirstAt time.Time
+}
+
+// PassportRepository guarda os passaportes comprados e os carimbos.
+type PassportRepository interface {
+	Passports(ctx context.Context, player int64) ([]string, error)
+	AddPassport(ctx context.Context, player int64, country string, at time.Time) (added bool, err error)
+	RemovePassport(ctx context.Context, player int64, country string) error
+	Stamps(ctx context.Context, player int64) ([]Stamp, error)
+	// AddStamp grava o carimbo se ainda não existe; added = true só na primeira vez.
+	AddStamp(ctx context.Context, player int64, country string, at time.Time) (added bool, err error)
+	ClearPassports(ctx context.Context, player int64) error // passaportes e carimbos
+}
+
 // Store junta os repositórios. As regras só conhecem esta interface; a implementação
 // atual é SQLite (internal/store/sqlite), e dá para trocar por PostgreSQL (ADR 0018).
 type Store interface {
@@ -146,6 +163,7 @@ type Store interface {
 	PlacementRepository
 	WalletRepository
 	PediaRepository
+	PassportRepository
 	// InTx roda fn numa transação: ou tudo é gravado, ou nada.
 	InTx(ctx context.Context, fn func(Store) error) error
 }

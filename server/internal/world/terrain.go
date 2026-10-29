@@ -1,6 +1,7 @@
 package world
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 
@@ -20,6 +21,7 @@ const (
 const (
 	landFile      = "naturalearth/ne_110m_land.geojson"
 	countriesFile = "naturalearth/paises.geojson" // 1:50m, filtrado por cmd/filtra-paises
+	capitalsFile  = "naturalearth/capitais.json"
 )
 
 // Até onde (graus) procurar um país para uma célula que o 1:110m chama de terra e o 1:50m
@@ -51,6 +53,16 @@ type Geography struct {
 	Countries []Country
 	byCode    map[string]int
 	borders   *borderIndex
+	// Capitals: capital de cada país (código → nome e lat/lon), de capitais.json. Usada
+	// para os aeroportos. Alguns territórios não têm.
+	Capitals map[string]Capital
+}
+
+// Capital é a capital de um país (ou a maior cidade, se a capital não está na lista).
+type Capital struct {
+	Name string  `json:"name"`
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
 }
 
 // LoadGeography lê os GeoJSON do Natural Earth de fsys (normalmente data.NaturalEarth).
@@ -89,6 +101,11 @@ func LoadGeography(fsys fs.FS) (*Geography, error) {
 			Name: f.Properties.MustString("NAME", code), shape: s})
 	}
 	g.borders = newBorderIndex(g.Countries)
+	if raw, err := fs.ReadFile(fsys, capitalsFile); err != nil {
+		return nil, fmt.Errorf("lendo %s: %w", capitalsFile, err)
+	} else if err := json.Unmarshal(raw, &g.Capitals); err != nil {
+		return nil, fmt.Errorf("lendo %s: %w", capitalsFile, err)
+	}
 	if g.regions, err = loadRegions(fsys); err != nil {
 		return nil, err
 	}

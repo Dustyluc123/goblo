@@ -43,6 +43,10 @@ type Service struct {
 	geo       *world.Geography // países pela posição exata (SetGeography)
 	airports  []Airport
 	airportBy map[string]*Airport
+	// Hexágonos com aeroporto: sem lotes novos, objetos nem animais.
+	airportCells map[int]bool
+	// Pontos de chegada (países pequenos): hexágono → (x, y) do balcão.
+	kiosks map[int][2]float64
 }
 
 // NewService monta as regras. clock nil = relógio real.
@@ -178,6 +182,9 @@ func (s *Service) firstFreeLot(ctx context.Context, tx Store, p *Player, cells [
 		taken[l.ID] = true
 	}
 	for _, cell := range cells {
+		if s.airportCells[cell] {
+			continue
+		}
 		for _, slot := range LotSlots(s.world, cell) {
 			if taken[slot.ID] {
 				continue
@@ -279,6 +286,8 @@ type MeView struct {
 	SlotsMax    int         `json:"slots_max"`
 	Day         DayView     `json:"day"`
 	Coins       int64       `json:"coins"`
+	// Passaportes: o do país de residência primeiro (grátis), depois os comprados.
+	Passports []string `json:"passports"`
 }
 
 // Me devolve o estado do jogador.
@@ -308,6 +317,9 @@ func (s *Service) meView(ctx context.Context, st Store, p *Player) (*MeView, err
 	}
 	me.Inventory, me.SlotsUsed = s.inventoryView(inv)
 	if me.Coins, err = st.Coins(ctx, p.ID); err != nil {
+		return nil, err
+	}
+	if me.Passports, err = s.passportsOf(ctx, st, p); err != nil {
 		return nil, err
 	}
 	me.Day = DayView{Index: DayIndex(now, lon), NextRollover: NextRollover(now, lon).Unix(), ServerTime: now.Unix()}
@@ -414,8 +426,21 @@ type ObjectView struct {
 	State map[string]int `json:"state,omitempty"`
 }
 
-// cellObjects gera os objetos da célula e tira os que caem em lotes ocupados.
+// cellObjects gera os objetos da célula e tira os que caem em lotes ocupados. No hexágono
+// de um aeroporto não há objetos (o prédio e a pista ocupam tudo).
 func (s *Service) cellObjects(cell int, lots []Lot) []Object {
+	if s.airportCells[cell] {
+		return nil
+	}
+	if k, ok := s.kiosks[cell]; ok {
+		var out []Object
+		for _, o := range FilterLots(GenerateObjects(s.world, s.content, cell), lotSlotsOf(cell, lots)) {
+			if (o.X-k[0])*(o.X-k[0])+(o.Y-k[1])*(o.Y-k[1]) > kioskClear*kioskClear {
+				out = append(out, o)
+			}
+		}
+		return out
+	}
 	var slots []int
 	for _, l := range lots {
 		if l.Cell == cell {
@@ -423,6 +448,16 @@ func (s *Service) cellObjects(cell int, lots []Lot) []Object {
 		}
 	}
 	return FilterLots(GenerateObjects(s.world, s.content, cell), slots)
+}
+
+func lotSlotsOf(cell int, lots []Lot) []int {
+	var slots []int
+	for _, l := range lots {
+		if l.Cell == cell {
+			slots = append(slots, l.Slot)
+		}
+	}
+	return slots
 }
 
 // Objects devolve os objetos interativos das células com o estado do dia para o jogador.

@@ -199,6 +199,9 @@ func (s *Service) DevFakeNeighbors(ctx context.Context, p *Player, near, count i
 			if created >= count {
 				return nil
 			}
+			if s.airportCells[cell] {
+				continue
+			}
 			lots, err := tx.LotsByCells(ctx, []int{cell})
 			if err != nil {
 				return err

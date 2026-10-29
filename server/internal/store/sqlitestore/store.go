@@ -533,3 +533,74 @@ func (s *Store) ClearPedia(ctx context.Context, player int64) error {
 	_, err := s.q.ExecContext(ctx, `DELETE FROM pedia WHERE player_id = ?`, player)
 	return err
 }
+
+// --- Passaportes e carimbos -------------------------------------------------------------------
+
+func (s *Store) Passports(ctx context.Context, player int64) ([]string, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT country FROM passports WHERE player_id = ? ORDER BY created_at, country`, player)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var c string
+		if err := rows.Scan(&c); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) AddPassport(ctx context.Context, player int64, country string, at time.Time) (bool, error) {
+	res, err := s.q.ExecContext(ctx, `INSERT INTO passports (player_id, country, created_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
+		player, country, at.Unix())
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
+
+func (s *Store) RemovePassport(ctx context.Context, player int64, country string) error {
+	_, err := s.q.ExecContext(ctx, `DELETE FROM passports WHERE player_id = ? AND country = ?`, player, country)
+	return err
+}
+
+func (s *Store) Stamps(ctx context.Context, player int64) ([]game.Stamp, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT country, first_at FROM stamps WHERE player_id = ? ORDER BY first_at, country`, player)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []game.Stamp
+	for rows.Next() {
+		var st game.Stamp
+		var at int64
+		if err := rows.Scan(&st.Country, &at); err != nil {
+			return nil, err
+		}
+		st.FirstAt = time.Unix(at, 0).UTC()
+		out = append(out, st)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) AddStamp(ctx context.Context, player int64, country string, at time.Time) (bool, error) {
+	res, err := s.q.ExecContext(ctx, `INSERT INTO stamps (player_id, country, first_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
+		player, country, at.Unix())
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
+
+func (s *Store) ClearPassports(ctx context.Context, player int64) error {
+	if _, err := s.q.ExecContext(ctx, `DELETE FROM passports WHERE player_id = ?`, player); err != nil {
+		return err
+	}
+	_, err := s.q.ExecContext(ctx, `DELETE FROM stamps WHERE player_id = ?`, player)
+	return err
+}

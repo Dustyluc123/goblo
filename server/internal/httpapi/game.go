@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net"
@@ -32,6 +33,13 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /sell", s.auth(s.sell))
 	mux.HandleFunc("POST /animal/feed", s.auth(s.feed))
 	mux.HandleFunc("GET /pedia", s.auth(s.pedia))
+	mux.HandleFunc("GET /airports", s.airports)
+	mux.HandleFunc("GET /travel/quotes", s.auth(s.quotes))
+	mux.HandleFunc("POST /travel", s.auth(s.travel(false)))
+	mux.HandleFunc("GET /passport", s.auth(s.passport))
+	mux.HandleFunc("GET /passport/prices", s.passportPrices)
+	mux.HandleFunc("POST /passport/buy", s.auth(s.passportAction(s.Game.BuyPassport)))
+	mux.HandleFunc("POST /passport/stamp", s.auth(s.passportAction(s.Game.Stamp)))
 	mux.HandleFunc("POST /pedia/register", s.auth(s.pediaRegister))
 	mux.HandleFunc("GET /transactions", s.auth(s.transactions))
 }
@@ -387,4 +395,73 @@ func (s *Server) pediaRegister(w http.ResponseWriter, r *http.Request, p *game.P
 		return
 	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) airports(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"airports": s.Game.Airports()})
+}
+
+func (s *Server) quotes(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	list, err := s.Game.Quotes(r.Context(), p, r.URL.Query().Get("from"))
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	if list == nil {
+		list = []game.AirportQuote{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"quotes": list})
+}
+
+// travel compra a passagem (e o passaporte do destino, com buy_passport). Com free (rota
+// /dev/travel), viaja de graça e sem passaporte.
+func (s *Server) travel(free bool) authedHandler {
+	return func(w http.ResponseWriter, r *http.Request, p *game.Player) {
+		var body struct {
+			From        string `json:"from"`
+			To          string `json:"to"`
+			BuyPassport bool   `json:"buy_passport"`
+		}
+		if err := readJSON(r, &body); err != nil {
+			writeError(w, s, err)
+			return
+		}
+		res, err := s.Game.Travel(r.Context(), p, body.From, body.To, body.BuyPassport, free)
+		if err != nil {
+			writeError(w, s, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, res)
+	}
+}
+
+func (s *Server) passport(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	v, err := s.Game.Passport(r.Context(), p)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
+}
+
+func (s *Server) passportPrices(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"countries": s.Game.PassportPrices()})
+}
+
+func (s *Server) passportAction(fn func(context.Context, *game.Player, string) (*game.PassportResult, error)) authedHandler {
+	return func(w http.ResponseWriter, r *http.Request, p *game.Player) {
+		var body struct {
+			Country string `json:"country"`
+		}
+		if err := readJSON(r, &body); err != nil {
+			writeError(w, s, err)
+			return
+		}
+		res, err := fn(r.Context(), p, body.Country)
+		if err != nil {
+			writeError(w, s, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, res)
+	}
 }

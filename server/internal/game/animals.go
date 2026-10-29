@@ -269,7 +269,7 @@ func (s *Service) Animals(ctx context.Context, cells []int) ([]Animal, error) {
 	}
 	out := []Animal{}
 	for _, cell := range cells {
-		if cell < 0 || cell >= len(s.world.Cells) {
+		if cell < 0 || cell >= len(s.world.Cells) || s.airportCells[cell] {
 			continue
 		}
 		out = append(out, GenerateAnimals(s.world, s.content, cell, s.cellObjects(cell, lots), lots)...)
@@ -280,7 +280,7 @@ func (s *Service) Animals(ctx context.Context, cells []int) ([]Animal, error) {
 // animal acha um animal pelo id (gerando a célula dele).
 func (s *Service) animal(ctx context.Context, tx Store, id int64) (*Animal, error) {
 	cell := AnimalCell(id)
-	if id < 0 || cell >= len(s.world.Cells) {
+	if id < 0 || cell >= len(s.world.Cells) || s.airportCells[cell] {
 		return nil, ErrNotFound
 	}
 	lots, err := tx.LotsByCells(ctx, []int{cell})

@@ -58,4 +58,5 @@ var (
 	ErrDevOnly          = &Error{"dev_only", 403, "Só no modo dev (GOBLO_DEV=1).", nil}
 	ErrNoCoins          = &Error{"no_coins", 409, "Moedas insuficientes.", nil}
 	ErrNotForSale       = &Error{"not_for_sale", 400, "A caixa de vendas não aceita isso.", nil}
+	ErrNoPassport       = &Error{"no_passport", 403, "Você precisa do passaporte deste país.", nil}
 )

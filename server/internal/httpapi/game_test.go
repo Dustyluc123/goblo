@@ -280,3 +280,35 @@ func TestSellAndCoinsOverHTTP(t *testing.T) {
 		t.Fatalf("/transactions: %d %s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestAirportsAndPassportOverHTTP(t *testing.T) {
+	h := gameServer(t, true)
+	token := newPlayer(t, h, "Turista")
+	rec, out := call(t, h, "GET", "/airports", "", nil)
+	if list := out["airports"].([]any); rec.Code != 200 || len(list) < 100 {
+		t.Fatalf("/airports: %d, %d aeroportos", rec.Code, len(list))
+	}
+	rec, out = call(t, h, "GET", "/travel/quotes?from=BRA", token, nil)
+	if list := out["quotes"].([]any); rec.Code != 200 || len(list) == 0 || list[0].(map[string]any)["fare"].(float64) <= 0 {
+		t.Fatalf("/travel/quotes: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec, out = call(t, h, "POST", "/travel", token, map[string]any{"from": "BRA", "to": "ARG"}); rec.Code != 403 || out["error"] != "no_passport" {
+		t.Fatalf("viajar sem passaporte: %d %v", rec.Code, out)
+	}
+	rec, out = call(t, h, "POST", "/dev/travel", token, map[string]any{"from": "BRA", "to": "JPN"})
+	if rec.Code != 200 || out["airport"].(map[string]any)["country"] != "JPN" || out["stamp"] == nil {
+		t.Fatalf("/dev/travel: %d %s", rec.Code, rec.Body.String())
+	}
+	rec, out = call(t, h, "POST", "/dev/passport", token, map[string]any{"action": "give", "country": "PRY"})
+	if rec.Code != 200 || len(out["passports"].([]any)) != 2 {
+		t.Fatalf("/dev/passport: %d %s", rec.Code, rec.Body.String())
+	}
+	rec, out = call(t, h, "POST", "/passport/stamp", token, map[string]any{"country": "PRY"})
+	if rec.Code != 200 || out["stamp"] == nil {
+		t.Fatalf("/passport/stamp: %d %s", rec.Code, rec.Body.String())
+	}
+	_, me := call(t, h, "GET", "/me", token, nil)
+	if ps := me["passports"].([]any); len(ps) != 2 || ps[0] != me["country"] {
+		t.Fatalf("/me sem os passaportes: %v", me["passports"])
+	}
+}

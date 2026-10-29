@@ -25,6 +25,25 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dev/fake-neighbors", s.auth(s.devFakeNeighbors))
 	mux.HandleFunc("POST /dev/coins", s.auth(s.devCoins))
 	mux.HandleFunc("POST /dev/pedia", s.auth(s.devPedia))
+	mux.HandleFunc("POST /dev/passport", s.auth(s.devPassport))
+	mux.HandleFunc("POST /dev/travel", s.auth(s.travel(true)))
+}
+
+func (s *Server) devPassport(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Action  string `json:"action"`
+		Country string `json:"country"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	v, err := s.Game.DevPassport(r.Context(), p, body.Action, body.Country)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
 }
 
 func (s *Server) devPedia(w http.ResponseWriter, r *http.Request, p *game.Player) {
