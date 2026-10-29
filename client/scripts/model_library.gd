@@ -26,6 +26,9 @@ const FLOWER_COLORS := {
 }
 ## Cor original das pétalas no Flowers.fbx (a que é trocada nas flores coloridas).
 const PETAL_COLOR := Color("007b7c")
+## Neve dos modelos de inverno: o pacote usa um cinza-lilás (0,67; 0,63; 0,68) que, com a
+## luz da tarde, parece rosa. Trocado por um branco levemente azulado.
+const SNOW_COLOR := Color(0.9, 0.93, 0.98)
 
 static var _cache := {}  # nome → {"mesh": ArrayMesh, "aabb": AABB}
 ## Materiais de folhagem (vento + variação), por tipo: "tree", "grass", "plant", "still".
@@ -177,6 +180,8 @@ static func _load_scene(path: String, petal: Variant = null) -> Dictionary:
 				color = (mat as StandardMaterial3D).albedo_color
 				if petal != null and _close(color, PETAL_COLOR):
 					color = petal
+				elif mat.resource_name == "Snow":
+					color = SNOW_COLOR
 				color = color.srgb_to_linear()
 			var base: int = (g["v"] as PackedVector3Array).size()
 			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
