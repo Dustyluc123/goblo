@@ -237,11 +237,24 @@ func _build_objects(key: int) -> Node3D:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if ModelLibrary.is_baked(lib):
+			mmi.material_override = ModelLibrary.foliage_material(_wind_kind(list[0]))
 		node.add_child(mmi)
 		count += list.size()
 	node.set_meta("count", count)
 	instance_count += count
 	return node
+
+
+## Tipo de vento de um objeto do servidor: árvores balançam a copa, flores e arbustos um
+## pouco, pedras e galhos no chão ficam parados.
+static func _wind_kind(o: Dictionary) -> String:
+	match str(o["kind"]):
+		"tree":
+			return "tree"
+		"flower", "bush":
+			return "plant"
+	return "still"
 
 
 static func _hidden_transform(t: Transform3D) -> Transform3D:
@@ -385,6 +398,8 @@ func _apply_small(key: int, result: Dictionary) -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if ModelLibrary.is_baked(lib):
+			mmi.material_override = ModelLibrary.foliage_material("grass")
 		node.add_child(mmi)
 		count += int(result["counts"][name])
 	node.set_meta("count", count)

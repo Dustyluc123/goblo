@@ -8,6 +8,10 @@ extends Node
 ## O céu (sky.gdshader) e a luz ambiente seguem o horário onde o personagem está.
 ##
 ## F3 acelera o tempo (×60, ×600, ×3600); F4 volta ao horário real.
+##
+## Visual (fase 2.1): tonemapping AgX, luz ambiente vinda do céu, glow leve (média e alta)
+## e névoa de distância com a cor do horizonte, que dá profundidade e esconde onde os
+## pedaços de vegetação terminam. Tudo some no zoom afastado (o globo fica limpo).
 
 const SPEEDS := [1.0, 60.0, 600.0, 3600.0]
 const SKY_SHADER := preload("res://shaders/sky.gdshader")
@@ -25,6 +29,13 @@ var sun_dir := Vector3.UP
 var local_day := 1.0
 var _sky_material: ShaderMaterial
 var _shadows_wanted := true
+## Névoa: densidade máxima perto do personagem (some no zoom afastado).
+var _fog_density := 1.0
+
+## Cores do horizonte (iguais às do sky.gdshader), para a névoa combinar com o céu.
+const DAY_HORIZON := Color(0.80, 0.90, 0.98)
+const DUSK_HORIZON := Color(0.98, 0.70, 0.55)
+const NIGHT_HORIZON := Color(0.14, 0.18, 0.36)
 
 
 func _ready() -> void:
@@ -37,8 +48,38 @@ func _ready() -> void:
 	sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL
 	env.sky = sky
 	env.background_mode = Environment.BG_SKY
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	# Luz ambiente: metade vem do céu (de cima mais azul, do horizonte mais claro), metade
+	# da cor ajustada abaixo conforme a hora.
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_sky_contribution = 0.5
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.1
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 1.28
+	env.adjustment_contrast = 1.07
+	env.fog_enabled = true
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_depth_curve = 1.6
+	env.fog_sky_affect = 0.0
+	env.fog_sun_scatter = 0.12
+	env.glow_intensity = 0.35
+	env.glow_strength = 0.9
+	env.glow_bloom = 0.03
+	env.glow_hdr_threshold = 0.95
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+
+
+## Onde a névoa começa e onde fica cheia (distância da câmera), pelo preset de qualidade.
+func set_fog_distance(begin: float, end: float, density := 1.0) -> void:
+	var env := world_environment.environment
+	env.fog_depth_begin = begin
+	env.fog_depth_end = end
+	_fog_density = density
+
+
+func set_glow(on: bool) -> void:
+	world_environment.environment.glow_enabled = on
 
 
 ## Hora UTC fixa (0–24) hoje, para testes e screenshots.
@@ -110,8 +151,10 @@ func update(delta: float, up: Vector3, far: float) -> void:
 
 	var elevation := sun_dir.dot(up)
 	local_day = smoothstep(-0.12, 0.12, elevation)
-	# Sol mais quente perto do horizonte.
-	sun.light_color = Color(1.0, 0.72, 0.5).lerp(Color(1.0, 0.97, 0.92), smoothstep(0.0, 0.35, elevation))
+	# Sol mais quente e mais fraco perto do horizonte (manhã e fim de tarde).
+	var high := smoothstep(0.0, 0.4, elevation)
+	sun.light_color = Color(1.0, 0.6, 0.36).lerp(Color(1.0, 0.95, 0.86), high)
+	sun.light_energy = lerpf(0.75, 1.15, high)
 	sun.shadow_enabled = _shadows_wanted and local_day > 0.05 and far < 0.3
 
 	var env := world_environment.environment
@@ -119,8 +162,15 @@ func update(delta: float, up: Vector3, far: float) -> void:
 	var night_ambient := Color(0.42, 0.5, 0.85)
 	# No zoom afastado, ambiente e lua mais fracos para a linha dia/noite aparecer no globo.
 	var space := smoothstep(0.2, 0.8, far)
-	env.ambient_light_color = night_ambient.lerp(day_ambient, local_day).lerp(night_ambient, space)
-	env.ambient_light_energy = lerpf(lerpf(0.55, 0.45, local_day), 0.12, space)
+	var dusk := 1.0 - absf(local_day * 2.0 - 1.0)
+	var dusk_ambient := Color(1.0, 0.78, 0.7)
+	env.ambient_light_color = night_ambient.lerp(day_ambient, local_day).lerp(dusk_ambient, dusk * 0.7).lerp(night_ambient, space)
+	env.ambient_light_energy = lerpf(lerpf(0.6, 0.5, local_day), 0.12, space)
+	# Névoa da cor do horizonte (o mesmo cálculo do céu), sumindo no zoom afastado.
+	var horizon := NIGHT_HORIZON.lerp(DAY_HORIZON.lerp(DUSK_HORIZON, dusk * 0.8), local_day)
+	env.fog_light_color = horizon
+	env.fog_light_energy = lerpf(0.55, 1.0, local_day)
+	env.fog_density = _fog_density * (1.0 - smoothstep(0.05, 0.35, far))
 	moon.light_energy = lerpf(lerpf(0.35, 0.15, local_day), 0.1, space)
 
 	_sky_material.set_shader_parameter("local_up", up)

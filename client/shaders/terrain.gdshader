@@ -31,6 +31,12 @@ void vertex() {
 void fragment() {
 	NORMAL = normalize(cross(dFdy(VERTEX), dFdx(VERTEX)));
 	float n = value_noise(world_pos * 0.25) * 0.6 + value_noise(world_pos * 1.3) * 0.4;
-	ALBEDO = COLOR.rgb * (0.93 + 0.14 * n);
+	// Manchas grandes (dezenas de unidades): umas mais secas e claras (puxam para o amarelo),
+	// outras mais úmidas e escuras. Quebra as áreas lisas do chão.
+	float patches = value_noise(world_pos * 0.045) * 0.65 + value_noise(world_pos * 0.11) * 0.35;
+	vec3 dry = COLOR.rgb * vec3(1.10, 1.06, 0.86);
+	vec3 lush = COLOR.rgb * vec3(0.90, 0.96, 0.92);
+	vec3 base = mix(lush, dry, smoothstep(0.3, 0.75, patches));
+	ALBEDO = base * (0.93 + 0.14 * n);
 	ROUGHNESS = 1.0;
 }

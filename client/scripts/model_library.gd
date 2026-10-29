@@ -9,6 +9,9 @@ extends RefCounted
 ## - Modelos com textura (Kenney, colormap): as superfícies com o mesmo material são
 ##   juntadas, mantendo a textura.
 ## - Os níveis de detalhe (LOD) são gerados de novo para a malha juntada.
+## - Oclusão de ambiente barata ("AO nos vértices"): a cor por vértice escurece perto da
+##   base do modelo, como se o chão sombreasse o pé das árvores, pedras e paredes. O
+##   renderizador Mobile não tem SSAO; isto vale em todas as qualidades e não custa nada.
 ##
 ## Nomes aceitos em `get_model`:
 ##   "CommonTree_1"           → Ultimate Nature Pack (client/assets/quaternius/ultimate-nature)
@@ -24,6 +27,11 @@ const FLOWER_COLORS := {
 const PETAL_COLOR := Color("007b7c")
 
 static var _cache := {}  # nome → {"mesh": ArrayMesh, "aabb": AABB}
+## Materiais de folhagem (vento + variação), por tipo: "tree", "grass", "plant", "still".
+static var _foliage := {}
+const FOLIAGE_SHADER := preload("res://shaders/foliage.gdshader")
+## Vento por tipo: [deslocamento no topo, altura do balanço máximo] em unidades do modelo.
+const WIND := {"tree": [0.09, 4.0], "plant": [0.07, 1.0], "grass": [0.12, 0.6], "still": [0.0, 1.0]}
 static var _baked_material: StandardMaterial3D
 ## Protege o cache: os modelos são pré-carregados em várias threads (preload_all).
 static var _mutex := Mutex.new()
@@ -36,6 +44,25 @@ static func baked_material() -> StandardMaterial3D:
 		_baked_material.vertex_color_use_as_albedo = true
 		_baked_material.roughness = 0.95
 	return _baked_material
+
+
+## Material de folhagem para MultiMesh de modelos sem textura (`material_override`).
+## `kind`: "tree", "plant" (arbustos, flores), "grass" ou "still" (pedras: sem vento).
+static func foliage_material(kind: String) -> ShaderMaterial:
+	if not _foliage.has(kind):
+		var m := ShaderMaterial.new()
+		m.shader = FOLIAGE_SHADER
+		var w: Array = WIND.get(kind, WIND["still"])
+		m.set_shader_parameter("wind_strength", w[0])
+		m.set_shader_parameter("wind_height", w[1])
+		_foliage[kind] = m
+	return _foliage[kind]
+
+
+## O modelo usa só o material de cor por vértice (pode trocar pelo de folhagem)?
+static func is_baked(lib: Dictionary) -> bool:
+	var mesh: Mesh = lib.get("mesh")
+	return mesh != null and mesh.get_surface_count() == 1 and mesh.surface_get_material(0) == _baked_material
 
 
 ## {"mesh": ArrayMesh, "aabb": AABB} do modelo (nulo se não existe). Fica em cache.
@@ -152,7 +179,34 @@ static func _load_scene(path: String, petal: Variant = null) -> Dictionary:
 			g["c"] = gc
 			g["i"] = gi
 	root.free()
+	_bake_ao(groups)
 	return _build(groups)
+
+
+## Escurece a cor por vértice perto da base do modelo (AO nos vértices).
+const AO_DARK := 0.62
+const AO_MAX_HEIGHT := 0.8
+
+
+static func _bake_ao(groups: Dictionary) -> void:
+	var min_y := INF
+	var max_y := -INF
+	for g: Dictionary in groups.values():
+		for v in (g["v"] as PackedVector3Array):
+			min_y = minf(min_y, v.y)
+			max_y = maxf(max_y, v.y)
+	if min_y == INF:
+		return
+	var reach := clampf((max_y - min_y) * 0.3, 0.05, AO_MAX_HEIGHT)
+	for g: Dictionary in groups.values():
+		var verts: PackedVector3Array = g["v"]
+		var cols: PackedColorArray = g["c"]
+		for k in verts.size():
+			var t := clampf((verts[k].y - min_y) / reach, 0.0, 1.0)
+			var ao := lerpf(AO_DARK, 1.0, t * t * (3.0 - 2.0 * t))
+			var c := cols[k]
+			cols[k] = Color(c.r * ao, c.g * ao, c.b * ao, c.a)
+		g["c"] = cols
 
 
 ## Junta os grupos numa ArrayMesh com LODs. A ordem é estável: o grupo "baked" primeiro.

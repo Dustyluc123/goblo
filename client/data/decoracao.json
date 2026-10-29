@@ -2,12 +2,12 @@
   "_doc": "Decoração do chão que o CLIENTE espalha (sem interação, sem colisão): grama e plantinhas do Ultimate Nature Pack. Árvores, pedras, flores e arbustos vêm do servidor (server/data/game/objects.json). models: nomes dos modelos em client/assets/quaternius/ultimate-nature. per_cell: média por célula (~500 unidades²), multiplicada pela densidade da qualidade gráfica. scale: escala mín/máx. tint: cor multiplicada (1 = cor original do modelo). object_tint: tom aplicado aos objetos do servidor em cada bioma. autumn/snow: reservados para as estações da fase 2.5.",
   "biomes": {
     "tropical_forest": [
-      {"models": ["Grass", "Grass_2"], "per_cell": 22, "scale": [0.35, 0.55], "tint": [0.95, 1.1, 0.9]},
-      {"models": ["Plant_1", "Plant_2", "Plant_3", "Plant_4", "Plant_5"], "per_cell": 12, "scale": [0.6, 0.95], "tint": [0.95, 1.1, 0.9]}
+      {"models": ["Grass", "Grass_2"], "per_cell": 22, "scale": [0.35, 0.55], "tint": [1.0, 1.08, 0.84]},
+      {"models": ["Plant_1", "Plant_2", "Plant_3", "Plant_4", "Plant_5"], "per_cell": 12, "scale": [0.6, 0.95], "tint": [1.0, 1.08, 0.84]}
     ],
     "forest": [
-      {"models": ["Grass", "Grass_2"], "per_cell": 16, "scale": [0.35, 0.5], "tint": [1.05, 1.15, 0.95]},
-      {"models": ["Plant_1", "Plant_3"], "per_cell": 4, "scale": [0.6, 0.85], "tint": [1.05, 1.15, 0.95]}
+      {"models": ["Grass", "Grass_2"], "per_cell": 16, "scale": [0.35, 0.5], "tint": [1.06, 1.12, 0.88]},
+      {"models": ["Plant_1", "Plant_3"], "per_cell": 4, "scale": [0.6, 0.85], "tint": [1.06, 1.12, 0.88]}
     ],
     "grassland": [
       {"models": ["Grass_Short"], "per_cell": 26, "scale": [0.7, 1.1], "tint": [1.35, 1.35, 0.95]},
@@ -26,9 +26,9 @@
     "ice": []
   },
   "object_tint": {
-    "tropical_forest": [0.92, 1.05, 0.92],
-    "forest": [1.0, 1.05, 1.0],
-    "grassland": [1.1, 1.12, 1.0],
+    "tropical_forest": [1.06, 1.1, 0.9],
+    "forest": [1.06, 1.1, 0.94],
+    "grassland": [1.12, 1.12, 0.95],
     "beach": [1.05, 1.05, 1.0],
     "desert": [1.1, 1.05, 0.95],
     "mountain": [1.0, 1.0, 1.0],

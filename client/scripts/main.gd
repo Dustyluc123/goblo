@@ -32,6 +32,8 @@ extends Node3D
 ##   --profile-scene     parado no lugar, mede GPU/CPU/draw calls ligando e desligando cada
 ##                       parte (sombras, árvores, grama, casas, chão, nuvens); com
 ##                       --neighbors=N cria N vizinhos falsos antes (servidor dev)
+##   --off=A,B           (com --profile-scene) desliga desde o começo: nevoa, glow,
+##                       tonemap, folhagem, sombras; mede só o total
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que ela
 ##                       nunca entra em nada (servidor com GOBLO_DEV=1)
 
@@ -490,7 +492,7 @@ func _process(delta: float) -> void:
 			_vegetation.instance_count, _data.all_lots().size(), _api.in_flight, Quality.label()])
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
-		mat.albedo_color.a = 0.45 + 0.15 * sin(Time.get_ticks_msec() / 300.0)
+		mat.albedo_color.a = 0.22 + 0.08 * sin(Time.get_ticks_msec() / 300.0)
 		_highlight.visible = _camera.far_amount < 0.5 and not _build.active
 
 
@@ -546,6 +548,9 @@ func _apply_quality() -> void:
 	if _neighborhood:
 		_neighborhood.set_view_distance(float(q["lot_radius"]))
 	_day_night.set_shadows_wanted(q["shadows"])
+	# Névoa: começa no meio do raio das árvores e fecha um pouco antes de elas acabarem.
+	_day_night.set_fog_distance(float(q["big_radius"]) * 0.3, float(q["big_radius"]) * 0.95)
+	_day_night.set_glow(q["glow"])
 	_sun.directional_shadow_max_distance = maxf(1.0, q["shadow_distance"])
 	_apply_render_scale()
 	if _data:
@@ -860,11 +865,6 @@ func _run_automation() -> void:
 	if _args.has("ui"):
 		await get_tree().create_timer(1.0).timeout
 	await RenderingServer.frame_post_draw
-	if _args.has("debug-occlusion"):
-		for id: int in _occlusion._faded:
-			var inst: Array = _vegetation._instances.get(id, [])
-			var g: MeshInstance3D = _occlusion._faded[id]["ghost"]
-			print("DBG id ", id, " instância: ", (inst[0] as MultiMesh).get_instance_transform(inst[1]).basis.get_scale() if not inst.is_empty() else "sem instância", " fantasma transp ", g.transparency, " visível ", g.is_visible_in_tree())
 	var path := str(_args["screenshot"])
 	var err := get_viewport().get_texture().get_image().save_png(path)
 	print("Goblo: screenshot salvo em %s (erro %d, %d objetos transparentes na frente da câmera)" % [path, err, _occlusion.faded_count()])
@@ -1016,9 +1016,36 @@ func _profile_scene() -> void:
 		"casas e lotes": [func() -> void: _neighborhood.visible = false, func() -> void: _neighborhood.visible = true],
 		"chão e oceano": [func() -> void: _terrain.visible = false, func() -> void: _terrain.visible = true],
 		"nuvens": [func() -> void: _clouds.visible = false, func() -> void: _clouds.visible = true],
+		"névoa": [func() -> void: _env().fog_enabled = false, func() -> void: _env().fog_enabled = true],
+		"glow": [func() -> void: _env().glow_enabled = false, func() -> void: _apply_quality()],
+		"tonemapping AgX e ajuste de cor": [func() -> void:
+			_env().tonemap_mode = Environment.TONE_MAPPER_LINEAR
+			_env().adjustment_enabled = false, func() -> void:
+			_env().tonemap_mode = Environment.TONE_MAPPER_AGX
+			_env().adjustment_enabled = true],
+		"vento e variação (shader de folhagem)": [func() -> void: _set_foliage(false), func() -> void: _set_foliage(true)],
 		"céu": [func() -> void: (get_node("WorldEnvironment") as WorldEnvironment).environment.background_mode = Environment.BG_COLOR,
 			func() -> void: (get_node("WorldEnvironment") as WorldEnvironment).environment.background_mode = Environment.BG_SKY],
 	}
+	# --off=nevoa,glow,tonemap,folhagem,sombras: desliga desde o começo e só mede o total
+	# (trocar no meio recompila shaders e atrapalha a medição seguinte).
+	if _args.has("off"):
+		var offs := str(_args["off"]).split(",")
+		for o in offs:
+			match o:
+				"nevoa": _env().fog_enabled = false
+				"glow": _env().glow_enabled = false
+				"tonemap":
+					_env().tonemap_mode = Environment.TONE_MAPPER_LINEAR
+					_env().adjustment_enabled = false
+				"folhagem": _set_foliage(false)
+				"sombras": _day_night.set_shadows_wanted(false)
+		await get_tree().create_timer(3.0).timeout
+		var only: Dictionary = await measure.call()
+		print("Goblo: perfil-off %s (qualidade %s): GPU %.1f ms, CPU render %.1f ms, %d draw calls" % [
+			str(_args["off"]), Quality.current_name(), only["gpu"], only["cpu"], int(only["dc"])])
+		get_tree().quit()
+		return
 	var base: Dictionary = await measure.call()
 	var win := DisplayServer.window_get_size()
 	print("Goblo: perfil (%s, qualidade %s, janela %d × %d, 3D em %d%%): tudo ligado: GPU %.1f ms, CPU render %.1f ms, quadro %.1f ms, %d draw calls, %.0f mil triângulos, %d objetos" % [
@@ -1031,6 +1058,20 @@ func _profile_scene() -> void:
 		print("Goblo: perfil   sem %s: GPU %.1f ms (−%.1f), CPU render %.1f ms (−%.1f), draw calls %d (−%d), triângulos −%.0f mil" % [
 			name, m["gpu"], base["gpu"] - m["gpu"], m["cpu"], base["cpu"] - m["cpu"], int(m["dc"]), int(base["dc"] - m["dc"]), base["prim"] - m["prim"]])
 	get_tree().quit()
+
+
+func _env() -> Environment:
+	return (get_node("WorldEnvironment") as WorldEnvironment).environment
+
+
+## Liga/desliga o shader de folhagem (volta ao material simples), para medir o custo.
+func _set_foliage(on: bool) -> void:
+	for mmi in _vegetation.find_children("*", "MultiMeshInstance3D", true, false):
+		if on and mmi.has_meta("foliage"):
+			(mmi as MultiMeshInstance3D).material_override = mmi.get_meta("foliage")
+		elif not on and (mmi as MultiMeshInstance3D).material_override:
+			mmi.set_meta("foliage", (mmi as MultiMeshInstance3D).material_override)
+			(mmi as MultiMeshInstance3D).material_override = null
 
 
 func _set_layer_visible(layer: String, on: bool) -> void:

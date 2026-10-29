@@ -6,16 +6,18 @@ extends RefCounted
 ## (server/data/game/objects.json) e a grama do cliente vem de client/data/decoracao.json.
 
 
-## Cor do topo de cada bioma (sRGB).
+## Cor do topo de cada bioma (sRGB). Paleta pastel da fase 2.1: verdes um pouco mais
+## claros e quentes (puxando para o amarelo), para conversar com as copas das árvores
+## (object_tint em decoracao.json) e com a grama, em vez de um verde saturado chapado.
 const COLORS := {
 	WorldData.Biome.OCEAN: Color("6fb6dc"),
-	WorldData.Biome.BEACH: Color("f1e1a6"),
-	WorldData.Biome.TROPICAL_FOREST: Color("5fae63"),
-	WorldData.Biome.FOREST: Color("86c46f"),
-	WorldData.Biome.GRASSLAND: Color("b9d77a"),
-	WorldData.Biome.DESERT: Color("ecc98a"),
-	WorldData.Biome.MOUNTAIN: Color("a59e95"),
-	WorldData.Biome.TUNDRA: Color("a9b48f"),
+	WorldData.Biome.BEACH: Color("f3e4b0"),
+	WorldData.Biome.TROPICAL_FOREST: Color("79b36c"),
+	WorldData.Biome.FOREST: Color("94c277"),
+	WorldData.Biome.GRASSLAND: Color("bfd585"),
+	WorldData.Biome.DESERT: Color("eccb92"),
+	WorldData.Biome.MOUNTAIN: Color("aaa39a"),
+	WorldData.Biome.TUNDRA: Color("aeb795"),
 	WorldData.Biome.ICE: Color("eef4fa"),
 }
 const SNOW := Color("f4f7fb")
@@ -43,7 +45,10 @@ static func wall_color(world: WorldData, id: int) -> Color:
 		WorldData.Biome.ICE:
 			return ICE_WALL.srgb_to_linear()
 		WorldData.Biome.TUNDRA, WorldData.Biome.FOREST, WorldData.Biome.TROPICAL_FOREST, WorldData.Biome.GRASSLAND:
-			return DIRT_WALL.srgb_to_linear()
+			# Barranco de grama: a cor do topo mais escura, com um pouco de terra. Terra pura
+			# ficava clara demais ao sol e parecia um caminho em volta das células.
+			var top: Color = COLORS[int(world.biomes[id])]
+			return top.darkened(0.28).lerp(DIRT_WALL, 0.3).srgb_to_linear()
 	return SAND_WALL.srgb_to_linear()
 
 
