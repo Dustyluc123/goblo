@@ -261,7 +261,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 		spawn_cell = world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(spawn_lat, spawn_lon)))
 		spawn_pos = world.centers[spawn_cell] * world.surface_radius(spawn_cell)
 	else:
-		spawn_pos = home_point()
+		spawn_pos = land_point(home_point())
 		spawn_cell = world.find_cell(spawn_pos)
 	_terrain.update_collision(spawn_pos, -1)
 	_player.spawn(world, spawn_cell)
@@ -870,7 +870,18 @@ func go_home() -> void:
 	_ui.toast("Bem-vindo de volta para casa!")
 
 
+## Ponto seguro em terra: se `pos` cair numa célula de oceano, vai para o centro da
+## célula de terra mais perto. Vale para teleporte, chegada de voo, nascimento e casa (H).
+func land_point(pos: Vector3) -> Vector3:
+	var cell := world.find_cell(pos, _player.cell_id)
+	if world.is_land(cell):
+		return pos
+	var land := world.nearest_land(cell)
+	return world.centers[land] * world.surface_radius(land)
+
+
 func _teleport(pos: Vector3) -> void:
+	pos = land_point(pos)
 	_build.exit()
 	_tracker.mark_teleport()
 	_player.set_physics_process(false)

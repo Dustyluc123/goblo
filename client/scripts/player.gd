@@ -303,7 +303,13 @@ func _physics_process(delta: float) -> void:
 	_try_step_up(horizontal, up)
 
 	velocity = horizontal + up * vertical_speed
+	var before := global_position
 	move_and_slide()
+	# Rede de segurança: o desvio da fronteira, o degrau ou o deslize na colisão podem
+	# levar o corpo para uma célula de oceano. Se isso acontecer, volta para a terra.
+	if world.is_land(cell_id) and not world.is_land(world.find_cell(global_position, cell_id)):
+		global_position = before
+		velocity = up * minf(velocity.dot(up), 0.0)
 
 	_update_animation(delta, up)
 
