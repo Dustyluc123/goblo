@@ -39,3 +39,6 @@ kenney-original/
 
 # Pacotes originais baixados do Quaternius (copie só o necessário para client/assets/quaternius)
 /Ultimate */
+
+# Briefings soltos na raiz (a cópia fica em docs/)
+/briefing-*.md
