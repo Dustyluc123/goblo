@@ -27,7 +27,7 @@ Regra permanente: o autor usa o Mac enquanto você trabalha (vídeo, outras jane
 - **Precisa de imagem (captura)?** Use `client/tools/sem_foco.sh -- <argumentos>`: abre com `open -g` (sem ativar o app), em janela comum 1600 × 900 com `--no-focus` (flag de janela sem foco do Godot), espera fechar e imprime a saída. Só nos testes; a configuração normal do jogo não muda.
 - **Medição de fps** precisa da janela na frente (o macOS desacelera janelas em segundo plano): junte todas as medições num momento só, no fim do trabalho, e avise antes no terminal ("vou abrir o jogo na frente por uns 2 minutos para medir o desempenho").
 - Feche o jogo assim que o teste terminar (as automações já fecham sozinhas; o script mata o processo se estourar o tempo).
-- Não use `osascript`/System Events para conferir janelas: pede permissão e trava esperando.
+- **Não controle o Mac do autor (regra permanente):** nada de `osascript`, AppleScript, "System Events", `screencapture` ou qualquer coisa que peça permissão de Acessibilidade, Automação ou Gravação de Tela, para nada. Capturas vêm do próprio jogo (`--screenshot`). Se precisar conferir algo que dependa disso, diga ao autor o que conferir e ele confere.
 
 ## Comandos
 
