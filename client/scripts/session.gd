@@ -1,0 +1,156 @@
+class_name Session
+extends Node
+## Estado do jogador neste cliente: token, dados do /me, conteúdo do jogo (itens, receitas,
+## casas) e a ferramenta na mão. O servidor é a fonte da verdade; aqui só guardamos a
+## última resposta dele e avisamos a interface quando algo muda.
+
+signal inventory_changed
+signal me_changed
+signal equipped_changed
+
+const PROFILE_DIR := "user://"
+
+## Perfil do token (permite vários jogadores na mesma máquina: --profile=NOME).
+var profile := "player"
+var me: Dictionary = {}
+var inventory: Array = []  # [{item, count}]
+var slots_used := 0
+var slots_max := 20
+var items: Dictionary = {}  # id → item
+var item_order: Array = []  # ids na ordem de items.json
+var recipes: Array = []
+var houses: Array = []
+## Modelos que os objetos do servidor usam (para pré-carregar).
+var object_models: Array = []
+var tile_size := 0.5
+var lot_tiles := 14
+## O servidor está em modo dev (GOBLO_DEV=1)?
+var dev := false
+## Item de ferramenta na mão ("" = mão vazia).
+var equipped := ""
+
+
+func token_path() -> String:
+	return PROFILE_DIR + profile + ".cfg"
+
+
+func load_token() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(token_path()) != OK:
+		return ""
+	return str(cfg.get_value("player", "token", ""))
+
+
+func save_token(token: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("player", "token", token)
+	cfg.save(token_path())
+
+
+func clear_token() -> void:
+	DirAccess.remove_absolute(token_path())
+
+
+func set_content(data: Dictionary) -> void:
+	items.clear()
+	item_order.clear()
+	for it: Dictionary in data.get("items", []):
+		items[it["id"]] = it
+		item_order.append(it["id"])
+	recipes = data.get("recipes", [])
+	houses = data.get("houses", [])
+	object_models = data.get("object_models", [])
+	tile_size = float(data.get("tile_size", 0.5))
+	lot_tiles = int(data.get("lot_tiles", 14))
+	slots_max = int(data.get("inventory_slots", 20))
+
+
+func set_me(data: Dictionary) -> void:
+	me = data
+	set_inventory(data.get("inventory", []), int(data.get("slots_used", 0)))
+	me_changed.emit()
+
+
+func set_inventory(inv: Array, used: int) -> void:
+	inventory = inv
+	slots_used = used
+	if not equipped.is_empty() and count(equipped) == 0:
+		equip("")
+	inventory_changed.emit()
+
+
+func set_lot(lot: Dictionary) -> void:
+	me["lot"] = lot
+	me_changed.emit()
+
+
+func lot() -> Dictionary:
+	var l: Variant = me.get("lot")
+	return l if l is Dictionary else {}
+
+
+func count(item: String) -> int:
+	for s: Dictionary in inventory:
+		if s["item"] == item:
+			return int(s["count"])
+	return 0
+
+
+func item_name(id: String) -> String:
+	return str(items.get(id, {}).get("name", id))
+
+
+func is_tool(id: String) -> bool:
+	return str(items.get(id, {}).get("category", "")) == "tool"
+
+
+func is_placeable(id: String) -> bool:
+	return str(items.get(id, {}).get("category", "")) == "placeable"
+
+
+## Ferramentas do inventário na ordem em que chegaram (a barra rápida).
+func tools() -> Array:
+	var out: Array = []
+	for s: Dictionary in inventory:
+		if is_tool(s["item"]):
+			out.append(s["item"])
+	return out
+
+
+func equip(id: String) -> void:
+	if equipped == id:
+		return
+	equipped = id
+	equipped_changed.emit()
+
+
+## Quantos itens de um custo o jogador tem ("#flower" soma todas as flores).
+func have_for(key: String) -> int:
+	if not key.begins_with("#"):
+		return count(key)
+	var tag := key.substr(1)
+	var total := 0
+	for s: Dictionary in inventory:
+		if tag in items.get(s["item"], {}).get("tags", []):
+			total += int(s["count"])
+	return total
+
+
+func cost_label(key: String) -> String:
+	if key == "#flower":
+		return "Flores (qualquer cor)"
+	return item_name(key)
+
+
+func can_afford(cost: Dictionary) -> bool:
+	for k: String in cost:
+		if have_for(k) < int(cost[k]):
+			return false
+	return true
+
+
+func house_level(level: int) -> Dictionary:
+	for h: Dictionary in houses:
+		if int(h["level"]) == level:
+			return h
+	return {}
