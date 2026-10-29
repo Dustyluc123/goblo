@@ -18,8 +18,8 @@ Todos os pacotes abaixo estão sob licença **Creative Commons Zero (CC0)**: pod
 
 | Pacote | Versão | Pasta | O que copiamos | Uso |
 | --- | --- | --- | --- | --- |
-| [Ultimate Nature Pack](https://quaternius.com/packs/ultimatenature.html) | junho de 2019 | `quaternius/ultimate-nature/` | só `FBX/` (o Godot 4 importa FBX direto) | árvores, pedras, arbustos, flores, grama e enfeites de todos os biomas (fase 2); as versões de outono e neve ficam para as estações da fase 2.5 |
-| [Ultimate Animated Animals](https://quaternius.com/packs/ultimateanimatedanimals.html) | julho de 2021 | `quaternius/ultimate-animated-animals/` | `glTF/` convertido para `.glb` ([ADR 0023](../../docs/decisoes/0023-animais-convertidos-para-glb.md)) | guardado para a fase 2.5 (animais andando pelos biomas) |
+| [Ultimate Nature Pack](https://quaternius.com/packs/ultimatenature.html) | junho de 2019 | `quaternius/ultimate-nature/` | só `FBX/` (o Godot 4 importa FBX direto) | árvores, pedras, arbustos, flores, grama e enfeites de todos os biomas (fase 2); as versões de outono e neve aparecem nas estações do ano (fase 2.5) |
+| [Ultimate Animated Animals](https://quaternius.com/packs/ultimateanimatedanimals.html) | julho de 2021 | `quaternius/ultimate-animated-animals/` | `glTF/` convertido para `.glb` ([ADR 0023](../../docs/decisoes/0023-animais-convertidos-para-glb.md)) | os 12 animais andando pelos biomas e as páginas da Goblopédia (fase 2.5); sem as animações de ataque e morte |
 
 O `License.txt` original de cada pacote está na pasta dele. Licença CC0: <https://creativecommons.org/publicdomain/zero/1.0/>.
 

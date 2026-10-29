@@ -54,7 +54,13 @@ flowchart LR
 | `internal/world/noise.go` | ruído 3D determinístico para colinas e dunas |
 | `internal/world/binary.go` | formato binário do mundo (codificação e leitura de referência) |
 | `internal/world/world.go` | junta tudo no tipo `World`; versão; snapshot JSON/binário com gzip |
-| `internal/game/content.go` | lê e confere `data/game/*.json` (itens, receitas, casas, objetos) |
+| `internal/world/borders.go` | países do 1:50m pela posição exata (ponto em polígono), índice de segmentos de fronteira por grau e fronteiras por célula para o cliente ([ADR 0031](decisoes/0031-fronteiras-pela-posicao-exata.md)) |
+| `internal/game/content.go` | lê e confere `data/game/*.json` (itens, receitas, casas, objetos, economia, animais, Goblopédia) |
+| `internal/game/money.go` | moedas: venda na caixa de vendas, recompensas, histórico, moedas do modo dev |
+| `internal/game/animals.go` | animais por célula e o trajeto pelo horário (`AnimalAt`), frutinha ([ADR 0032](decisoes/0032-animais-deterministicos.md)) |
+| `internal/game/pedia.go` | Goblopédia: páginas, registro de fotos com recompensa única, amigos ([ADR 0033](decisoes/0033-goblopedia-e-camera.md)) |
+| `internal/game/season.go` | estações pela data e pelo hemisfério ([ADR 0034](decisoes/0034-estacoes-do-ano.md)) |
+| `internal/game/airports.go` | aeroportos perto das capitais, preço da passagem, passaportes, carimbos ([ADR 0035](decisoes/0035-aeroportos-viagem-e-passaportes.md)) |
 | `internal/game/frame.go` | sistema de coordenadas plano do topo de cada célula |
 | `internal/game/lots.go` | lotes possíveis de cada célula (até 4, 14 × 14 quadradinhos) |
 | `internal/game/objects.go` | objetos interativos de cada célula, determinísticos pelo id |
@@ -125,7 +131,12 @@ Todas as rotas, com exemplos, estão em [`API.md`](API.md). O mundo continua em 
 | `scripts/biome_style.gd` | cor do chão e das paredes de cada bioma |
 | `scripts/api.gd` | cliente HTTP (um `HTTPRequest` por pedido, token no cabeçalho) |
 | `scripts/session.gd` | token, `/me`, inventário, conteúdo do jogo e ferramenta na mão |
-| `scripts/chunk_data.gd` | objetos (`/objects`) e lotes (`/lots`) por pedaço em volta do personagem; recarrega quando o dia vira |
+| `scripts/chunk_data.gd` | objetos e animais (`/objects`), lotes (`/lots`) e fronteiras (`/borders`) por pedaço em volta do personagem; relógio do servidor; recarrega quando o dia vira |
+| `scripts/border_map.gd`, `border_lines.gd`, `country_tracker.gd` | país exato pela posição (segmento mais perto), linha tracejada com marquinhos no chão, mudança de país (HUD, plaquinha, carimbo) |
+| `scripts/animals.gd`, `animal_path.gd` | animais perto do personagem com modelo e animação, trajeto comum (mesma conta do servidor) e reações locais |
+| `scripts/photo_mode.gd`, `pedia_ui.gd`, `pedia_art.gd`, `pedia_photos.gd` | câmera fotográfica (modo foto, o que está enquadrado), Goblopédia (G) e fotos em `user://fotos/` |
+| `scripts/seasons.gd`, `season_fx.gd` | estações (mesma conta do servidor), troca de modelos, partículas de folhas e neve |
+| `scripts/airports.gd`, `travel_ui.gd`, `passport_ui.gd`, `stamp_art.gd`, `sell_ui.gd`, `coin_icon.gd` | aeroportos (cenário e marcadores), balcão de viagens, livro de passaporte com carimbos desenhados, caixa de vendas e moedinha |
 | `scripts/model_library.gd` | carrega modelos e junta cada um numa malha só, com LOD; pré-carregamento em paralelo ([ADR 0025](decisoes/0025-malhas-juntadas-e-pre-carregamento.md)) |
 | `scripts/vegetation.gd` + `scripts/decor_rng.gd` | objetos do servidor (MultiMesh por modelo), grama do cliente em threads, colisão no PhysicsServer3D |
 | `scripts/neighborhood.gd` + `scripts/lot_geom.gd` | lotes do bairro: borda, plaquinha, casa ou obra, objetos colocados, lampiões à noite |

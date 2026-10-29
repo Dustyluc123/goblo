@@ -6,7 +6,7 @@ Guia para o Claude Code trabalhar no Goblo. Leia também `docs/ARQUITETURA.md`, 
 
 MMO cozy no planeta Terra de verdade, visto como um globo de sala de aula, com um ciclo aconchegante: coletar → fabricar → construir e decorar o lote → voltar amanhã. Monorepo:
 
-- `server/` — Go. **Fonte da verdade**: gera o mundo (grade, terra, país, bioma, altura) e aplica as regras do jogo (jogador, lote, objetos interativos, coleta e limites diários, inventário, fabricação, decoração, casa), com SQLite. Rotas em `docs/API.md`.
+- `server/` — Go. **Fonte da verdade**: gera o mundo (grade, terra, país, bioma, altura) e aplica as regras do jogo (jogador, lote, objetos interativos, coleta e limites diários, inventário, fabricação, decoração, casa, moedas, animais, Goblopédia, aeroportos, passaportes e carimbos), com SQLite. Rotas em `docs/API.md`.
 - `client/` — Godot 4 (renderizador Mobile) + GDScript. Baixa o mundo (com cache), pede as ações ao servidor e desenha. Só a grama decorativa é sorteada no cliente (determinística).
 - `docs/` — arquitetura, API, conteúdo, dados, biomas, briefings das fases e ADRs em `docs/decisoes/`.
 
@@ -38,7 +38,8 @@ go run ./cmd/server -addr :8081 -db /tmp/x.db   # outra porta e outro banco
 go test ./...                            # testes (obrigatório antes de commitar)
 go vet ./...
 gofmt -l .                               # precisa sair vazio (o CI confere)
-./scripts/baixar-dados.sh                # Natural Earth + regiões + base IP → país da DB-IP
+./scripts/baixar-dados.sh                # Natural Earth (terra, países e capitais 1:50m, regiões) + base IP → país da DB-IP
+GOBLO_GOLDEN=1 go test ./internal/game -run AnimalGolden   # regera as poses de referência dos animais (servidor e cliente)
 
 # Cliente (de dentro de client/, com o servidor rodando)
 godot --path .                                                        # abre o jogo
@@ -50,6 +51,14 @@ godot --path . -- --perf-test=20 --spawn=-3,-60 --quality=medium      # fps e GP
 tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930 --profile=perf   # o que pesa na GPU
 godot --headless --path . -- --camera-test --profile=t3                # distância não muda sozinha, nada na frente sem transparência (servidor dev)
 godot --headless --path . -s tests/test_minimapa.gd                    # seta do mini mapa (N, S, L, O); sem servidor
+godot --headless --path . -s tests/test_animais.gd                     # trajeto dos animais igual ao do servidor; sem servidor
+godot --headless --path . -s tests/test_estacoes.gd                    # estações iguais às do servidor; sem servidor
+godot --headless --path . -- --border-test --profile=t4                # país exato nas fronteiras, linha no chão, travessia
+godot --headless --path . -- --animal-test --profile=t5                # animais: trajeto comum, carinho, frutinha, fuga, custo (servidor dev)
+godot --headless --path . -- --photo-test --profile=t6                 # câmera fotográfica e Goblopédia (servidor dev)
+godot --headless --path . -- --season-test --profile=t7                # estações nos dois hemisférios e nos trópicos (servidor dev)
+godot --headless --path . -- --travel-test --profile=t8                # barreira, passaporte, carimbo, aeroporto e voo (servidor dev)
+godot --headless --path . -- --dev-test --profile=t9                   # botões novos do painel dev (servidor dev)
 godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, build, first)
 godot --headless --path . -s tools/montar_casas.gd                     # regera as cenas das casas (sobrescreve!)
 tools/sem_foco.sh -s tools/montar_casas.gd -- --fotos=/tmp/casas --so-fotos   # fotos das casas (oitões, 4 lados), sem foco
@@ -57,7 +66,7 @@ tools/sem_foco.sh -s tools/montar_casas.gd -- --fotos=/tmp/casas --so-fotos   # 
 
 Argumentos do cliente (depois de `--`): `--server=URL`, `--profile=NOME`, `--nickname=X` (+ `--country=BRA`), `--quality=…`, `--spawn=LAT,LON`, `--zoom=0..1`, `--utc=HORA`, `--no-cache`, `--equip=ITEM`, `--walk=SEG`, `--dir=…`, `--run`, `--moving`, `--jump`, `--smoke-test`, `--play-test`, `--screenshot=ARQ`, `--ui=…`, `--route=LAT,LON`, `--perf-test=SEG`, `--tour`, `--window-size=WxH`, `--ui-scale=X`, `--fullscreen-test`, `--no-focus`. Lista completa no topo de `client/scripts/main.gd`.
 
-Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira, clique coloca, X guarda), H casa, F1 modo dev, F2 desempenho, F3/F4 tempo, F6 configurações (qualidade, tamanho da interface, mouse, tela cheia), F11 tela cheia. A câmera gira com o movimento do mouse (cursor capturado pelo `GameUi`; solto com menu aberto, no modo construção, com Alt e depois de Esc). Automações e `--no-focus` nunca capturam o cursor.
+Teclas no jogo: E interagir (também caixa de vendas, balcão do aeroporto, carinho e frutinha nos animais), Tab/I bolso, 1–5 ferramentas, B construir (R gira, clique coloca, X guarda), H casa, G Goblopédia, P passaporte, botão direito com a câmera fotográfica na mão (modo foto: roda dá zoom, clique fotografa), F1 modo dev, F2 desempenho, F3/F4 tempo, F6 configurações (qualidade, tamanho da interface, mouse, tela cheia), F11 tela cheia. A câmera gira com o movimento do mouse (cursor capturado pelo `GameUi`; solto com menu aberto, no modo construção, com Alt e depois de Esc). Automações e `--no-focus` nunca capturam o cursor.
 
 ## Convenções
 
@@ -72,13 +81,17 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 - **Objetos interativos:** gerados pelo servidor (`objects.go`, semente no id da célula), id = célula × 64 + índice; todas as árvores e pedras grandes vêm do servidor e o cliente só espalha grama (ADR 0020). Mudar `objects.json` muda os objetos de todo mundo.
 - **Regras só no servidor:** inventário, limites diários (por jogador), fabricação, colocação, casa. O cliente nunca muda o inventário por conta própria: aplica a resposta do servidor (`Session.set_inventory`, `GameMain.apply_lot_result`). Distância até o objeto ainda não é conferida (ADR 0021, `TODO(fase 3)`).
 - **Dia do jogo:** vira às 5h no horário local da casa do jogador (longitude ÷ 15), `game.DayIndex`. Nada de `time.Now()` nas regras: use o `Clock` injetado (os testes usam `OffsetClock` sobre `FixedClock`).
+- **Fronteiras (ADR 0031):** a terra é do 1:110m (forma do globo); os países, do 1:50m (`paises.geojson`, gerado por `cmd/filtra-paises`). O país de uma posição é o exato (`Geography.CountryAt`; no cliente, `BorderMap` pelo segmento mais perto, com teste de concordância em Go); o hexágono tem um país principal (bioma, lotes, mini mapa).
+- **Animais (ADR 0032):** o servidor sorteia por célula e manda os pontos de passeio; a posição é `AnimalAt(animal, horário do servidor)` em Go e `AnimalPath.at` em GDScript, que precisam continuar iguais (arquivo de referência `testdata/animal_paths.json` + `tests/test_animais.gd`). Reações (fugir, seguir, carinho) são desvios só no cliente.
+- **Estações (ADR 0034):** `game.SeasonAt` (Go) e `Seasons` (GDScript) com a mesma conta; o chão calcula no shader pela latitude (alfa da cor do vértice marca os biomas que mudam). Árvores trocam só o modelo desenhado (`drawn_model`), nunca o id. Nada de carregar modelo no meio do jogo: as versões de estação que valem hoje entram no pré-carregamento.
+- **Moedas e passaportes (ADR 0035):** saldo só pelo `WalletRepository` (`AddCoins` nunca deixa negativo e grava o histórico); recompensas uma vez só (chave primária da Goblopédia e dos carimbos). Hexágonos de aeroporto não têm lotes novos, objetos nem animais. A barreira da fronteira e o carimbo a pé ficam no cliente até a fase 3.
 - **Banco:** só por `game.Store`; SQL fica em `internal/store/sqlitestore`. Mudança de esquema = nova migração `NNNN_nome.sql` (nunca edite uma migração já aplicada).
 - **Erros da API:** `game.Error` com código estável, status e mensagem em português; o cliente mostra `message`.
 - **JSON no cliente:** o Godot lê números como float e escreve `12.0`; a `Api` converte números inteiros antes de enviar (o Go recusa `12.0` em campo int). Converta com `int(...)` ao ler ids.
 - **Determinismo do mundo:** mesma frequência + mesmos dados = mesmo mundo (JSON e binário). Não use mapas sem ordenar nem aleatoriedade na geração.
 - **Formato binário:** descrito em `server/internal/world/binary.go` e lido por `WorldData.from_binary`. Campo novo → suba `BinaryFormatVersion` e atualize os dois lados. Valores de `Biome` fazem parte do formato: só acrescente no fim.
-- **Conteúdo balanceável:** itens, receitas, casas e objetos em `server/data/game/*.json`; grama em `client/data/decoracao.json` (`docs/CONTEUDO.md`). Não espalhe números de balanceamento pelo código.
-- **Testes obrigatórios:** os do mundo (SP é `BRA`, biomas, escala, determinismo) e os da fase 2 (dev 403, lote no país, lotes únicos, limites diários e virada das 5h, coletas por jogador, fabricação, colocação, casa, objetos determinísticos, IP → país). Se mudar regras, dados, lotes ou objetos, eles precisam continuar passando.
+- **Conteúdo balanceável:** itens, receitas, casas, objetos, economia (preços, recompensas, passagem, passaporte), animais e Goblopédia em `server/data/game/*.json`; grama em `client/data/decoracao.json` (`docs/CONTEUDO.md`). Não espalhe números de balanceamento pelo código.
+- **Testes obrigatórios:** os do mundo (SP é `BRA`, biomas, escala, determinismo), os da fase 2 (dev 403, lote no país, lotes únicos, limites diários e virada das 5h, coletas por jogador, fabricação, colocação, casa, objetos determinísticos, IP → país) e os da fase 2.5 (fronteiras conhecidas, moedas sem saldo negativo, venda, recompensas sem repetição, animais determinísticos, estações por data e latitude, preço da viagem, passaporte obrigatório, carimbo único). Se mudar regras, dados, lotes ou objetos, eles precisam continuar passando.
 - **GDScript, armadilhas:** `PackedInt32Array` (e os outros Packed*) são copiados; `(dict[k] as PackedInt32Array).append(x)` não altera o dicionário. `var x := dict["k"]` não compila (tipo Variant): use `var x: int = …`.
 - **Godot:** cenas em `client/scenes/`, scripts em `client/scripts/` com `class_name`, shaders em `client/shaders/`. Os arquivos `.uid` vão para o Git; a pasta `.godot/` não. UI montada em código, no estilo de `UiStyle`.
 - **Assets:** Kenney e Quaternius (CC0), em `client/assets/<autor>/<pacote>/`, com créditos em `client/assets/CREDITOS.md`. Kenney: GLB + `Textures/` + `License.txt`. Quaternius: Nature Pack só `FBX/`; animais em `.glb` (`tools/gltf_para_glb.py`). Nada de OBJ/Blends/prévias. Os `.import` vão para o Git. Pacotes originais (`kenney_*/`, `Ultimate */`) ficam fora do Git. Do Graveyard Kit, nada de Halloween (ADR 0017).
@@ -95,9 +108,15 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 | --- | --- |
 | geração da grade | `server/internal/world/geodesic.go` |
 | terra/oceano/país | `server/internal/world/terrain.go` |
+| fronteiras exatas (país por posição, segmentos por célula) | `server/internal/world/borders.go`, `cmd/filtra-paises`; cliente: `border_map.gd`, `border_lines.gd`, `country_tracker.gd` |
 | biomas e alturas | `server/internal/world/biome.go`, `regions.go` (+ `docs/BIOMAS.md`) |
 | formato binário | `server/internal/world/binary.go` e `client/scripts/world_data.gd` |
-| itens, receitas, casas, objetos por bioma | `server/data/game/*.json` (+ `docs/CONTEUDO.md`) |
+| itens, receitas, casas, objetos por bioma, economia, animais, Goblopédia | `server/data/game/*.json` (+ `docs/CONTEUDO.md`) |
+| moedas e caixa de vendas | `server/internal/game/money.go`; cliente: `sell_ui.gd`, `coin_icon.gd` |
+| animais (sorteio, trajeto, frutinha) | `server/internal/game/animals.go`; cliente: `animals.gd`, `animal_path.gd` |
+| Goblopédia e câmera fotográfica | `server/internal/game/pedia.go`; cliente: `photo_mode.gd`, `pedia_ui.gd`, `pedia_art.gd`, `pedia_photos.gd` |
+| estações do ano | `server/internal/game/season.go`; cliente: `seasons.gd`, `season_fx.gd`, `shaders/terrain.gdshader` |
+| aeroportos, viagem, passaportes e carimbos | `server/internal/game/airports.go`; cliente: `airports.gd`, `travel_ui.gd`, `passport_ui.gd`, `stamp_art.gd`, barreira em `main.gd` (`_border_guard`) e `player.gd` |
 | regras (jogador, coleta, fabricação, lote, casa) | `server/internal/game/service.go` |
 | modo dev (servidor) | `server/internal/game/dev.go`, `server/internal/httpapi/dev.go` |
 | lotes (tamanho, posições) | `server/internal/game/lots.go` e `client/scripts/lot_geom.gd` |
@@ -130,4 +149,4 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 
 ## Fora do escopo até a fase indicada
 
-Animais andando, estações do ano, aeroporto, passaporte e Goblopédia (fase 2.5); multiplayer em tempo real, posição do jogador no servidor, validação de distância, chat (fase 3, ver ADR 0005); dinheiro, loja, troca e fronteiras jogáveis (fase 4). Interior da casa, pesca, música e efeitos sonoros, carros e navios, ferramentas que quebram e login de verdade ainda não têm fase. Não feche portas para eles.
+Multiplayer em tempo real, posição do jogador no servidor, validação de distância e de fronteira no servidor, reações dos animais vistas por todos, chat (fase 3, ver ADR 0005); loja de itens e troca entre jogadores (fase 4). Animais novos (mais pacotes depois). Interior da casa, pesca, música e efeitos sonoros, carros e navios, ferramentas que quebram e login de verdade ainda não têm fase. Não feche portas para eles.

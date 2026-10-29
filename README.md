@@ -12,8 +12,8 @@
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-Go_puro-003b57?logo=sqlite&logoColor=white" />
   <img alt="Natural Earth" src="https://img.shields.io/badge/dados-Natural_Earth-6aa84f" />
   <a href="https://github.com/Dustyluc123/goblo/actions/workflows/server.yml"><img alt="CI" src="https://github.com/Dustyluc123/goblo/actions/workflows/server.yml/badge.svg" /></a>
-  <img alt="Testes" src="https://img.shields.io/badge/testes-54_passando-12a85f" />
-  <img alt="Fase" src="https://img.shields.io/badge/fase-2_de_4-f4a6b8" />
+  <img alt="Testes" src="https://img.shields.io/badge/testes-85_passando-12a85f" />
+  <img alt="Fase" src="https://img.shields.io/badge/fase-2.5_de_4-f4a6b8" />
 </p>
 
 <p align="center">
@@ -28,6 +28,7 @@
 - [O que já dá para fazer](#o-que-já-dá-para-fazer)
 - [Telas](#telas)
 - [Como testar com o modo dev](#como-testar-com-o-modo-dev)
+- [Como testar a fase 2.5](#como-testar-a-fase-25)
 - [Medições](#medições)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
@@ -88,6 +89,16 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 - [x] **Câmera no mouse:** o cursor fica capturado durante o jogo e é solto nos menus, no modo construção, com Alt e com Esc; sensibilidade e eixo invertido no F6
 - [x] **Seta do mini mapa** aponta para o lado certo (leste e oeste estavam trocados)
 
+**Fase 2.5: explorar e colecionar** ✅
+
+- [x] **Fronteiras precisas:** o país vem da **posição exata** (Natural Earth 1:50m, ponto em polígono), não mais do hexágono de ~140 km. HUD com o país certo, **linha tracejada com marquinhos** no chão onde dois países se encontram e uma **plaquinha "Bem-vindo!"** ao cruzar. Países pequenos (Luxemburgo, Andorra, Mônaco…) passam a existir ([ADR 0031](docs/decisoes/0031-fronteiras-pela-posicao-exata.md))
+- [x] **Moedas:** saldo no servidor, mostrado no HUD; **caixa de vendas** no lote (E) paga na hora pela madeira, pedra, flores, frutinhas e cocos; recompensas pelo primeiro registro na Goblopédia e pelo primeiro carimbo de cada país; histórico de transações
+- [x] **Animais:** os 12 do Ultimate Animated Animals pelos biomas (vacas, cavalos e burros nos campos, cervos e raposas nas florestas, alpacas nas montanhas, lobos na tundra, cachorros perto dos bairros). **Os mesmos para todos os jogadores**: o servidor sorteia quais existem e a posição sai do horário do servidor ([ADR 0032](docs/decisoes/0032-animais-deterministicos.md)). Tímidos fogem se você correr; **E** faz carinho (coraçõezinhos) ou dá frutinha (o animal come e segue você por um tempo)
+- [x] **Câmera fotográfica e Goblopédia (G):** com a câmera na mão, o botão direito mira por cima do ombro, a roda dá zoom e o clique tira a foto (salva no seu computador). O que estiver enquadrado entra no álbum: animais, a **flor azul rara** e **árvores de outono e com neve** ([ADR 0033](docs/decisoes/0033-goblopedia-e-camera.md))
+- [x] **Estações do ano reais** pela data e pelo hemisfério: no fim de outubro, outono no norte (árvores de outono, chão dourado, folhas caindo) e primavera no sul (verde mais claro e florzinhas); inverno com neve e flocos caindo. Transição gradual, nada nos trópicos, e o globo afastado e o mini mapa mostram os dois hemisférios ([ADR 0034](docs/decisoes/0034-estacoes-do-ano.md))
+- [x] **Aeroportos e passaportes:** um aeroporto perto da capital de cada país, montado com o Fantasy Town Kit (terminal, pista, biruta); no balcão (E), destinos com preço pela distância e passaportes. A viagem afasta até o globo e desenha um arco até o destino. **Para entrar num país (a pé ou de avião) você precisa do passaporte dele**; o do seu país é grátis. **Livro de passaporte (P)** com um carimbo único por país visitado ([ADR 0035](docs/decisoes/0035-aeroportos-viagem-e-passaportes.md))
+- [x] **Modo dev (F1)** com moedas, passaportes, barreira, linhas e polígonos de fronteira, estação forçada, animais, Goblopédia e voo de graça
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -133,6 +144,17 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 > [!TIP]
 > O relógio adiantado pelo "dia seguinte" volta para a hora real no botão **Voltar o relógio do servidor para a hora real** (aba Jogador), sem reiniciar o servidor. O banco fica em `server/goblo.db`; apague o arquivo para começar do zero.
 
+## Como testar a fase 2.5
+
+Com o servidor em modo dev (`GOBLO_DEV=1`) e o jogo aberto, aperte **F1**:
+
+1. **Moedas e caixa de vendas:** aba **Itens**, dê **Kit inicial**. Volte para casa (**H**), chegue na **caixa de vendas** (ao lado da bancada) e aperte **E**: venda madeira e veja o saldo subir no HUD. Para dar moedas direto, use **Dar moedas** na aba Itens.
+2. **Fronteiras:** aba **Mundo**, digite lat **-25,5** e lon **-54,35** (Foz do Iguaçu) e clique **Ir**. Ande para o oeste: a linha tracejada com marquinhos aparece no chão e, sem passaporte, você desliza ao longo dela com o aviso. Na aba **Viagem**, selecione o Paraguai (aba Mundo) e clique **Dar passaporte**: agora dá para entrar, aparece a plaquinha "Bem-vindo!" e o carimbo novo. **P** abre o livro do passaporte. Para ver a costa e os polígonos, ligue **Polígonos de debug**; para andar livre, desligue a **Barreira**.
+3. **Animais:** vá para um campo (lat **-34,6**, lon **-60,5**, pampa argentino) ou uma floresta (**48,5**, **2,0**, França). Ande devagar até um animal e aperte **E** (carinho). Dê **Frutinhas** (aba Itens) e aperte **E** de novo: ele come e segue você. Corra (Shift) na direção de um cervo ou raposa: ele foge. Aba **Natureza**: **Criar perto de mim** e **Listar carregados**.
+4. **Câmera e Goblopédia:** aba Itens, dê **Câmera fotográfica** (ou fabrique na bancada). Aperte o número dela (1–5) para segurar, **botão direito** para mirar, **roda** para zoom e **clique** para fotografar um animal. Aperte **G**: a página dele está lá, com país, bioma e a foto. **Completar** e **Zerar a Goblopédia** ficam na aba Natureza.
+5. **Estações:** aba **Natureza**, clique **Inverno**, **Outono**, **Primavera** e **Verão** (vale para o hemisfério norte; o sul fica com a oposta) e afaste a câmera (roda) para ver os dois hemisférios. **Data real** volta ao normal. Fotografe uma árvore de outono para a Goblopédia.
+6. **Aeroporto e viagem:** aba **Viagem**: selecione um país na aba Mundo e clique **Voar de graça para lá** para conhecer um aeroporto. No balcão (**E**), escolha um destino (dê moedas antes) e clique **Comprar passaporte e viajar**: a tela escurece, a câmera vai até o globo, o arco liga os aeroportos e você chega no destino com carimbo novo. **H** sempre volta para casa.
+
 ## Medições
 
 Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M, tela Retina), Godot 4.7.2 com o renderizador Mobile.
@@ -170,6 +192,8 @@ Números do autor antes da fase (janela grande): alta no bairro 28 fps (872 draw
 - **MultiMesh por modelo e pedaço**, com o buffer montado de uma vez. Objetos colhidos ficam escondidos (escala zero) sem refazer o pedaço.
 - **Só o que está perto:** objetos e lotes são pedidos por pedaço em volta do personagem e soltos quando ele se afasta; colisão das árvores só a até 40 unidades, direto no `PhysicsServer3D`; só os 6 lampiões mais próximos ganham luz de verdade.
 - Da fase 1.5: renderizador Mobile, malha do globo em 96 grupos, grama sorteada em threads, HUD leve.
+
+**Fase 2.5: custo do que entrou** (sem janela, só CPU; os fps com janela ficam para `client/tools/medir_fps.sh`): os animais custam ~0,9 ms por quadro com 12 animais carregados (o máximo; os mais longe são atualizados menos vezes por segundo). As partículas das estações são 160 (média) ou 320 (alta), nenhuma na baixa. O chão calcula a estação no próprio shader, sem malha nova; árvores de outono e com neve só trocam o modelo do MultiMesh.
 
 ## Arquitetura
 
@@ -316,12 +340,15 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | W A S D / setas | andar (relativo à câmera) |
 | Shift | correr |
 | Espaço | pular |
-| **E** | interagir: sacudir, cortar, quebrar, colher, pegar, abrir a bancada |
+| **E** | interagir: sacudir, cortar, quebrar, colher, pegar, abrir a bancada, a caixa de vendas e o balcão do aeroporto, fazer carinho ou dar frutinha a um animal |
 | **Tab** ou **I** | bolso (inventário) |
 | **1** a **5** | segurar / guardar uma ferramenta |
 | **B** | modo construção (no seu lote) |
 | **R** / clique / **X** | no modo construção: girar, colocar, guardar |
-| **H** | voltar para casa |
+| **H** | voltar para casa (de qualquer lugar) |
+| **G** | Goblopédia (álbum de fotos) |
+| **P** | livro de passaporte |
+| Botão direito (câmera na mão) | modo foto: mirar por cima do ombro; **roda** dá zoom, **clique** fotografa, botão direito ou Esc sai |
 | Mover o mouse | girar a câmera (o cursor fica capturado e escondido durante o jogo) |
 | **Alt** (Option) segurado | soltar o cursor enquanto segura |
 | Esc ou o **X** no canto | fechar janelas, sair do modo construção; sem nada aberto, solta o cursor (clique na janela para voltar) |
@@ -341,7 +368,7 @@ go test ./...
 go vet ./...
 ```
 
-58 testes. Além dos do mundo (grade, biomas, escala, formato binário), os da fase 2 conferem:
+85 testes. Além dos do mundo (grade, biomas, escala, formato binário), os da fase 2 conferem:
 
 - rotas `/dev/…` bloqueadas (403) sem `GOBLO_DEV=1`, e funcionando com ele;
 - criação de jogador com lote no país certo, preferindo biomas agradáveis (China, Austrália, EUA, Rússia), e lote mesmo na Groenlândia (só gelo e tundra);
@@ -358,6 +385,15 @@ go vet ./...
 - apelidos: palavrões disfarçados são barrados ("P0RR4", "m.e.r.d.a"), nomes inocentes passam ("Curió", "computador");
 - migrações rodam uma vez só; transação que falha não grava nada; apagar o jogador apaga o lote.
 
+E os da fase 2.5:
+
+- fronteiras: pontos 20 a 30 km para dentro de cada lado de Foz do Iguaçu × Ciudad del Este × Puerto Iguazú, Corumbá × Puerto Quijarro, Tabatinga × Letícia, Strasbourg × Kehl, e Luxemburgo, Andorra e Liechtenstein; a regra do cliente concorda com o ponto em polígono em 1.800 pontos sorteados;
+- moedas: não dá para gastar o que não tem (saldo nunca negativo, nada muda numa compra recusada), a venda credita o valor certo, as recompensas não se repetem;
+- animais determinísticos (mesmo id e mesma posição no mesmo horário), dentro da célula, fora dos lotes, andando e parando sem saltos, e um arquivo de referência que o cliente confere;
+- Goblopédia: recompensa só na primeira foto, frutinha marca amizade, flor rara não muda os outros objetos;
+- estações por data e latitude (15 de janeiro: inverno em Berlim, verão em São Paulo, sem estação em Manaus; fim de outubro: outono no norte e primavera no sul);
+- aeroportos perto das capitais, preço da viagem pela distância, passaporte obrigatório, carimbo único por país, nenhum lote novo no hexágono do aeroporto.
+
 O cliente tem testes automáticos que rodam sem janela (com o servidor no ar; o `--play-test` precisa de `GOBLO_DEV=1`):
 
 ```bash
@@ -365,6 +401,14 @@ cd client
 godot --headless --path . -- --smoke-test --jump --profile=teste          # nasce no lote, anda, pula
 godot --headless --path . -- --play-test --profile=teste2                 # coleta, fabricação, decoração e casa
 godot --headless --path . -- --camera-test --profile=teste3               # a câmera nunca entra em casas, árvores ou no chão
+godot --headless --path . -- --border-test --profile=teste4               # país exato nas fronteiras e linha no chão
+godot --headless --path . -- --animal-test --profile=teste5               # animais: trajeto comum, carinho, frutinha, fuga, custo
+godot --headless --path . -- --photo-test --profile=teste6                # câmera fotográfica e Goblopédia
+godot --headless --path . -- --season-test --profile=teste7               # estações nos dois hemisférios e nos trópicos
+godot --headless --path . -- --travel-test --profile=teste8               # barreira, passaporte, carimbo, aeroporto e voo
+godot --headless --path . -- --dev-test --profile=teste9                  # botões novos do painel dev
+godot --headless --path . -s tests/test_animais.gd                        # trajeto dos animais igual ao do servidor
+godot --headless --path . -s tests/test_estacoes.gd                       # estações iguais às do servidor
 godot --path . -- --perf-test=20 --spawn=-3,-60                           # fps na floresta tropical (janela na frente)
 tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930   # o que pesa na GPU (sem roubar o foco)
 ```
@@ -373,11 +417,13 @@ tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930   # 
 
 - **IP:** quando um jogador novo abre o jogo, o servidor usa o IP da conexão **só para sugerir o país**, consultando uma base local (DB-IP, sem enviar nada para fora). O IP é descartado na hora: **não é guardado no banco nem aparece no log**. Rodando na própria máquina (IP `127.0.0.1`), o país vem do idioma do sistema (`pt_BR` → Brasil). De qualquer jeito, o jogador confirma ou troca o país na tela.
 - **Identidade:** não há e-mail nem senha. O jogo cria um token aleatório guardado só no seu computador; o servidor guarda apenas um hash dele.
-- **O que o servidor guarda:** apelido, país, lote, inventário, o que você coletou em cada dia e o que colocou no lote.
+- **O que o servidor guarda:** apelido, país, lote, inventário, o que você coletou em cada dia, o que colocou no lote, moedas (com o histórico), passaportes, carimbos e o progresso da Goblopédia.
+- **Fotos:** as fotos da câmera ficam só no seu computador (`user://fotos/`); o servidor guarda apenas o que foi registrado, onde e quando.
 
 ## Dados
 
-- **Mapa:** [Natural Earth](https://www.naturalearthdata.com/), escalas 1:110m (terra e países) e 1:50m (regiões para os biomas), domínio público. Embutido no binário do servidor.
+- **Mapa:** [Natural Earth](https://www.naturalearthdata.com/), escalas 1:110m (terra, a forma do globo) e 1:50m (países, capitais e regiões para os biomas), domínio público. Embutido no binário do servidor.
+- **Fronteiras disputadas:** usamos a versão padrão do Natural Earth (a visão *de facto* do projeto), sem tomar lado.
 - **IP → país:** [IP to Country Lite](https://db-ip.com/db/download/ip-to-country-lite) da DB-IP, licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). **IP Geolocation by [DB-IP](https://db-ip.com).** Baixada por `server/scripts/baixar-dados.sh`, fora do Git.
 
 Detalhes em [`docs/DADOS.md`](docs/DADOS.md); o método dos biomas em [`docs/BIOMAS.md`](docs/BIOMAS.md); o conteúdo do jogo em [`docs/CONTEUDO.md`](docs/CONTEUDO.md).
@@ -385,7 +431,7 @@ Detalhes em [`docs/DADOS.md`](docs/DADOS.md); o método dos biomas em [`docs/BIO
 ## Créditos
 
 - **[Kenney](https://www.kenney.nl)** (CC0): Mini Characters (personagem), **Fantasy Town Kit** (casas e decoração), Car Kit e Watercraft Pack (guardados para o futuro), Mini Forest, Graveyard Kit e Monster Builder Pack.
-- **[Quaternius](https://quaternius.com)** (CC0): **Ultimate Nature Pack** (toda a natureza dos biomas) e Ultimate Animated Animals (guardado para a fase 2.5).
+- **[Quaternius](https://quaternius.com)** (CC0): **Ultimate Nature Pack** (toda a natureza dos biomas) e **Ultimate Animated Animals** (os animais da fase 2.5).
 - **[Natural Earth](https://www.naturalearthdata.com/)**: mapa, domínio público.
 - **[DB-IP](https://db-ip.com)**: IP Geolocation by DB-IP, CC BY 4.0.
 
@@ -396,9 +442,9 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 1. **Fase 1: o globo.** Globo, personagem andando e servidor do mundo. ✅
 2. **Fase 1.5: um mundo de verdade.** Escala, pulo, biomas, vegetação, dia e noite, oceano, nuvens e navegação. ✅
 3. **Fase 2: coletar e construir.** Jogador e país, lotes, coleta, inventário, bancada, decoração, casa em níveis, bairro, banco de dados e modo dev. ✅
-4. **Fase 2.5: explorar e colecionar.** Animais andando pelos biomas, estações do ano reais por hemisfério (outono e neve do Nature Pack), aeroporto com viagem pelo globo, passaporte com carimbos e Goblopédia.
+4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, moedas e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅
 5. **Fase 3: multiplayer em tempo real.** Ver os outros jogadores andando, com o servidor validando a posição (avaliar o Nakama, [ADR 0005](docs/decisoes/0005-nakama-na-fase-multiplayer.md)).
-6. **Fase 4: economia e fronteiras.** Dinheiro, loja, troca entre jogadores e regras de fronteira.
+6. **Fase 4: economia.** Loja de itens e troca entre jogadores (as moedas e os passaportes já existem desde a fase 2.5).
 
 ## Sobre mim
 
