@@ -39,6 +39,14 @@ var on_build_close := Callable()
 var mouse_capture := false
 ## Esc sem menu aberto soltou o cursor; um clique na janela captura de novo.
 var _released := false
+## Testes headless: a janela não tem foco nem cursor de verdade; com isto, o gerenciador
+## faz as mesmas contas como se a janela estivesse na frente.
+var assume_focus := false
+## Estado do cursor que o gerenciador pediu por último (no headless, o Input sempre diz
+## "visível"; os testes conferem este).
+var cursor_captured := false
+## Quantas vezes o controle foi devolvido (testes).
+var restores := 0
 
 
 func _ready() -> void:
@@ -244,7 +252,7 @@ func captures(event: InputEvent) -> bool:
 func wants_capture() -> bool:
 	if not mouse_capture or _released or any_open():
 		return false
-	if Input.is_physical_key_pressed(KEY_ALT) or not get_window().has_focus():
+	if Input.is_physical_key_pressed(KEY_ALT) or not (assume_focus or get_window().has_focus()):
 		return false
 	var focus := get_viewport().gui_get_focus_owner()
 	return not (focus is LineEdit or focus is SpinBox)
@@ -252,7 +260,7 @@ func wants_capture() -> bool:
 
 ## O cursor está capturado (mover o mouse gira a câmera)?
 func mouse_captured() -> bool:
-	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	return cursor_captured if assume_focus else Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 
 
 ## Esc sem menu aberto: solta o cursor até o próximo clique na janela.
@@ -261,12 +269,50 @@ func release_mouse() -> void:
 		_released = true
 
 
+## Devolve o controle ao jogo depois de algo que mexeu na tela sem ser um menu (voo,
+## teleporte, casa, plaquinha, aviso da fronteira): esquece o Esc antigo, solta o foco que
+## tiver ficado num campo de texto escondido e captura o cursor de novo na hora (no Mac,
+## a captura é refeita do zero com `refresh`, para o movimento do mouse voltar a chegar sem
+## clique depois de uma animação longa).
+func restore_control(refresh := false) -> void:
+	restores += 1
+	_released = false
+	_drop_stale_focus()
+	if mouse_capture and wants_capture():
+		_apply(true, refresh)
+
+
+## Sem menu aberto, nenhum controle deveria ficar com o foco do teclado (um campo de busca
+## de uma janela fechada impediria a captura do cursor).
+func _drop_stale_focus() -> void:
+	if menu_open():
+		return
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus != null:
+		focus.release_focus()
+
+
+func _apply(capture: bool, force := false) -> void:
+	cursor_captured = capture
+	var want := Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
+	if force and capture and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if force or Input.mouse_mode != want:
+		Input.mouse_mode = want
+
+
 func _process(_delta: float) -> void:
 	if not mouse_capture:
 		return
-	var want := Input.MOUSE_MODE_CAPTURED if wants_capture() else Input.MOUSE_MODE_VISIBLE
-	if Input.mouse_mode != want:
-		Input.mouse_mode = want
+	_drop_stale_focus()
+	var want := wants_capture()
+	# Só passa de solto para capturado com os botões soltos: capturar no meio de um clique
+	# (ex.: clique duplo num destino do aeroporto) faz o Mac parar de mandar o movimento.
+	if want and not cursor_captured and (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
+			or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)):
+		return
+	if want != cursor_captured or (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED) != want:
+		_apply(want)
 
 
 func _input(event: InputEvent) -> void:
@@ -283,4 +329,6 @@ func close_windows() -> bool:
 	for w in windows:
 		any = any or w.visible
 		w.visible = false
+	if any:
+		restore_control()
 	return any

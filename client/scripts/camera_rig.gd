@@ -123,7 +123,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion:
 		# Cursor capturado (jogo normal): o movimento do mouse gira a câmera. Cursor livre
 		# (modo construção, Alt, depois de Esc): só com o botão direito segurado.
-		if _dragging or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if _dragging or (ui != null and ui.mouse_captured()):
 			look((event as InputEventMouseMotion).relative)
 	elif event is InputEventPanGesture:  # trackpad do Mac: dois dedos
 		zoom = clampf(zoom + (event as InputEventPanGesture).delta.y * 0.02, 0.0, 1.0)

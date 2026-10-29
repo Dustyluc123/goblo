@@ -44,6 +44,9 @@ extends Node3D
 ##                       nome no HUD, os dois hemisférios, os trópicos e a foto de outono
 ##   --travel-test       barreira da fronteira sem passaporte, carimbo ao entrar com ele,
 ##                       balcão do aeroporto, viagem de avião e livro do passaporte
+##   --cursor-test       voo, casa (H), teleporte do modo dev, menus, aviso da fronteira e
+##                       plaquinha: depois de cada um, o cursor volta a ser capturado e o
+##                       mouse gira a câmera sem clique (finge a janela na frente)
 ##   --dev-test          aperta os botões novos do painel dev (moedas, passaportes, barreira,
 ##                       linhas de fronteira, animais, Goblopédia, voo de graça)
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
@@ -556,6 +559,7 @@ func _on_country_changed(code: String, walked: bool) -> void:
 				_ui.toast(subtitle)
 	if walked:
 		_hud.welcome(_tracker.name_of(code), subtitle)
+		_ui.restore_control()
 
 
 ## Nome de um país (com ou sem hexágono).
@@ -581,6 +585,7 @@ func _border_guard(from: Vector3, probe: Vector3) -> Vector3:
 	if now - _barrier_msg_at > 4.0:
 		_barrier_msg_at = now
 		_ui.toast("Para entrar aqui, você precisa do passaporte deste país: %s. Ele pode ser comprado em qualquer aeroporto." % country_name(target))
+		_ui.restore_control()
 	var bn := _data.borders.border_normal(from, _player.cell_id, world.surface_radius(_player.cell_id), target)
 	if bn.is_empty() or (bn["normal"] as Vector3) == Vector3.ZERO:
 		return (probe - from).normalized()
@@ -623,6 +628,7 @@ func _arrive(from_airport: Dictionary, res: Dictionary) -> void:
 	if res.get("stamp") != null:
 		subtitle += "\nCarimbo novo no passaporte!  +%s" % _session.coins_text(int(res["reward"]))
 	_hud.welcome(country_name(str(dest["country"])), subtitle)
+	_ui.restore_control(true)
 
 
 ## Voo: escurece um pouco, afasta a câmera até o globo, desenha um arco do aeroporto de
@@ -664,6 +670,8 @@ func _fly(from_airport: Dictionary, dest: Dictionary) -> void:
 	_player.set_physics_process(true)
 	_flying = false
 	_hud.fade(0.0, 0.6)
+	# Fim da animação: o cursor volta a ser do jogo na hora, sem precisar de clique.
+	_ui.restore_control(true)
 
 
 ## Arco pontilhado entre dois pontos do globo e o pontinho do avião (meta "dot").
@@ -891,6 +899,7 @@ func _teleport(pos: Vector3) -> void:
 	await _data.load_now(pos, 40.0)
 	_vegetation.load_now(pos)
 	_player.set_physics_process(true)
+	_ui.restore_control(true)
 
 
 func _teleport_to_cell(cell: int) -> void:
@@ -1225,7 +1234,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1258,6 +1267,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("season-test"):
 		await _season_test()
+		return
+	if _args.has("cursor-test"):
+		await _cursor_test()
 		return
 	if _args.has("travel-test"):
 		await _travel_test()
@@ -1857,6 +1869,101 @@ func _travel_test() -> void:
 	check.call(_ui.passport._grid.get_child_count() >= 2, "livro do passaporte com %d carimbos" % _ui.passport._grid.get_child_count())
 	_ui.close_windows()
 	print("Goblo: travel-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
+	get_tree().quit(1 if not fails.is_empty() else 0)
+
+
+## Cursor (fase 2.6): finge a janela na frente e a captura ligada, passa por todos os fluxos
+## que mexem no cursor e confere que, no fim de cada um, o cursor volta a ser capturado e o
+## movimento do mouse gira a câmera, sem clique.
+func _cursor_test() -> void:
+	var fails: Array = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: cursor-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	_ui.assume_focus = true
+	_ui.mouse_capture = true
+	var frames := func(n: int) -> void:
+		for i in n:
+			await get_tree().process_frame
+	# O mouse gira a câmera? (movimento de 60 px, como o de uma pessoa)
+	var turns := func() -> bool:
+		var before := _camera._heading
+		var ev := InputEventMouseMotion.new()
+		ev.relative = Vector2(60, 0)
+		Input.parse_input_event(ev)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		return _camera._heading.angle_to(before) > 0.01
+	var back := func(what: String) -> void:
+		await frames.call(2)
+		var t: bool = await turns.call()
+		check.call(_ui.cursor_captured and t, "%s: cursor capturado (%s) e mouse gira a câmera (%s)" % [what, _ui.cursor_captured, t])
+	await back.call("começo do jogo")
+	# Menu: solta; fechar devolve.
+	_ui.inventory.toggle()
+	await frames.call(2)
+	check.call(not _ui.cursor_captured, "bolso aberto solta o cursor")
+	_ui.close_windows()
+	await back.call("fechar o bolso")
+	# Esc solta de propósito; um clique captura de novo.
+	_ui.release_mouse()
+	await frames.call(2)
+	check.call(not _ui.cursor_captured, "Esc solta o cursor")
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = get_viewport().get_visible_rect().size * 0.5
+	Input.parse_input_event(click)
+	var up := click.duplicate() as InputEventMouseButton
+	up.pressed = false
+	Input.parse_input_event(up)
+	await back.call("clique depois do Esc")
+	# Voo: balcão aberto com o foco no campo de busca, clique duplo num destino (o botão
+	# ainda segurado quando a janela fecha).
+	await dev_coins(2000)
+	var bra := _airports.of_country("BRA")
+	await _teleport(_airports.arrival_point(bra))
+	await back.call("teleporte até o aeroporto")
+	_ui.travel.open(bra)
+	await get_tree().create_timer(1.0).timeout
+	_ui.travel._search.grab_focus()
+	_ui.travel._search.text = "chile"
+	_ui.travel._fill()
+	await frames.call(2)
+	check.call(not _ui.cursor_captured, "balcão aberto solta o cursor")
+	_ui.travel._list.select(0)
+	_ui.travel._show()
+	var press := click.duplicate() as InputEventMouseButton
+	Input.parse_input_event(press)
+	var flight := _ui.travel._travel
+	flight.call()
+	await frames.call(3)
+	Input.parse_input_event(up)
+	while not _flying:
+		await get_tree().process_frame
+	while _flying:
+		await get_tree().process_frame
+	await back.call("fim do voo (%s)" % _tracker.current)
+	# Casa (H).
+	await go_home()
+	await back.call("tecla H")
+	# Teleporte do modo dev: painel aberto com o foco num campo de número.
+	_ui.dev.toggle()
+	_ui.dev._item_search.grab_focus()
+	await frames.call(2)
+	await teleport_lat_lon(48.5, 2.0)
+	_ui.dev.toggle()
+	await back.call("teleporte do modo dev")
+	# Aviso da fronteira e plaquinha de boas-vindas.
+	_barrier_msg_at = -10.0
+	await teleport_exact(-25.50, -54.35)
+	_border_guard(_player.global_position, WorldData.lat_lon_to_vec(-25.45, -54.85) * world.surface_radius(_player.cell_id))
+	await back.call("aviso da fronteira")
+	_on_country_changed("BRA", true)
+	await back.call("plaquinha de boas-vindas")
+	_ui.mouse_capture = false
+	print("Goblo: cursor-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
 	get_tree().quit(1 if not fails.is_empty() else 0)
 
 
