@@ -6,7 +6,7 @@ extends RefCounted
 ## ser reproduzido igual no servidor em Go quando a colisão das árvores for autoritativa.
 ##
 ## Semente de uma célula: cell_id × 16 + índice da entrada na lista do bioma
-## (BiomeStyle.DECOR). Ver docs/decisoes/0011-espalhamento-deterministico.md.
+## (client/data/decoracao.json). Ver docs/decisoes/0011-espalhamento-deterministico.md.
 
 var _state := 0
 

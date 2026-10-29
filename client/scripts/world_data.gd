@@ -236,6 +236,39 @@ func chunks_near_with_distance(point: Vector3, distance: float) -> Array:
 	return out
 
 
+## Sistema de coordenadas do topo plano da célula, igual ao Frame do servidor
+## (server/internal/game/frame.go): P = center·top + east·x + north·y.
+func cell_frame(id: int) -> Dictionary:
+	var c := centers[id].normalized()
+	var ref := Vector3.UP if absf(c.y) <= 0.999 else Vector3(0, 0, 1)
+	var east := ref.cross(c).normalized()
+	var north := c.cross(east)
+	return {"center": c, "east": east, "north": north, "top": surface_radius(id)}
+
+
+## Ponto (x, y) do plano da célula em coordenadas do mundo.
+static func frame_point(f: Dictionary, x: float, y: float) -> Vector3:
+	return (f["center"] as Vector3) * float(f["top"]) + (f["east"] as Vector3) * x + (f["north"] as Vector3) * y
+
+
+## Coordenadas (x, y) de um ponto do mundo no plano da célula.
+static func frame_coords(f: Dictionary, p: Vector3) -> Vector2:
+	return Vector2(p.dot(f["east"]), p.dot(f["north"]))
+
+
+## Base de um objeto em pé no plano da célula, girado `yaw` em volta do "para cima".
+static func frame_basis(f: Dictionary, yaw: float, s: float = 1.0) -> Basis:
+	var up: Vector3 = f["center"]
+	var x := (f["east"] as Vector3).rotated(up, yaw)
+	var z := x.cross(up)
+	return Basis(x * s, up * s, z * s)
+
+
+## Centro do pedaço (chunk) de uma célula.
+func chunk_of_cell(id: int) -> int:
+	return cell_chunk[id]
+
+
 func cell_count() -> int:
 	return centers.size()
 
