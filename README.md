@@ -316,14 +316,15 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | **B** | modo construção (no seu lote) |
 | **R** / clique / **X** | no modo construção: girar, colocar, guardar |
 | **H** | voltar para casa |
-| Esc ou o **X** no canto | fechar janelas, sair do modo construção |
-| Botão direito (ou do meio) + arrastar | girar a câmera |
-| Q / C | girar a câmera |
+| Mover o mouse | girar a câmera (o cursor fica capturado e escondido durante o jogo) |
+| **Alt** (Option) segurado | soltar o cursor enquanto segura |
+| Esc ou o **X** no canto | fechar janelas, sair do modo construção; sem nada aberto, solta o cursor (clique na janela para voltar) |
+| Botão direito + arrastar | girar a câmera com o cursor solto (modo construção, Alt, depois do Esc) |
 | Roda do mouse / dois dedos no trackpad | zoom, do personagem até o planeta inteiro |
 | **F1** | painel do modo dev (servidor com `GOBLO_DEV=1`) |
 | F2 | painel de desempenho |
 | F3 / F4 | acelerar o tempo do céu / voltar ao horário real |
-| F6 | configurações: qualidade (baixa, média, alta), tamanho da interface, tela cheia |
+| F6 | configurações: qualidade (baixa, média, alta), tamanho da interface, sensibilidade do mouse, inverter eixo vertical, tela cheia |
 | F11 | tela cheia |
 
 ## Testes

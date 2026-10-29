@@ -222,6 +222,9 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	load_stats["content_ms"] = Time.get_ticks_msec() - t1
 	_hud.hide_status()
 	_ready_to_play = true
+	# Cursor capturado durante o jogo (mover o mouse gira a câmera); nunca nas automações
+	# nem nas janelas de teste, para não prender o mouse de quem está usando o Mac.
+	_ui.mouse_capture = not _is_automation() and not _args.has("no-focus")
 	var lot := _session.lot()
 	print("Goblo: mundo %d células — %s, download %d ms, leitura %d ms, malhas %d ms, modelos %d ms, objetos %d ms (%d objetos, qualidade %s); jogador %s (%s), lote %s" % [
 		world.cell_count(), load_stats["source"], load_stats["download_ms"], load_stats["parse_ms"], load_stats["mesh_ms"],
@@ -467,7 +470,6 @@ func _process(delta: float) -> void:
 	_hud.set_help_visible(not _ui.any_open())
 	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
 	_ui.hotbar.visible = not _ui.menu_open()
-	_camera.input_blocked = typing or _ui.menu_open()
 	_collision_timer -= delta
 	if _collision_timer <= 0.0:
 		_collision_timer = 0.25
@@ -521,6 +523,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ui_cancel"):
 		if _ui.close_windows():
 			get_viewport().set_input_as_handled()
+		elif not _build.active:
+			_ui.release_mouse()  # Esc sem menu: solta o cursor (clique na janela captura)
 	elif _ui.first_access != null:
 		return
 	elif event.is_action_pressed("inventory"):

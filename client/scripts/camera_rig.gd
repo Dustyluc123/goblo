@@ -19,14 +19,12 @@ extends Camera3D
 @export var zoom_step := 0.05
 @export var zoom := 0.18
 @export var pitch_degrees := 28.0
+## Radianos por pixel de mouse (multiplicado pela sensibilidade das configurações).
 @export var mouse_sensitivity := 0.006
-@export var key_turn_speed := 2.0
 ## Velocidade do giro automático do globo na visão afastada (radianos por segundo).
 @export var spin_speed := 0.08
 
 var target: Node3D
-## Quando true (digitando num campo de texto ou com menu aberto), Q/C não giram a câmera.
-var input_blocked := false
 ## Gerenciador da interface: eventos que pertencem a ela não mexem na câmera.
 var ui: GameUi
 var planet_radius := 1000.0
@@ -53,6 +51,9 @@ const COMFORT_DISTANCE := 1.6
 const MAX_PITCH_BOOST := 55.0
 ## Inclinação extra atual (graus), quando o espaço atrás está apertado.
 var _pitch_boost := 0.0
+## Limites do ângulo vertical (graus acima do horizonte).
+const MIN_PITCH := 5.0
+const MAX_PITCH := 80.0
 var _probe: PhysicsShapeQueryParameters3D
 
 
@@ -95,10 +96,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			zoom = clampf(zoom + step, 0.0, 1.0)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE:
 			_dragging = mb.pressed
-	elif event is InputEventMouseMotion and _dragging:
-		var mm := event as InputEventMouseMotion
-		_turn(-mm.relative.x * mouse_sensitivity)
-		pitch_degrees = clampf(pitch_degrees + mm.relative.y * mouse_sensitivity * 60.0, 5.0, 80.0)
+	elif event is InputEventMouseMotion:
+		# Cursor capturado (jogo normal): o movimento do mouse gira a câmera. Cursor livre
+		# (modo construção, Alt, depois de Esc): só com o botão direito segurado.
+		if _dragging or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			look((event as InputEventMouseMotion).relative)
 	elif event is InputEventPanGesture:  # trackpad do Mac: dois dedos
 		zoom = clampf(zoom + (event as InputEventPanGesture).delta.y * 0.02, 0.0, 1.0)
 	elif event is InputEventMagnifyGesture:  # trackpad: pinça
@@ -109,9 +111,6 @@ func _process(delta: float) -> void:
 	if target == null or not target.visible:
 		return
 	_zoom = lerpf(_zoom, zoom, 1.0 - exp(-8.0 * delta))
-	var turn := Input.get_axis("camera_right", "camera_left")
-	if turn != 0.0 and not input_blocked:
-		_turn(turn * key_turn_speed * delta)
 
 	var player_pos := target.get_global_transform_interpolated().origin
 	var up := player_pos.normalized()
@@ -205,6 +204,15 @@ func _free_distance_to(head: Vector3, dir: Vector3, wanted: float, delta: float)
 ## RID do corpo do personagem (para o raio da câmera ignorá-lo).
 func target_body_rid() -> RID:
 	return (target as CollisionObject3D).get_rid() if target is CollisionObject3D else RID()
+
+
+## Gira a câmera por um movimento de mouse (pixels): horizontal em volta do personagem,
+## vertical com limite. Usa a sensibilidade e o eixo invertido das configurações (F6).
+func look(relative: Vector2) -> void:
+	var s := mouse_sensitivity * MouseSettings.sensitivity()
+	var dy := -relative.y if MouseSettings.invert_y() else relative.y
+	_turn(-relative.x * s)
+	pitch_degrees = clampf(pitch_degrees + dy * s * 60.0, MIN_PITCH, MAX_PITCH)
 
 
 func _turn(angle: float) -> void:

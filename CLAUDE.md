@@ -56,7 +56,7 @@ godot --path . -s tools/montar_casas.gd -- --fotos=/tmp/casas          # regera 
 
 Argumentos do cliente (depois de `--`): `--server=URL`, `--profile=NOME`, `--nickname=X` (+ `--country=BRA`), `--quality=…`, `--spawn=LAT,LON`, `--zoom=0..1`, `--utc=HORA`, `--no-cache`, `--equip=ITEM`, `--walk=SEG`, `--dir=…`, `--run`, `--moving`, `--jump`, `--smoke-test`, `--play-test`, `--screenshot=ARQ`, `--ui=…`, `--route=LAT,LON`, `--perf-test=SEG`, `--tour`, `--window-size=WxH`, `--ui-scale=X`, `--fullscreen-test`, `--no-focus`. Lista completa no topo de `client/scripts/main.gd`.
 
-Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira, clique coloca, X guarda), H casa, F1 modo dev, F2 desempenho, F3/F4 tempo, F6 configurações (qualidade, tamanho da interface, tela cheia), F11 tela cheia, Q/C câmera.
+Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira, clique coloca, X guarda), H casa, F1 modo dev, F2 desempenho, F3/F4 tempo, F6 configurações (qualidade, tamanho da interface, mouse, tela cheia), F11 tela cheia. A câmera gira com o movimento do mouse (cursor capturado pelo `GameUi`; solto com menu aberto, no modo construção, com Alt e depois de Esc). Automações e `--no-focus` nunca capturam o cursor.
 
 ## Convenções
 
@@ -85,7 +85,7 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 - **Personagem:** escolhido por `@export_enum var character` em `player.gd` e escalado para `model_height`. Os modelos olham para +Z e são girados 180°. Animações num `AnimationTree`: `locomotion`, `air` e a ação única `action` (interact-right, pick-up). Ferramenta presa ao osso `arm-right`.
 - **Desempenho:** metas: média com 60 fps estáveis e alta com no mínimo 45 fps, na janela maximizada do Mac Intel do autor (3136 × 1930 pixels, Retina), no bairro com 20 vizinhos e na floresta tropical (ADR 0028, tabela no README). O gargalo é a GPU. Para saber o que pesa, use `--profile-scene` (desliga uma parte por vez e mede a GPU) com `--window-size=3136x1930`; os fps de verdade só com `--perf-test` e a janela na frente. Trabalho caro vai para threads (`WorkerThreadPool`) ou é espalhado entre quadros; nada de carregar modelo no meio do jogo nem criar centenas de nós num quadro. Lotes de vizinhos viram uma malha por material (`Neighborhood._merge`); distâncias de desenho, LOD, sombras e resolução do 3D ficam nos presets de `quality.gd`.
 - **Renderizador Mobile, armadilhas:** não tem SSAO/SSIL/névoa volumétrica; `GeometryInstance3D.transparency` não tem efeito (use um material com alfa, como `CameraOcclusion.see_through`). Evite `discard` em shaders do mundo (desliga o early-z).
-- **Interface:** o `GameUi` é o gerenciador: `menu_open()` e `captures(evento)` dizem se o mouse/teclado é da interface. Câmera, personagem, modo construção e interação perguntam a ele; janela nova só precisa entrar em `menu_open()` e usar `UiStyle.header(...)` (título + dica + botão X).
+- **Interface:** o `GameUi` é o gerenciador: `menu_open()` e `captures(evento)` dizem se o mouse/teclado é da interface. Câmera, personagem, modo construção e interação perguntam a ele; janela nova só precisa entrar em `menu_open()` (isso também solta o cursor capturado) e usar `UiStyle.header(...)` (título + dica + botão X).
 - **Escala:** raio 1000, personagem ~1, andar 5,3, correr ×2,3, pulo 1,3, peças do Fantasy Town Kit ×1,5, árvores 3 a 5 de altura. Números do cliente em `game_config.gd`; tabela completa em `docs/ARQUITETURA.md`.
 
 ## Onde fica cada coisa
@@ -122,7 +122,7 @@ Teclas no jogo: E interagir, Tab/I bolso, 1–5 ferramentas, B construir (R gira
 | HUD, bússola, mini mapa (seta e casinha) | `client/scripts/hud.gd`, `compass.gd`, `minimap.gd`, `home_icon.gd` |
 | câmera (colisão) e objetos transparentes na frente dela | `client/scripts/camera_rig.gd`, `camera_occlusion.gd` |
 | vento e variação da vegetação, névoa, tonemapping | `client/shaders/foliage.gdshader`, `client/scripts/day_night.gd` |
-| configurações (F6): qualidade, tamanho da interface, tela cheia | `client/scripts/settings_ui.gd`, `quality.gd` |
+| configurações (F6): qualidade, tamanho da interface, mouse, tela cheia | `client/scripts/settings_ui.gd`, `quality.gd`, `mouse_settings.gd` |
 | verificação de nomes de outros jogos (CI) | `scripts/verificar-nomes.sh` |
 | inicialização, identidade, atalhos, ações do dev, automações | `client/scripts/main.gd` |
 | assets e créditos | `client/assets/` |

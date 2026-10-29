@@ -8,6 +8,10 @@ extends CanvasLayer
 ## `captures(evento)` diz se um evento pertence à interface. Câmera, personagem, modo
 ## construção e interação perguntam aqui antes de reagir, então nenhum menu precisa
 ## tratar isso sozinho.
+##
+## Também cuida do cursor: durante o jogo ele fica capturado e escondido (mover o mouse
+## gira a câmera). Fica livre com qualquer menu aberto, no modo construção (para mirar),
+## com Alt segurado e depois de Esc sem menu aberto (um clique na janela captura de novo).
 
 var prompt: Label
 var hotbar: Hotbar
@@ -23,6 +27,11 @@ var _toasts: VBoxContainer
 var _icons: ItemIcons
 ## Chamado pelo X da barra do modo construção.
 var on_build_close := Callable()
+## Captura do cursor ligada (o jogo liga quando dá para jogar; nunca nas automações, para
+## não prender o mouse de quem está usando o computador).
+var mouse_capture := false
+## Esc sem menu aberto soltou o cursor; um clique na janela captura de novo.
+var _released := false
 
 
 func _ready() -> void:
@@ -197,13 +206,54 @@ func mouse_over_ui() -> bool:
 
 ## O evento pertence à interface e não deve mexer no jogo? Mouse e gestos: sim se há menu
 ## aberto ou se o mouse está em cima da interface (a roda rola a lista, não dá zoom).
-## Teclado: sim se há menu aberto.
+## Teclado: sim se há menu aberto. Com o cursor capturado, o mouse é sempre do jogo.
 func captures(event: InputEvent) -> bool:
 	if event is InputEventMouse or event is InputEventGesture:
-		return menu_open() or mouse_over_ui()
+		if menu_open():
+			return true
+		# Cursor capturado: o mouse é todo da câmera (o cursor escondido não "está" na UI).
+		return not mouse_captured() and mouse_over_ui()
 	if event is InputEventKey:
 		return menu_open()
 	return false
+
+
+## O cursor deveria estar capturado agora?
+func wants_capture() -> bool:
+	if not mouse_capture or _released or any_open():
+		return false
+	if Input.is_physical_key_pressed(KEY_ALT) or not get_window().has_focus():
+		return false
+	var focus := get_viewport().gui_get_focus_owner()
+	return not (focus is LineEdit or focus is SpinBox)
+
+
+## O cursor está capturado (mover o mouse gira a câmera)?
+func mouse_captured() -> bool:
+	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+
+
+## Esc sem menu aberto: solta o cursor até o próximo clique na janela.
+func release_mouse() -> void:
+	if mouse_capture:
+		_released = true
+
+
+func _process(_delta: float) -> void:
+	if not mouse_capture:
+		return
+	var want := Input.MOUSE_MODE_CAPTURED if wants_capture() else Input.MOUSE_MODE_VISIBLE
+	if Input.mouse_mode != want:
+		Input.mouse_mode = want
+
+
+func _input(event: InputEvent) -> void:
+	# Cursor solto por Esc: um clique no jogo (fora da interface) captura de novo, sem
+	# fazer mais nada.
+	if _released and event is InputEventMouseButton and (event as InputEventMouseButton).pressed \
+			and not any_open() and not mouse_over_ui():
+		_released = false
+		get_viewport().set_input_as_handled()
 
 
 func close_windows() -> bool:

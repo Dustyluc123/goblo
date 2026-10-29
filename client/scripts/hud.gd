@@ -49,7 +49,7 @@ func _ready() -> void:
 	_status_panel.add_child(_status)
 
 	var help := _label(15, Color(1, 1, 1, 0.92))
-	help.text = "WASD andar · Shift correr · Espaço pular · E interagir · Tab/I bolso · 1–5 ferramentas · B construir · H casa\nbotão direito gira a câmera (ou Q/C) · roda do mouse: zoom · F2 desempenho · F3/F4 tempo · F6 configurações · F11 tela cheia"
+	help.text = "WASD andar · Shift correr · Espaço pular · E interagir · Tab/I bolso · 1–5 ferramentas · B construir · H casa\nmouse gira a câmera · roda: zoom · Alt ou Esc: soltar o cursor · F2 desempenho · F3/F4 tempo · F6 configurações · F11 tela cheia"
 	help.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
 	help.add_theme_constant_override("outline_size", 5)
 	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)

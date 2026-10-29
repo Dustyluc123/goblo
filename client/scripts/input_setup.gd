@@ -10,8 +10,6 @@ const ACTIONS := {
 	"move_right": [KEY_D, KEY_RIGHT],
 	"run": [KEY_SHIFT],
 	"jump": [KEY_SPACE],
-	"camera_left": [KEY_Q],
-	"camera_right": [KEY_C],
 	"interact": [KEY_E],
 	"inventory": [KEY_TAB, KEY_I],
 	"build": [KEY_B],
