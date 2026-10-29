@@ -1,7 +1,8 @@
 class_name Minimap
 extends Control
 ## Mini mapa: um globinho no canto da tela, sempre virado para a posição do jogador (com o
-## norte para cima), com um ponto marcando onde ele está e a linha dia/noite.
+## norte para cima), com uma setinha marcando onde ele está e para onde está virado, uma
+## casinha no lote dele e a linha dia/noite. Seta e casinha são desenhadas em 2D por cima.
 ## Fica num SubViewport com mundo 3D próprio, então não interfere na cena principal.
 ## O SubViewport renderiza na resolução real da tela (não na base 1280 × 720), para o
 ## globinho ficar nítido em tela Retina; um TextureRect mostra o resultado.
@@ -15,6 +16,12 @@ var _viewport: SubViewport
 var _view: TextureRect
 var _globe: MeshInstance3D
 var _material: ShaderMaterial
+var _cam: Camera3D
+var _overlay: Control
+## Direção do jogador no mapa (radianos a partir do norte, sentido horário).
+var _heading := 0.0
+## Direção da casa (vetor unitário do centro do planeta); ZERO = sem casa.
+var _home := Vector3.ZERO
 
 
 func _ready() -> void:
@@ -42,6 +49,7 @@ func _ready() -> void:
 	cam.position = Vector3(0, 0, 3.4)
 	cam.fov = 38.0
 	_viewport.add_child(cam)
+	_cam = cam
 
 	_material = ShaderMaterial.new()
 	_material.shader = SHADER
@@ -55,28 +63,37 @@ func _ready() -> void:
 	_globe.material_override = _material
 	_viewport.add_child(_globe)
 
-	var dot_mat := StandardMaterial3D.new()
-	dot_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dot_mat.albedo_color = Color("ff5a72")
-	var dot_mesh := SphereMesh.new()
-	dot_mesh.radius = 0.045
-	dot_mesh.height = 0.09
-	dot_mesh.material = dot_mat
-	var dot := MeshInstance3D.new()
-	dot.mesh = dot_mesh
-	dot.position = Vector3(0, 0, 1.02)
-	_viewport.add_child(dot)
-	var ring_mat := dot_mat.duplicate() as StandardMaterial3D
-	ring_mat.albedo_color = Color.WHITE
-	var ring_mesh := TorusMesh.new()
-	ring_mesh.inner_radius = 0.055
-	ring_mesh.outer_radius = 0.075
-	ring_mesh.material = ring_mat
-	var ring := MeshInstance3D.new()
-	ring.mesh = ring_mesh
-	ring.position = Vector3(0, 0, 1.03)
-	ring.rotation.x = PI / 2
-	_viewport.add_child(ring)
+	_overlay = Control.new()
+	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.draw.connect(_draw_overlay)
+	add_child(_overlay)
+
+
+## Casinha (onde fica o lote) e setinha do jogador, por cima do globinho.
+func _draw_overlay() -> void:
+	var size := _overlay.size
+	var center := size * 0.5
+	if _home != Vector3.ZERO and _globe:
+		var p := _globe.basis * _home  # posição no globinho (raio 1)
+		var vp := Vector2(_viewport.size)
+		var screen := _cam.unproject_position(p) / vp * size
+		var front := p.z > 0.0
+		if not front:
+			# Do outro lado do planeta: casinha clarinha na borda, na direção dela.
+			var dir := Vector2(p.x, -p.y)
+			dir = dir.normalized() if dir.length() > 0.001 else Vector2.UP
+			screen = center + dir * size.x * 0.37
+		HomeIcon.draw(_overlay, screen + Vector2(0, -2), 22.0, 1.0 if front else 0.55)
+	# Setinha: ponta para onde o jogador está virado (norte = para cima).
+	var fwd := Vector2(sin(_heading), -cos(_heading))
+	var side := Vector2(-fwd.y, fwd.x)
+	var tip := center + fwd * 11.0
+	var pts := PackedVector2Array([tip, center - fwd * 7.0 + side * 8.0, center - fwd * 3.0, center - fwd * 7.0 - side * 8.0])
+	var outline := pts.duplicate()
+	outline.append(pts[0])
+	_overlay.draw_colored_polygon(pts, Color("ff5a72"))
+	_overlay.draw_polyline(outline, Color.WHITE, 2.5, true)
 
 
 ## Tamanho do SubViewport em pixels de verdade (tamanho na tela × escala da interface).
@@ -107,8 +124,23 @@ func build(world: WorldData) -> void:
 var _since_render := 1.0
 
 
-## Gira o globinho para o ponto `up` (direção do jogador) ficar de frente, com o norte para cima.
-func update_view(up: Vector3, sun_dir: Vector3) -> void:
+## Lote do jogador (direção a partir do centro do planeta); ZERO esconde a casinha.
+func set_home(dir: Vector3) -> void:
+	_home = dir.normalized() if dir != Vector3.ZERO else Vector3.ZERO
+	_overlay.queue_redraw()
+
+
+## Gira o globinho para o ponto `up` (direção do jogador) ficar de frente, com o norte para
+## cima; `facing` é para onde o jogador olha (vira a setinha).
+func update_view(up: Vector3, sun_dir: Vector3, facing := Vector3.ZERO) -> void:
+	if facing != Vector3.ZERO:
+		var n := Vector3.UP - up * up.y
+		n = n.normalized() if n.length() > 0.01 else Vector3.FORWARD
+		var e := n.cross(up)
+		var h := atan2(facing.dot(-e), facing.dot(n))
+		if absf(angle_difference(h, _heading)) > 0.02:
+			_heading = h
+			_overlay.queue_redraw()
 	_since_render += get_process_delta_time()
 	if _since_render < 0.1:
 		return
@@ -120,4 +152,5 @@ func update_view(up: Vector3, sun_dir: Vector3) -> void:
 	north = north.normalized()
 	var x := north.cross(up)
 	_globe.basis = Basis(x, north, up).transposed()
+	_overlay.queue_redraw()
 	_material.set_shader_parameter("sun_dir", sun_dir)

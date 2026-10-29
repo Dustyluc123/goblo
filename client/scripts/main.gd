@@ -61,6 +61,8 @@ var _ui: GameUi
 var _build: BuildMode
 var _interaction: Interaction
 var _occlusion: CameraOcclusion
+## Marcador da casa no globo, visível na visão afastada.
+var _home_marker: Sprite3D
 
 @onready var _terrain: Terrain = $Terrain
 @onready var _vegetation: Vegetation = $Vegetation
@@ -357,8 +359,33 @@ func _setup_game() -> void:
 	_session.me_changed.connect(func() -> void:
 		var lot := _session.lot()
 		if not lot.is_empty():
-			_data.set_lot(lot))
+			_data.set_lot(lot)
+		_update_home_marker())
+	_update_home_marker()
 	_hud.set_dev(_session.dev)
+
+
+## Casinha no mini mapa e marcador discreto no globo (visão afastada) onde fica o lote.
+func _update_home_marker() -> void:
+	if _session.lot().is_empty():
+		_hud.set_home(Vector3.ZERO)
+		if _home_marker:
+			_home_marker.queue_free()
+			_home_marker = null
+		return
+	var p := home_point()
+	_hud.set_home(p.normalized())
+	if _home_marker == null:
+		_home_marker = Sprite3D.new()
+		_home_marker.texture = HomeIcon.texture()
+		_home_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_home_marker.fixed_size = true
+		_home_marker.pixel_size = 0.0014
+		_home_marker.shaded = false
+		_home_marker.offset = Vector2(0, 32)  # a base da casinha fica no ponto
+		_home_marker.visible = false
+		add_child(_home_marker)
+	_home_marker.position = p + p.normalized() * 2.0
 
 
 func _fail(message: String) -> void:
@@ -446,7 +473,11 @@ func _process(delta: float) -> void:
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
 	_clouds.update(delta, _camera.far_amount, maxf(_day_night.local_day, _camera.far_amount))
 	_hud.show_time(_day_night.local_hours(world.lons[_player.cell_id]), _day_night.speed)
-	_hud.update_navigation(_camera.global_basis, _player.global_position.normalized(), _day_night.sun_dir)
+	_hud.update_navigation(_camera.global_basis, _player.global_position.normalized(), _day_night.sun_dir, _player.facing)
+	if _home_marker:
+		var far := _camera.far_amount
+		_home_marker.visible = far > 0.25
+		_home_marker.modulate.a = smoothstep(0.25, 0.6, far)
 	if _hud.perf_visible():
 		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d pedidos\nqualidade %s" % [
 			Engine.get_frames_per_second(), 1000.0 / maxf(1.0, Engine.get_frames_per_second()),

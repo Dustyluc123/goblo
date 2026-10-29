@@ -114,10 +114,15 @@ func build_minimap(world: WorldData) -> void:
 	_minimap.build(world)
 
 
-## Bússola e mini mapa, a cada quadro.
-func update_navigation(camera_basis: Basis, up: Vector3, sun_dir: Vector3) -> void:
+## Bússola e mini mapa, a cada quadro. `facing`: para onde o jogador está virado.
+func update_navigation(camera_basis: Basis, up: Vector3, sun_dir: Vector3, facing := Vector3.ZERO) -> void:
 	_compass.update_from(camera_basis, up)
-	_minimap.update_view(up, sun_dir)
+	_minimap.update_view(up, sun_dir, facing)
+
+
+## Onde fica a casa do jogador (direção a partir do centro do planeta).
+func set_home(dir: Vector3) -> void:
+	_minimap.set_home(dir)
 
 
 func toggle_perf() -> void:
