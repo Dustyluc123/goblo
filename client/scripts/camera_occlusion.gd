@@ -33,6 +33,8 @@ var player: Node3D
 var data: ChunkData
 var vegetation: Vegetation
 var neighborhood: Neighborhood
+## Terminais dos aeroportos (caixas como as das casas).
+var airports: Airports
 
 var _timer := 0.0
 ## Árvores desbotadas: id do objeto → entrada (ver _entry).
@@ -130,32 +132,35 @@ func _meshes_in_way(cam: Vector3, points: Array[Vector3]) -> Dictionary:
 	var out := {}
 	var head: Vector3 = points[points.size() - 1]
 	var reach := cam.distance_to(head) + 12.0
+	var sources: Array = []
 	for lot: Dictionary in data.all_lots():
 		var node := neighborhood.lot_node(int(lot["id"]))
-		if node == null or not node.has_meta("occluders"):
+		if node != null and node.has_meta("occluders"):
+			sources.append_array(node.get_meta("occluders"))
+	if airports:
+		sources.append_array(airports.occluders())
+	for occ: Dictionary in sources:
+		var mi: MeshInstance3D = occ["mi"]
+		if not is_instance_valid(mi):
 			continue
-		for occ: Dictionary in node.get_meta("occluders"):
-			var mi: MeshInstance3D = occ["mi"]
-			if not is_instance_valid(mi):
-				continue
-			var xf: Transform3D = occ["xf"]
-			if xf.origin.distance_to(head) > reach:
-				continue
-			var half: Vector3 = occ["half"]
-			var box := AABB(-half, half * 2.0)
-			var inv := xf.affine_inverse()
-			var a := inv * cam
-			var target := 1.0
-			if box.has_point(a):
-				target = 0.0  # câmera dentro da casa (ou do telhado): some de vez
-			else:
-				for p in points:
-					var b := inv * p
-					if not box.has_point(b) and box.intersects_segment(a, b) != null:
-						target = ALPHA
-						break
-			if target < float(out.get(mi, 1.0)):
-				out[mi] = target
+		var xf: Transform3D = occ["xf"]
+		if xf.origin.distance_to(head) > reach:
+			continue
+		var half: Vector3 = occ["half"]
+		var box := AABB(-half, half * 2.0)
+		var inv := xf.affine_inverse()
+		var a := inv * cam
+		var target := 1.0
+		if box.has_point(a):
+			target = 0.0  # câmera dentro da casa (ou do telhado): some de vez
+		else:
+			for p in points:
+				var b := inv * p
+				if not box.has_point(b) and box.intersects_segment(a, b) != null:
+					target = ALPHA
+					break
+		if target < float(out.get(mi, 1.0)):
+			out[mi] = target
 	return out
 
 

@@ -28,7 +28,10 @@ var list: Array = []
 var by_country := {}
 var _built := {}  # célula → Node3D
 var _timer := 0.0
-var _markers: Array[Sprite3D] = []
+## Aviõezinhos da visão afastada: um MultiMesh só (antes, um Sprite3D por aeroporto: 200
+## draw calls a mais no globo).
+var _markers: MultiMeshInstance3D
+var _marker_mat: StandardMaterial3D
 var _plane_tex: ImageTexture
 
 
@@ -67,6 +70,16 @@ func arrival_point(a: Dictionary) -> Vector3:
 	return WorldData.frame_point(f, x, y - 1.6)
 
 
+## Caixas dos terminais montados, para a transparência da câmera (CameraOcclusion).
+func occluders() -> Array:
+	var out: Array = []
+	for cell: int in _built:
+		var root: Node3D = _built[cell]
+		if is_instance_valid(root) and root.has_meta("occluders"):
+			out.append_array(root.get_meta("occluders"))
+	return out
+
+
 ## Aeroporto do país do jogador ("" se não houver).
 func of_country(code: String) -> Dictionary:
 	return by_country.get(code, {})
@@ -74,10 +87,10 @@ func of_country(code: String) -> Dictionary:
 
 func update(focus: Vector3, far_amount: float, delta: float) -> void:
 	var far_on := far_amount > 0.25
-	for m in _markers:
-		m.visible = far_on
+	if _markers:
+		_markers.visible = far_on
 		if far_on:
-			m.modulate.a = smoothstep(0.25, 0.6, far_amount)
+			_marker_mat.albedo_color.a = 0.85 * smoothstep(0.25, 0.6, far_amount)
 	_timer -= delta
 	if _timer > 0.0 or world == null:
 		return
@@ -148,9 +161,13 @@ func _build(a: Dictionary) -> void:
 	if small:
 		_windsock(root, f, x + 1.6 * cos(face), y + 1.6 * sin(face), 1.4)
 		return
-	# Terminal: a casa grande, com a porta para a pista (sul).
-	_place(root, f, TERMINAL, 0.0, 4.3, 0.0, 1.0)
+	# Terminal: a casa grande, com a porta para a pista (sul). Fica transparente quando
+	# está entre a câmera e o personagem, como as casas dos lotes.
+	var terminal := _place(root, f, TERMINAL, 0.0, 4.3, 0.0, 1.0)
 	_box(body, f, 0.0, 4.3, Vector3(4.6, 3.2, 4.6))
+	if terminal:
+		var center := WorldData.frame_point(f, 0.0, 4.3) + (f["center"] as Vector3) * 2.2
+		root.set_meta("occluders", [{"mi": terminal, "xf": Transform3D(WorldData.frame_basis(f, 0.0), center), "half": Vector3(2.7, 2.4, 2.7)}])
 	# Pista de pedra (leste-oeste) com faixa no meio e luzinhas nas bordas.
 	for i in 7:
 		var px := -6.0 + i * 2.0
@@ -240,24 +257,38 @@ func _windsock(root: Node3D, f: Dictionary, x: float, y: float, height: float) -
 
 # --- Marcadores na visão afastada ---------------------------------------------------------
 
+## Tamanho do aviãozinho no globo (unidades; o planeta tem raio 1000).
+const MARKER_SIZE := 24.0
+
+
 func _make_markers() -> void:
-	for m in _markers:
-		m.queue_free()
-	_markers.clear()
+	if _markers:
+		_markers.queue_free()
 	if _plane_tex == null:
 		_plane_tex = plane_texture()
-	for a: Dictionary in list:
-		var cell := int(a["cell"])
-		var s := Sprite3D.new()
-		s.texture = _plane_tex
-		s.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		s.fixed_size = true
-		s.pixel_size = 0.0009
-		s.shaded = false
-		s.position = world.centers[cell] * (world.surface_radius(cell) + 2.0)
-		s.visible = false
-		add_child(s)
-		_markers.append(s)
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * MARKER_SIZE
+	_marker_mat = StandardMaterial3D.new()
+	_marker_mat.albedo_texture = _plane_tex
+	_marker_mat.albedo_color = Color(1, 1, 1, 0.85)
+	_marker_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_marker_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_marker_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_marker_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = BorderLines._baked(quad, _marker_mat)  # PrimitiveMesh no MultiMesh dá erro no headless
+	# Só os aeroportos de verdade (os balcões dos países pequenos não entram).
+	var real := list.filter(func(a: Dictionary) -> bool: return not bool(a.get("small", false)))
+	mm.instance_count = real.size()
+	for i in real.size():
+		var cell := int(real[i]["cell"])
+		mm.set_instance_transform(i, Transform3D(Basis(), world.centers[cell] * (world.surface_radius(cell) + 3.0)))
+	_markers = MultiMeshInstance3D.new()
+	_markers.multimesh = mm
+	_markers.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_markers.visible = false
+	add_child(_markers)
 
 
 ## Aviãozinho fofo (usado no globo afastado e no mini mapa).
