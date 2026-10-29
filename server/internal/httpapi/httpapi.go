@@ -1,4 +1,5 @@
-// Package httpapi expõe o mundo por HTTP.
+// Package httpapi expõe o mundo e o jogo por HTTP. A lista completa de rotas está em
+// docs/API.md.
 //
 //	GET /health        → {"status":"ok"}
 //	GET /world/version → {"version":"…","format":1,"frequency":50,"cells":25002}
@@ -6,6 +7,8 @@
 //	GET /world         → mundo em JSON (para depuração), com gzip
 //
 // As duas rotas do mundo mandam ETag com a versão e respondem 304 a If-None-Match.
+// As rotas do jogo (jogador, objetos, inventário, lote) estão em game.go e as do modo
+// dev em dev.go.
 package httpapi
 
 import (
@@ -16,17 +19,39 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Dustyluc123/goblo/server/internal/game"
+	"github.com/Dustyluc123/goblo/server/internal/geoip"
 	"github.com/Dustyluc123/goblo/server/internal/world"
 )
 
-// NewHandler monta as rotas. O snapshot é gerado uma vez na inicialização e servido do cache.
+// Server junta o que as rotas precisam. Game pode ser nil (só o mundo é servido).
+type Server struct {
+	World    *world.World
+	Snapshot *world.Snapshot
+	Game     *game.Service
+	GeoIP    *geoip.DB         // pode ser nil: aí o país vem só do idioma do sistema
+	A2ToA3   map[string]string // código ISO A2 → código do país no mundo
+	Dev      bool              // GOBLO_DEV=1: libera as rotas /dev/…
+	Log      *slog.Logger
+}
+
+// NewHandler monta só as rotas do mundo (usado nos testes do mundo).
 func NewHandler(w *world.World, snap *world.Snapshot, log *slog.Logger) http.Handler {
+	return (&Server{World: w, Snapshot: snap, Log: log}).Handler()
+}
+
+// Handler monta as rotas. O snapshot é gerado uma vez na inicialização e servido do cache.
+func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", health)
-	mux.HandleFunc("GET /world/version", versionHandler(w, snap))
-	mux.HandleFunc("GET /world.bin", blob(snap, "application/octet-stream", snap.Binary, snap.BinaryGzip))
-	mux.HandleFunc("GET /world", blob(snap, "application/json", snap.JSON, snap.JSONGzip))
-	return logRequests(log, cors(mux))
+	mux.HandleFunc("GET /world/version", versionHandler(s.World, s.Snapshot))
+	mux.HandleFunc("GET /world.bin", blob(s.Snapshot, "application/octet-stream", s.Snapshot.Binary, s.Snapshot.BinaryGzip))
+	mux.HandleFunc("GET /world", blob(s.Snapshot, "application/json", s.Snapshot.JSON, s.Snapshot.JSONGzip))
+	if s.Game != nil {
+		s.gameRoutes(mux)
+	}
+	s.devRoutes(mux)
+	return logRequests(s.Log, cors(mux))
 }
 
 func health(w http.ResponseWriter, _ *http.Request) {
@@ -88,6 +113,11 @@ func acceptsGzip(r *http.Request) bool {
 func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
