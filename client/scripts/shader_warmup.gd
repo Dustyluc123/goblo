@@ -51,6 +51,20 @@ static func run(game: Node3D, camera: Camera3D, extra: Array[Node3D]) -> int:
 			if not kind.is_empty():
 				mmi.material_override = ModelLibrary.foliage_material(kind)
 			items.append(mmi)
+		# Lotes dos vizinhos: as peças viram uma malha juntada (com cor por vértice, outro
+		# formato de malha), comum e pontilhada.
+		if not ModelLibrary.is_baked(lib):
+			var merged := _merged_format(mesh)
+			if merged:
+				var mm_i := MeshInstance3D.new()
+				mm_i.mesh = merged
+				items.append(mm_i)
+				var mf := MeshInstance3D.new()
+				mf.mesh = merged
+				var fm := CameraOcclusion._fade_materials(merged)
+				for i in fm.size():
+					mf.set_surface_override_material(i, fm[i])
+				items.append(mf)
 		# Transparência na frente da câmera (pontilhado): uma vez por material.
 		var key := ""
 		for i in mesh.get_surface_count():
@@ -84,6 +98,29 @@ static func run(game: Node3D, camera: Camera3D, extra: Array[Node3D]) -> int:
 		await RenderingServer.frame_post_draw
 	root.queue_free()
 	return items.size()
+
+
+## A malha no formato das malhas juntadas dos lotes (Neighborhood._merge_arrays).
+static func _merged_format(mesh: Mesh) -> ArrayMesh:
+	var jobs: Array = []
+	for si in mesh.get_surface_count():
+		jobs.append(["rest", mesh.surface_get_material(si), mesh.surface_get_arrays(si), Transform3D.IDENTITY])
+	var groups: Dictionary = Neighborhood._merge_arrays(jobs)["rest"]
+	if groups.is_empty():
+		return null
+	var out := ArrayMesh.new()
+	for mat: Material in groups:
+		var g: Dictionary = groups[mat]
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = g["v"]
+		arrays[Mesh.ARRAY_NORMAL] = g["n"]
+		arrays[Mesh.ARRAY_TEX_UV] = g["uv"]
+		arrays[Mesh.ARRAY_COLOR] = g["c"]
+		arrays[Mesh.ARRAY_INDEX] = g["i"]
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		out.surface_set_material(out.get_surface_count() - 1, mat)
+	return out
 
 
 ## Maior lado (aproximado) de uma coisa, para caber na grade.

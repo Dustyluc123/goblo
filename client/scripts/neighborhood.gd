@@ -41,6 +41,8 @@ var _scaffold_mat: StandardMaterial3D
 var view_distance := 120.0
 ## Lotes esperando a vez de ser montados (id → lote).
 var _queue := {}
+## Junções de malhas rodando em threads: {"task", "root", "part_of", "out"}.
+var _merges: Array = []
 
 
 func setup(w: WorldData, d: ChunkData, s: Session) -> void:
@@ -105,6 +107,16 @@ func _on_chunk_unloaded(key: int) -> void:
 
 ## Monta os lotes da fila, o mais perto da câmera primeiro, até o limite de tempo.
 func _process(_delta: float) -> void:
+	# Uma junção de malhas pronta por quadro.
+	for i in _merges.size():
+		var m: Dictionary = _merges[i]
+		if WorkerThreadPool.is_task_completed(m["task"]):
+			WorkerThreadPool.wait_for_task_completion(m["task"])
+			_merges.remove_at(i)
+			var t0 := Time.get_ticks_usec()
+			_finish_merge(m)
+			HitchLog.note("lote juntado numa malha", (Time.get_ticks_usec() - t0) / 1000.0)
+			break
 	if _queue.is_empty():
 		return
 	var cam := get_viewport().get_camera_3d()
@@ -200,7 +212,10 @@ func _build_lot(l: Dictionary) -> void:
 ## caixas de `occluders` passam a apontar para a malha juntada certa.
 ## Fica de fora: borda (transparente), textos e luzes.
 func _merge(root: Node3D) -> void:
-	var by_part := {"house": {}, "rest": {}}  # parte → material → {v, n, uv, c, i}
+	# Na thread principal só se juntam os dados (cópias das malhas e transformações); as
+	# contas vértice por vértice (10 a 20 ms por casa) rodam numa thread. Até terminar, o
+	# lote aparece peça por peça; depois vira as malhas juntadas (_finish_merge).
+	var jobs: Array = []  # [parte, material, arrays, transformação]
 	var part_of := {}  # malha original → parte
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
@@ -208,42 +223,67 @@ func _merge(root: Node3D) -> void:
 			continue
 		var part := "house" if mi.has_meta("house") else "rest"
 		part_of[mi] = part
-		var groups: Dictionary = by_part[part]
 		var xf := _local_to(mi, root)
-		var nb := xf.basis.inverse().transposed()
 		for si in mi.mesh.get_surface_count():
 			var mat: Material = mi.material_override if mi.material_override else mi.mesh.surface_get_material(si)
-			var arrays := mi.mesh.surface_get_arrays(si)
-			if not groups.has(mat):
-				groups[mat] = {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(), "i": PackedInt32Array()}
-			var g: Dictionary = groups[mat]
-			var gv: PackedVector3Array = g["v"]
-			var gn: PackedVector3Array = g["n"]
-			var guv: PackedVector2Array = g["uv"]
-			var gc: PackedColorArray = g["c"]
-			var gi: PackedInt32Array = g["i"]
-			var base := gv.size()
-			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-			var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
-			var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV] if arrays[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
-			var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR] if arrays[Mesh.ARRAY_COLOR] != null else PackedColorArray()
+			jobs.append([part, mat, mi.mesh.surface_get_arrays(si), xf])
+	if jobs.is_empty():
+		return
+	var out := []
+	var task := WorkerThreadPool.add_task(func() -> void: out.append(_merge_arrays(jobs)))
+	_merges.append({"task": task, "root": root, "part_of": part_of, "out": out})
+
+
+## Junta as malhas por parte e material (pode rodar numa thread: só mexe nos arrays).
+static func _merge_arrays(jobs: Array) -> Dictionary:
+	var by_part := {"house": {}, "rest": {}}  # parte → material → {v, n, uv, c, i}
+	for job: Array in jobs:
+		var groups: Dictionary = by_part[job[0]]
+		var mat: Material = job[1]
+		var arrays: Array = job[2]
+		var xf: Transform3D = job[3]
+		var nb := xf.basis.inverse().transposed()
+		if not groups.has(mat):
+			groups[mat] = {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(), "i": PackedInt32Array()}
+		var g: Dictionary = groups[mat]
+		var gv: PackedVector3Array = g["v"]
+		var gn: PackedVector3Array = g["n"]
+		var guv: PackedVector2Array = g["uv"]
+		var gc: PackedColorArray = g["c"]
+		var gi: PackedInt32Array = g["i"]
+		var base := gv.size()
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+		var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV] if arrays[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
+		var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR] if arrays[Mesh.ARRAY_COLOR] != null else PackedColorArray()
+		for k in verts.size():
+			gv.append(xf * verts[k])
+			gn.append((nb * normals[k]).normalized() if k < normals.size() else Vector3.UP)
+			guv.append(uvs[k] if k < uvs.size() else Vector2.ZERO)
+			gc.append(cols[k] if k < cols.size() else Color.WHITE)
+		if arrays[Mesh.ARRAY_INDEX] == null:
 			for k in verts.size():
-				gv.append(xf * verts[k])
-				gn.append((nb * normals[k]).normalized() if k < normals.size() else Vector3.UP)
-				guv.append(uvs[k] if k < uvs.size() else Vector2.ZERO)
-				gc.append(cols[k] if k < cols.size() else Color.WHITE)
-			if arrays[Mesh.ARRAY_INDEX] == null:
-				for k in verts.size():
-					gi.append(base + k)
-			else:
-				for k in (arrays[Mesh.ARRAY_INDEX] as PackedInt32Array):
-					gi.append(base + k)
-			g["v"] = gv
-			g["n"] = gn
-			g["uv"] = guv
-			g["c"] = gc
-			g["i"] = gi
-		mi.get_parent().remove_child(mi)
+				gi.append(base + k)
+		else:
+			for k in (arrays[Mesh.ARRAY_INDEX] as PackedInt32Array):
+				gi.append(base + k)
+		g["v"] = gv
+		g["n"] = gn
+		g["uv"] = guv
+		g["c"] = gc
+		g["i"] = gi
+	return by_part
+
+
+## Troca as peças do lote pelas malhas juntadas (na thread principal).
+func _finish_merge(m: Dictionary) -> void:
+	# Sem tipo de propósito: o lote pode ter sido solto enquanto a thread rodava.
+	var r: Variant = m["root"]
+	if not is_instance_valid(r) or (r as Node).is_queued_for_deletion() or (m["out"] as Array).is_empty():
+		return  # o lote foi refeito ou solto enquanto a thread rodava
+	var root: Node3D = r
+	var by_part: Dictionary = m["out"][0]
+	var part_of: Dictionary = m["part_of"]
 	var merged := {}
 	for part: String in by_part:
 		var groups: Dictionary = by_part[part]
@@ -270,8 +310,16 @@ func _merge(root: Node3D) -> void:
 		merged[part] = mi
 	for occ: Dictionary in root.get_meta("occluders", []):
 		occ["mi"] = merged.get(part_of.get(occ["mi"], "rest"))
-	for mi: MeshInstance3D in part_of:
-		mi.queue_free()
+	for mi: Variant in part_of:
+		if is_instance_valid(mi):
+			(mi as Node).queue_free()
+	_apply_range(root)
+
+
+func _exit_tree() -> void:
+	for m: Dictionary in _merges:
+		WorkerThreadPool.wait_for_task_completion(m["task"])
+	_merges.clear()
 
 
 static func _local_to(node: Node3D, root: Node3D) -> Transform3D:
