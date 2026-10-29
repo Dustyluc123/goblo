@@ -104,9 +104,17 @@ func _resize_viewport() -> void:
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
+## Fase da estação no hemisfério norte (Seasons): o globinho mostra a diferença entre os
+## hemisférios.
+func set_season(north: float) -> void:
+	_material.set_shader_parameter("season_phase", north)
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+
 ## Pinta a textura do mapa a partir do mundo (uma vez, ao carregar).
 func build(world: WorldData) -> void:
-	var img := Image.create(TEX_W, TEX_H, false, Image.FORMAT_RGB8)
+	# Alfa = o bioma muda com as estações (o shader do globinho mistura as cores).
+	var img := Image.create(TEX_W, TEX_H, false, Image.FORMAT_RGBA8)
 	var hint := 0
 	for py in TEX_H:
 		var lat := 90.0 - (py + 0.5) / TEX_H * 180.0
@@ -117,6 +125,7 @@ func build(world: WorldData) -> void:
 			var col: Color = BiomeStyle.COLORS[b]
 			if b == WorldData.Biome.OCEAN:
 				col = Color("9bd6e6").lerp(Color("3f7fb8"), clampf(float(world.water_depth[hint]) / 4.0, 0.0, 1.0))
+			col.a = 1.0 if BiomeStyle.seasonal_ground(world, hint) else 0.0
 			img.set_pixel(px, py, col)
 	_material.set_shader_parameter("map", ImageTexture.create_from_image(img))
 

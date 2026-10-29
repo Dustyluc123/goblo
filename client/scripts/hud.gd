@@ -24,6 +24,7 @@ var _exact_code := ""
 var _welcome: PanelContainer
 var _coins: Label
 var _coins_row: HBoxContainer
+var _season_label := ""
 
 
 func _ready() -> void:
@@ -169,6 +170,8 @@ func show_time(hours: float, speed: float) -> void:
 	var text := "%02d:%02d" % [h, m]
 	if speed != 1.0:
 		text += "  (×%d)" % int(speed)
+	if not _season_label.is_empty():
+		text += "  ·  " + _season_label
 	_time.text = text
 
 
@@ -182,6 +185,16 @@ func show_cell(world: WorldData, id: int) -> void:
 		title += "  ·  " + code
 	_country.text = title
 	_coords.text = "%s  ·  %s  ·  célula %d" % [world.biome_label(id), WorldData.format_lat_lon(world.lats[id], world.lons[id]), id]
+
+
+## Estação onde o personagem está ("" entre os trópicos), ao lado da hora.
+func set_season_label(text: String) -> void:
+	_season_label = text
+
+
+## Fase da estação no norte, para o mini mapa.
+func set_season_phase(north: float) -> void:
+	_minimap.set_season(north)
 
 
 ## Saldo de moedas. Com `delta` > 0, um "+N" sobe ao lado e some.

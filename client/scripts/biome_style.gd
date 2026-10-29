@@ -38,6 +38,15 @@ static func top_color(world: WorldData, id: int) -> Color:
 	return c.srgb_to_linear()
 
 
+## O topo da célula muda de cor com as estações? (biomas temperados e frios, menos os picos
+## que já têm neve o ano todo). A latitude (trópicos) é conferida no shader.
+static func seasonal_ground(world: WorldData, id: int) -> bool:
+	var b: int = world.biomes[id]
+	if b == WorldData.Biome.MOUNTAIN and world.heights[id] >= SNOW_LINE:
+		return false
+	return Seasons.seasonal_biome(b)
+
+
 static func wall_color(world: WorldData, id: int) -> Color:
 	match int(world.biomes[id]):
 		WorldData.Biome.MOUNTAIN:

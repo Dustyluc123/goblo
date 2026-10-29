@@ -235,7 +235,7 @@ static func _shadow_twin(mesh: Mesh, xf: Transform3D, parent: Node) -> MeshInsta
 func _fade_tree(o: Dictionary) -> Dictionary:
 	if o.is_empty():
 		return {}
-	var lib := ModelLibrary.get_model(o["model"])
+	var lib := ModelLibrary.get_model(str(o.get("drawn_model", o["model"])))
 	var ghost := MeshInstance3D.new()
 	ghost.mesh = lib["mesh"]
 	ghost.transform = Transform3D(o["basis"], o["pos"])

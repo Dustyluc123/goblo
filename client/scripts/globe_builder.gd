@@ -76,7 +76,9 @@ static func _land_arrays(world: WorldData, cells: PackedInt32Array) -> Array:
 		var c := world.centers[i]
 		var top_h := r + world.heights[i]
 		var top := BiomeStyle.top_color(world, i)
-		var edge := Color(top.r * EDGE_DARKEN, top.g * EDGE_DARKEN, top.b * EDGE_DARKEN)
+		# Alfa da cor = o chão muda com as estações (o shader do terreno usa; ver Seasons).
+		top.a = 1.0 if BiomeStyle.seasonal_ground(world, i) else 0.0
+		var edge := Color(top.r * EDGE_DARKEN, top.g * EDGE_DARKEN, top.b * EDGE_DARKEN, top.a)
 		var wall := BiomeStyle.wall_color(world, i)
 		var poly := world.vertices[i]
 		var nb := world.neighbors[i]

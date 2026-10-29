@@ -15,5 +15,5 @@ Até a fase 2.2, o país era decidido por hexágono (~22 unidades, ~140 km na es
 ## Consequências
 
 - O mundo muda de versão (alguns hexágonos de fronteira trocam de país principal e de bioma); o cliente baixa de novo sozinho. Os lotes continuam nas mesmas células.
-- A barreira do passaporte fica no cliente enquanto o servidor não sabe a posição do jogador (ADR 0034). Na fase 3 (multiplayer), o servidor recebe a posição e confere a fronteira com `CountryAt`.
+- A barreira do passaporte fica no cliente enquanto o servidor não sabe a posição do jogador (ADR 0035). Na fase 3 (multiplayer), o servidor recebe a posição e confere a fronteira com `CountryAt`.
 - Países sem hexágono próprio (Vaticano, Mônaco…) existem para o HUD, carimbos e passaportes, mas não têm lotes nem aeroporto próprio.

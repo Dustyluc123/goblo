@@ -38,6 +38,8 @@ var _shapes := {}  # "tipo:escala" → RID de forma compartilhada
 var _timer := 0.0
 var _focus := Vector3.ZERO
 var _generation := 0
+## Fase da estação no norte usada no que está montado (Seasons); < 0 = sem estações.
+var season_north := -1.0
 
 
 func setup(w: WorldData, d: ChunkData) -> void:
@@ -77,6 +79,14 @@ func _load_decor() -> void:
 		_decor[i] = entries
 		var ot: Array = parsed.get("object_tint", {}).get(name, [1, 1, 1])
 		_object_tint[i] = Color(ot[0], ot[1], ot[2])
+
+
+## Muda a estação (fase no norte): troca os modelos das árvores e a grama, remontando tudo.
+func set_season(north: float) -> void:
+	if is_equal_approx(north, season_north):
+		return
+	season_north = north
+	clear()
 
 
 ## Apaga tudo (ex.: mudou a qualidade); o próximo update recarrega.
@@ -174,11 +184,12 @@ func _build_layer(key: int, layer: String, now: bool) -> bool:
 		"small":
 			var lots := _lot_rects(key)
 			var density := float(Quality.current()["small_density"])
+			var north := season_north
 			if now:
-				_apply_small(key, _generate_small(key, density, lots))
+				_apply_small(key, _generate_small(key, density, lots, north))
 			else:
 				var holder := []
-				var id := WorkerThreadPool.add_task(func() -> void: holder.append(_generate_small(key, density, lots)))
+				var id := WorkerThreadPool.add_task(func() -> void: holder.append(_generate_small(key, density, lots, north)))
 				_tasks[_task_key(key, layer)] = {"id": id, "result": holder, "key": key, "gen": _generation}
 	return true
 
@@ -203,9 +214,18 @@ func _build_objects(key: int) -> Node3D:
 	add_child(node)
 	var by_model := {}  # modelo → Array de objetos
 	for o: Dictionary in data.chunk(key).get("objects", []):
-		if not by_model.has(o["model"]):
-			by_model[o["model"]] = []
-		(by_model[o["model"]] as Array).append(o)
+		# Estação: árvores de outono ou com neve, pedras e arbustos com neve (mesmo id).
+		var v := Seasons.object_variant(world, o, season_north) if season_north >= 0.0 else ""
+		var model := str(o["model"])
+		if not v.is_empty() and not ModelLibrary.get_cached(Seasons.variant_model(model, v)).is_empty():
+			model = Seasons.variant_model(model, v)
+		else:
+			v = ""
+		o["season_variant"] = v
+		o["drawn_model"] = model
+		if not by_model.has(model):
+			by_model[model] = []
+		(by_model[model] as Array).append(o)
 	var shadows: bool = Quality.current()["big_shadows"]
 	var count := 0
 	for model: String in by_model:
@@ -262,7 +282,14 @@ static func _hidden_transform(t: Transform3D) -> Transform3D:
 
 
 ## Página da Goblopédia de uma árvore pela estação ("tree_autumn", "tree_snow" ou "").
-func season_entry(_o: Dictionary) -> String:
+func season_entry(o: Dictionary) -> String:
+	if str(o["kind"]) != "tree":
+		return ""
+	match str(o.get("season_variant", "")):
+		"autumn":
+			return "tree_autumn"
+		"snow":
+			return "tree_snow"
 	return ""
 
 
@@ -305,11 +332,11 @@ func _on_lot_changed(l: Dictionary) -> void:
 
 
 ## Sorteia a grama de um pedaço (roda em thread: só lê o mundo, não mexe na cena).
-func _generate_small(key: int, density: float, lots: Dictionary) -> Dictionary:
+func _generate_small(key: int, density: float, lots: Dictionary, north := -1.0) -> Dictionary:
 	var lists := {}  # modelo → Array de [Transform3D, Color]
 	for cell in world.chunk_cells[key]:
 		if world.land[cell] == 1:
-			_cell_decor(cell, density, lots.get(cell, []), lists)
+			_cell_decor(cell, density, lots.get(cell, []), lists, north)
 	var buffers := {}
 	var counts := {}
 	for name: String in lists:
@@ -331,12 +358,33 @@ func _generate_small(key: int, density: float, lots: Dictionary) -> Dictionary:
 	return {"buffers": buffers, "counts": counts}
 
 
+## Cores da grama nas estações (multiplicam o tom do bioma).
+const AUTUMN_TINT := Color(1.25, 0.95, 0.55)
+const WINTER_TINT := Color(1.45, 1.5, 1.6)
+## Flores da primavera (só enfeite, sem colher): cores e quantas por célula no auge.
+const SPRING_FLOWERS := ["flower:white", "flower:yellow", "flower:purple"]
+const SPRING_PER_CELL := 7.0
+
+
 ## Grama de uma célula. A ordem de sorteio é fixa: a densidade só decide se cada tufo
-## aparece, então qualidades menores mostram um subconjunto das maiores.
-func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary) -> void:
+## aparece, então qualidades menores mostram um subconjunto das maiores. Nas estações, a
+## grama fica dourada (outono), rala e clara (inverno), e a primavera ganha florzinhas.
+func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary, north := -1.0) -> void:
 	var entries: Array = _decor.get(int(world.biomes[cell]), [])
 	if entries.is_empty():
 		return
+	var autumn := 0.0
+	var winter := 0.0
+	var spring := 0.0
+	if north >= 0.0 and Seasons.cell_has_seasons(world, cell):
+		var ph := Seasons.phase_at(north, world.lats[cell])
+		autumn = Seasons.weight(ph, 2)
+		winter = Seasons.weight(ph, 3)
+		spring = Seasons.weight(ph, 0)
+	if spring > 0.0:
+		entries = entries + [{"models": SPRING_FLOWERS, "per_cell": SPRING_PER_CELL * spring, "scale": [0.32, 0.48],
+			"tint": Color.WHITE, "spring": true}]
+	density *= 1.0 - 0.7 * winter
 	var f := world.cell_frame(cell)
 	var c: Vector3 = f["center"]
 	var h: float = f["top"]
@@ -350,7 +398,12 @@ func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary) -> v
 	for e_i in entries.size():
 		var e: Dictionary = entries[e_i]
 		var models: Array = e["models"]
-		var rng := DecorRng.new(cell * 16 + e_i)
+		# Semente separada para as flores da primavera: a grama de sempre não muda.
+		var rng := DecorRng.new(cell * 16 + (15 if e.has("spring") else e_i))
+		var tint: Color = e["tint"]
+		if not e.has("spring"):
+			tint = tint * Color.WHITE.lerp(AUTUMN_TINT, autumn * 0.85)
+			tint = tint.lerp(tint * WINTER_TINT, winter * 0.8)
 		var expected: float = e["per_cell"]
 		var count := int(expected) + (1 if rng.next_float() < expected - floorf(expected) else 0)
 		for j in count:
@@ -378,7 +431,7 @@ func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary) -> v
 					continue
 			if not lists.has(model):
 				lists[model] = []
-			(lists[model] as Array).append([Transform3D(WorldData.frame_basis(f, yaw, s), p), e["tint"]])
+			(lists[model] as Array).append([Transform3D(WorldData.frame_basis(f, yaw, s), p), tint])
 
 
 func _apply_small(key: int, result: Dictionary) -> void:

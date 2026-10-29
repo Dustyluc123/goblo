@@ -40,6 +40,8 @@ extends Node3D
 ##                       carinho, dá frutinha, assusta um tímido correndo e mede o custo
 ##   --photo-test        câmera fotográfica: enquadra uma vaca, fotografa, confere o registro
 ##                       na Goblopédia (moedas só na primeira foto) e abre o álbum
+##   --season-test       força cada estação (modo dev) e confere árvores, grama, chão, o
+##                       nome no HUD, os dois hemisférios, os trópicos e a foto de outono
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
 ##                       que o que fica no caminho está transparente (servidor dev)
@@ -77,6 +79,11 @@ var _border_lines: BorderLines
 var _animals: Animals
 var _photo: PhotoMode
 var _pedia_art: PediaArt
+var _season_fx: SeasonFx
+## Fase da estação aplicada agora (no hemisfério norte; ver Seasons).
+var _season_north := -1.0
+var _season_timer := 0.0
+var _season_busy := false
 var _tracker: CountryTracker
 ## Marcador da casa no globo, visível na visão afastada.
 var _home_marker: Sprite3D
@@ -165,6 +172,9 @@ func _ready() -> void:
 	_photo = PhotoMode.new()
 	_photo.name = "PhotoMode"
 	add_child(_photo)
+	_season_fx = SeasonFx.new()
+	_season_fx.name = "SeasonFx"
+	add_child(_season_fx)
 	_session.equipped_changed.connect(_on_equipped)
 
 	_http = HTTPRequest.new()
@@ -351,6 +361,8 @@ func _models_to_preload() -> Array:
 		out.append(str(_session.items[id].get("model", "")))
 	for h: Dictionary in _session.houses:
 		out.append(str(h["scene"]))
+	# Versões de estação das árvores (outono, neve) que valem hoje em algum hemisfério.
+	out.append_array(Seasons.models_needed(_session.object_models, Seasons.north_phase(season_now())))
 	return out.filter(func(m: String) -> bool: return not m.is_empty())
 
 
@@ -419,6 +431,7 @@ func _setup_game() -> void:
 		_update_home_marker())
 	_update_home_marker()
 	_hud.set_dev(_session.dev)
+	apply_season(Seasons.north_phase(season_now()))
 	_session.coins_changed.connect(func(delta: int) -> void: _hud.set_coins(_session.coins_text(_session.coins), delta))
 	_hud.set_coins(_session.coins_text(_session.coins))
 
@@ -534,6 +547,7 @@ func _process(delta: float) -> void:
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
 	_border_lines.update_view(_camera.far_amount)
 	_animals.update_view(_camera.far_amount)
+	_update_season(delta)
 	_neighborhood.daylight = _day_night.local_day
 	_neighborhood.update_lights(_player.global_position, delta)
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
@@ -732,6 +746,78 @@ func apply_lot_result(res: Dictionary) -> void:
 	_session.set_lot(res["lot"])
 
 
+# --- Estações ------------------------------------------------------------------------------
+
+## Agora para as estações: a data forçada pelo modo dev ou o relógio do servidor.
+func season_now() -> float:
+	if Seasons.override_unix > 0.0:
+		return Seasons.override_unix
+	if _data and _data.world:
+		return _data.server_time()
+	var day: Variant = _session.me.get("day")
+	if day is Dictionary:
+		return float(day["server_time"])
+	return Time.get_unix_time_from_system()
+
+
+## Aplica a estação (fase no norte): chão, mini mapa, árvores e grama. Os modelos de outono
+## e neve que ainda não estiverem carregados entram antes (só acontece ao forçar a data).
+func apply_season(north: float) -> void:
+	if _season_busy:
+		return
+	_season_busy = true
+	var missing := Seasons.models_needed(_session.object_models, north).filter(
+		func(m: String) -> bool: return ModelLibrary.get_cached(m).is_empty())
+	if not missing.is_empty():
+		_hud.show_status("Preparando a estação…")
+		await ModelLibrary.preload_all(missing, get_tree())
+		_hud.hide_status()
+	_season_north = north
+	GlobeBuilder.land_material().set_shader_parameter("season_phase", north)
+	_hud.set_season_phase(north)
+	_vegetation.set_season(north)
+	_season_busy = false
+
+
+## A cada quadro: partículas e o nome da estação no HUD; a cada 20 s, confere se a fase
+## andou o bastante (umas 4 horas) para remontar as árvores e a grama.
+func _update_season(delta: float) -> void:
+	_season_timer -= delta
+	if _season_timer <= 0.0:
+		_season_timer = 20.0
+		var north := Seasons.north_phase(season_now())
+		if _season_north < 0.0 or absf(north - _season_north) > 0.002:
+			apply_season(north)
+	if _season_north < 0.0:
+		return
+	var cell := _player.cell_id
+	var autumn := 0.0
+	var winter := 0.0
+	var label := "none"
+	if Seasons.cell_has_seasons(world, cell):
+		var ph := Seasons.phase_at(_season_north, world.lats[cell])
+		autumn = Seasons.weight(ph, 2)
+		winter = Seasons.weight(ph, 3)
+		label = Seasons.NAMES[int(ph) % 4]
+	_hud.set_season_label(Seasons.LABELS[label] if label != "none" else "")
+	_season_fx.update(_camera, autumn, winter, _camera.far_amount)
+
+
+## Modo dev: força uma estação (no hemisfério norte; o sul fica com a oposta) ou volta para
+## a data real ("real").
+func dev_force_season(season: String) -> void:
+	if season == "real":
+		Seasons.override_unix = 0.0
+		_ui.dev.status("Estações pela data real.")
+	else:
+		var year := int(Time.get_datetime_dict_from_unix_time(int(season_now()))["year"])
+		var md: Array = {"spring": [4, 25], "summer": [7, 25], "autumn": [10, 28], "winter": [1, 25]}[season]
+		Seasons.override_unix = float(Time.get_unix_time_from_datetime_dict({"year": year, "month": md[0], "day": md[1], "hour": 12, "minute": 0, "second": 0}))
+		_ui.dev.status("Data forçada: %02d/%02d (%s no norte, %s no sul)." % [md[1], md[0],
+			Seasons.LABELS[season].to_lower(), Seasons.LABELS[Seasons.NAMES[(Seasons.NAMES.find(season) + 2) % 4]].to_lower()])
+	await apply_season(Seasons.north_phase(season_now()))
+
+
 ## Um animal comeu a frutinha (o servidor já marcou a amizade na Goblopédia).
 func on_animal_fed(_species: String) -> void:
 	pass
@@ -877,7 +963,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -907,6 +993,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("photo-test"):
 		await _photo_test()
+		return
+	if _args.has("season-test"):
+		await _season_test()
 		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
@@ -1342,6 +1431,87 @@ func _photo_test() -> void:
 	check.call(_ui.pedia._entries.size() >= 15, "álbum com %d páginas" % _ui.pedia._entries.size())
 	_ui.close_windows()
 	print("Goblo: photo-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
+	get_tree().quit(1 if fails > 0 else 0)
+
+
+## Estações: no norte e no sul, árvores trocam de modelo pela estação, o HUD mostra o
+## nome, os trópicos não mudam e a árvore de outono entra na Goblopédia.
+func _season_test() -> void:
+	var fails := 0
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: season-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails += 1
+	var variants := func() -> Dictionary:
+		var out := {"autumn": 0, "snow": 0, "": 0}
+		for key: int in _data.loaded_keys():
+			for o: Dictionary in _data.chunk(key).get("objects", []):
+				if o.has("season_variant") and o["season_variant"] in out:
+					out[o["season_variant"]] += 1
+		return out
+	var settle := func() -> void:
+		for i in 40:
+			await get_tree().process_frame
+		await get_tree().create_timer(0.6).timeout
+		_season_timer = 0.0
+		await get_tree().process_frame
+	await teleport_exact(50.5, 10.0)  # floresta na Alemanha
+	await dev_force_season("winter")
+	_vegetation.load_now(_player.global_position)
+	await settle.call()
+	var v: Dictionary = variants.call()
+	check.call(v["snow"] > 0 and _hud._season_label == "Inverno", "inverno na Alemanha: %d objetos com neve, HUD \"%s\"" % [v["snow"], _hud._season_label])
+	await dev_force_season("autumn")
+	_vegetation.load_now(_player.global_position)
+	await settle.call()
+	v = variants.call()
+	check.call(v["autumn"] > 0 and v["snow"] == 0 and _hud._season_label == "Outono", "outono: %d árvores de outono, HUD \"%s\"" % [v["autumn"], _hud._season_label])
+	# Foto de uma árvore de outono: entra na Goblopédia.
+	await _dev("/dev/pedia", {"action": "reset"}, "")
+	await dev_give("camera", 1)
+	_session.equip("camera")
+	var tree := {}
+	for o: Dictionary in _data.objects_near(_player.global_position, 25.0):
+		if _vegetation.season_entry(o) == "tree_autumn":
+			tree = o
+			break
+	if not tree.is_empty():
+		var p: Vector3 = tree["pos"]
+		var up := p.normalized()
+		var away := (_player.global_position - p)
+		away = (away - up * away.dot(up)).normalized()
+		await _teleport(p + away * 7.0)
+		_photo.enter()
+		var to := p - _player.global_position
+		var pu := _player.global_position.normalized()
+		_camera._heading = (to - pu * to.dot(pu)).normalized()
+		_camera.photo_pitch = 8.0
+		await get_tree().create_timer(0.5).timeout
+		var reg := await _photo.take_photo()
+		_photo.exit()
+		var got: Array = reg.map(func(r: Dictionary) -> String: return str(r["entry"]))
+		check.call("tree_autumn" in got, "foto de árvore de outono na Goblopédia: %s" % str(got))
+	else:
+		check.call(false, "achar uma árvore de outono perto")
+	# Sul: com o norte no inverno, a Argentina está no verão (sem neve, sem outono).
+	await dev_force_season("winter")
+	await teleport_exact(-34.6, -60.5)
+	_vegetation.load_now(_player.global_position)
+	await settle.call()
+	check.call(_hud._season_label == "Verão", "Argentina no inverno do norte: \"%s\"" % _hud._season_label)
+	# Trópicos: Manaus não tem estação.
+	await teleport_exact(-3.1, -60.0)
+	_vegetation.load_now(_player.global_position)
+	await settle.call()
+	v = variants.call()
+	check.call(_hud._season_label == "" and v["snow"] == 0, "Manaus sem estação (HUD \"%s\", %d com neve)" % [_hud._season_label, v["snow"]])
+	# Volta para a data real: fim de outubro = outono no norte.
+	await dev_force_season("real")
+	await teleport_exact(50.5, 10.0)
+	await settle.call()
+	var real := Seasons.season_at(season_now(), 50.5)
+	check.call(_hud._season_label == Seasons.LABELS[real], "data real na Alemanha: %s (HUD \"%s\")" % [real, _hud._season_label])
+	print("Goblo: season-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
 	get_tree().quit(1 if fails > 0 else 0)
 
 

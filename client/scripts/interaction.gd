@@ -223,7 +223,7 @@ func _animal(an: Dictionary) -> Dictionary:
 
 ## Árvore (ou pedra) balançando: esconde a instância do MultiMesh e anima uma cópia.
 func _wobble(o: Dictionary, strength: float) -> void:
-	var lib := ModelLibrary.get_model(o["model"])
+	var lib := ModelLibrary.get_model(str(o.get("drawn_model", o["model"])))
 	if lib.is_empty():
 		return
 	vegetation.set_object_visible(o["id"], false)

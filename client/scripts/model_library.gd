@@ -89,6 +89,15 @@ static func get_model(name: String) -> Dictionary:
 	return out
 
 
+## O modelo, só se já estiver carregado ({} se não): para trocar pela versão da estação sem
+## carregar nada no meio do jogo.
+static func get_cached(name: String) -> Dictionary:
+	_mutex.lock()
+	var hit: Dictionary = _cache.get(name, {})
+	_mutex.unlock()
+	return hit
+
+
 ## Carrega vários modelos em paralelo (WorkerThreadPool), sem travar a tela: espera
 ## quadro a quadro até terminar. Usado na entrada do jogo, para não haver travadas depois.
 ##
@@ -106,6 +115,14 @@ static func preload_all(names: Array, tree: SceneTree) -> void:
 			target.append(n)
 	for list: Array in [models, scenes]:
 		if list.is_empty():
+			continue
+		if DisplayServer.get_name() == "headless":
+			# Testes: o renderizador falso não aguenta várias threads criando malhas ao mesmo
+			# tempo (erros de RID); carrega em sequência, alguns por quadro.
+			for i in list.size():
+				get_model(list[i])
+				if i % 8 == 7:
+					await tree.process_frame
 			continue
 		var id := WorkerThreadPool.add_group_task(func(i: int) -> void: get_model(list[i]), list.size())
 		while not WorkerThreadPool.is_group_task_completed(id):
