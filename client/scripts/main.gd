@@ -38,6 +38,8 @@ extends Node3D
 ##                       confere o país exato e a linha no chão, e anda até cruzar uma
 ##   --animal-test       acha animais, confere a posição contra o trajeto comum, faz
 ##                       carinho, dá frutinha, assusta um tímido correndo e mede o custo
+##   --photo-test        câmera fotográfica: enquadra uma vaca, fotografa, confere o registro
+##                       na Goblopédia (moedas só na primeira foto) e abre o álbum
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
 ##                       que o que fica no caminho está transparente (servidor dev)
@@ -73,6 +75,8 @@ var _interaction: Interaction
 var _occlusion: CameraOcclusion
 var _border_lines: BorderLines
 var _animals: Animals
+var _photo: PhotoMode
+var _pedia_art: PediaArt
 var _tracker: CountryTracker
 ## Marcador da casa no globo, visível na visão afastada.
 var _home_marker: Sprite3D
@@ -156,6 +160,11 @@ func _ready() -> void:
 	_animals = Animals.new()
 	_animals.name = "Animals"
 	add_child(_animals)
+	_pedia_art = PediaArt.new()
+	add_child(_pedia_art)
+	_photo = PhotoMode.new()
+	_photo.name = "PhotoMode"
+	add_child(_photo)
 	_session.equipped_changed.connect(_on_equipped)
 
 	_http = HTTPRequest.new()
@@ -384,6 +393,20 @@ func _setup_game() -> void:
 	_interaction.icons = _icons
 	_interaction.neighborhood = _neighborhood
 	_interaction.animals = _animals
+	_pedia_art.setup(_session.pedia_catalog, Animals._scenes, _session.animal_species)
+	_ui.pedia.setup(self, _session, _pedia_art)
+	_photo.game = self
+	_photo.camera = _camera
+	_photo.player = _player
+	_photo.session = _session
+	_photo.ui = _ui
+	_photo.hud = _hud
+	_photo.data = _data
+	_photo.animals = _animals
+	_photo.vegetation = _vegetation
+	_photo.tracker = _tracker
+	_photo.world = world
+	_photo.api = _api
 	_data.day_changed.connect(func() -> void:
 		var r := await _api.request("GET", "/me")
 		if r["ok"]:
@@ -572,6 +595,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_build.enter()
 	elif event.is_action_pressed("home"):
 		go_home()
+	elif event.is_action_pressed("pedia"):
+		var was_open := _ui.pedia.visible
+		_ui.close_windows()
+		if not was_open:
+			_ui.pedia.toggle()
+		get_viewport().set_input_as_handled()
 	elif key >= KEY_1 and key <= KEY_5 and not _ui.menu_open():
 		_ui.hotbar.press(key - KEY_1)
 
@@ -703,9 +732,14 @@ func apply_lot_result(res: Dictionary) -> void:
 	_session.set_lot(res["lot"])
 
 
-## Um animal comeu a frutinha (Goblopédia: amigos).
+## Um animal comeu a frutinha (o servidor já marcou a amizade na Goblopédia).
 func on_animal_fed(_species: String) -> void:
 	pass
+
+
+## Pedido ao servidor para as janelas (mesmo token do jogador).
+func api_request(method: String, path: String, body: Variant = null) -> Dictionary:
+	return await _api.request(method, path, body)
 
 
 ## Vende na caixa de vendas: [{"item", "count"}].
@@ -843,7 +877,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -870,6 +904,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("animal-test"):
 		await _animal_test()
+		return
+	if _args.has("photo-test"):
+		await _photo_test()
 		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
@@ -1250,6 +1287,61 @@ func _animal_test() -> void:
 		await get_tree().process_frame
 	print("Goblo: animal-test custo: %.3f ms por quadro com %d animais (CPU, sem desenho)" % [total / 120.0 / 1000.0, _animals.active_count])
 	print("Goblo: animal-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
+	get_tree().quit(1 if fails > 0 else 0)
+
+
+## Câmera fotográfica e Goblopédia, do modo foto ao álbum.
+func _photo_test() -> void:
+	var fails := 0
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: photo-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails += 1
+	await _dev("/dev/pedia", {"action": "reset"}, "")
+	await dev_give("camera", 1)
+	_session.equip("camera")
+	await teleport_exact(-34.6, -60.5)
+	await get_tree().create_timer(0.8).timeout
+	var fwd := -_player.global_basis.z
+	check.call(_animals.spawn_debug("cow", _player.global_position + fwd * 6.0), "vaca na frente (modo dev)")
+	await get_tree().create_timer(0.8).timeout
+	var cow: Node3D = null
+	for id: int in _animals._active:
+		if id < 0:
+			cow = _animals._active[id]["node"]
+	_photo.enter()
+	check.call(_photo.active and _camera.photo_mode, "botão direito com a câmera na mão entra no modo foto")
+	# Mira na vaca (o mouse giraria a câmera até ela).
+	if cow:
+		var up := _player.global_position.normalized()
+		var to := cow.global_position - _player.global_position
+		_camera._heading = (to - up * to.dot(up)).normalized()
+		_camera.photo_pitch = -2.0
+	await get_tree().create_timer(0.5).timeout
+	var subjects := _photo.find_subjects()
+	var entries: Array = subjects.map(func(x: Dictionary) -> String: return str(x["entry"]))
+	check.call("cow" in entries, "vaca enquadrada: %s" % str(entries))
+	var coins := _session.coins
+	var reg := await _photo.take_photo()
+	var first: Dictionary = reg[0] if not reg.is_empty() else {}
+	check.call(first.get("entry", "") == "cow" and bool(first.get("first", false)) and _session.coins == coins + int(first.get("reward", 0)) and int(first.get("reward", 0)) > 0,
+		"primeira foto da vaca registra e paga (%d → %d moedas)" % [coins, _session.coins])
+	var reg2 := await _photo.take_photo()
+	check.call(not reg2.is_empty() and not bool(reg2[0]["first"]) and int(reg2[0]["reward"]) == 0, "segunda foto não paga de novo")
+	# Mirando para o outro lado, nada enquadrado.
+	_camera._turn(PI)
+	await get_tree().create_timer(0.4).timeout
+	check.call(_photo.find_subjects().filter(func(x: Dictionary) -> bool: return x["entry"] == "cow").is_empty(), "de costas para a vaca, ela não conta")
+	_photo.exit()
+	check.call(not _camera.photo_mode, "botão direito ou Esc sai do modo foto")
+	_ui.pedia.toggle()
+	await get_tree().create_timer(1.0).timeout
+	var cow_page: Array = _ui.pedia._entries.filter(func(e: Dictionary) -> bool: return e["id"] == "cow")
+	check.call(not cow_page.is_empty() and bool(cow_page[0]["discovered"]) and int(cow_page[0]["sightings"]) == 2 and str(cow_page[0]["country"]) == "ARG",
+		"Goblopédia: vaca descoberta na Argentina, 2 fotos (%s)" % str(cow_page))
+	check.call(_ui.pedia._entries.size() >= 15, "álbum com %d páginas" % _ui.pedia._entries.size())
+	_ui.close_windows()
+	print("Goblo: photo-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
 	get_tree().quit(1 if fails > 0 else 0)
 
 

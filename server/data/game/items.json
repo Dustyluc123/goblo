@@ -14,6 +14,7 @@
 
     {"id": "axe", "name": "Machado", "category": "tool", "stack": 1, "model": "primitive:axe", "scale": 1.0},
     {"id": "pickaxe", "name": "Picareta", "category": "tool", "stack": 1, "model": "primitive:pickaxe", "scale": 1.0},
+    {"id": "camera", "name": "Câmera fotográfica", "category": "tool", "stack": 1, "model": "primitive:camera", "scale": 1.0},
 
     {"id": "sell_box", "name": "Caixa de vendas", "category": "placeable", "stack": 1, "footprint": [2, 2], "model": "primitive:sell_box", "scale": 1.0, "height": 0.7},
     {"id": "workbench", "name": "Bancada", "category": "placeable", "stack": 1, "footprint": [2, 2], "model": "primitive:workbench", "scale": 1.0, "height": 0.9},

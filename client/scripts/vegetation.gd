@@ -261,6 +261,11 @@ static func _hidden_transform(t: Transform3D) -> Transform3D:
 	return Transform3D(Basis().scaled(Vector3.ONE * 0.0001), t.origin)
 
 
+## Página da Goblopédia de uma árvore pela estação ("tree_autumn", "tree_snow" ou "").
+func season_entry(_o: Dictionary) -> String:
+	return ""
+
+
 func _on_object_changed(o: Dictionary) -> void:
 	set_object_visible(o["id"], not o["hidden"])
 

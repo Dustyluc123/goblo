@@ -16,6 +16,8 @@ const ACTIONS := {
 	"rotate": [KEY_R],
 	"pick_up": [KEY_X],
 	"home": [KEY_H],
+	"pedia": [KEY_G],
+	"passport": [KEY_P],
 	"dev_panel": [KEY_F1],
 }
 

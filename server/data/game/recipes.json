@@ -3,6 +3,7 @@
   "recipes": [
     {"id": "axe", "result": "axe", "count": 1, "ingredients": {"branch": 5, "stone": 1}},
     {"id": "pickaxe", "result": "pickaxe", "count": 1, "ingredients": {"branch": 5, "stone": 2}},
+    {"id": "camera", "result": "camera", "count": 1, "ingredients": {"wood": 3, "stone": 4, "flower_yellow": 1}},
     {"id": "sell_box", "result": "sell_box", "count": 1, "ingredients": {"wood": 4, "stone": 1}},
     {"id": "fence", "result": "fence", "count": 2, "ingredients": {"wood": 2}},
     {"id": "fence_curved", "result": "fence_curved", "count": 1, "ingredients": {"wood": 2}},

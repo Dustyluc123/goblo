@@ -38,6 +38,8 @@ var currency := {"singular": "moeda", "plural": "moedas"}
 var sell_prices := {}
 ## Espécies de animais (animals.json): id → {name, model, height, shy, walk, run, roam, leg, jump}.
 var animal_species := {}
+## Páginas da Goblopédia (do /content, sem o progresso): [{id, name, kind, model, season}].
+var pedia_catalog: Array = []
 
 
 func token_path() -> String:
@@ -77,6 +79,7 @@ func set_content(data: Dictionary) -> void:
 		currency = data["currency"]
 	sell_prices = data.get("sell_prices", {})
 	animal_species = data.get("animals", {})
+	pedia_catalog = data.get("pedia", [])
 
 
 func set_me(data: Dictionary) -> void:
@@ -84,6 +87,14 @@ func set_me(data: Dictionary) -> void:
 	set_inventory(data.get("inventory", []), int(data.get("slots_used", 0)))
 	set_coins(int(data.get("coins", coins)))
 	me_changed.emit()
+
+
+## Páginas da Goblopédia sem progresso (para abrir o álbum antes da resposta do servidor).
+func pedia_entries() -> Array:
+	return pedia_catalog.map(func(e: Dictionary) -> Dictionary:
+		var c := e.duplicate()
+		c["discovered"] = false
+		return c)
 
 
 func set_coins(n: int) -> void:

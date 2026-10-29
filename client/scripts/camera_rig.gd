@@ -48,6 +48,15 @@ const GROUND_CLEARANCE := 0.45
 ## Inclinação extra atual (graus) para a câmera não entrar no terreno (morros).
 var _ground_pitch := 0.0
 
+## Modo foto (câmera fotográfica na mão, botão direito): visão por cima do ombro, com
+## zoom de lente (campo de visão) na roda do mouse.
+var photo_mode := false
+var photo_fov := 50.0
+var photo_pitch := 4.0
+const PHOTO_FOV_MIN := 18.0
+const PHOTO_FOV_MAX := 70.0
+var _normal_fov := 75.0
+
 
 func _ready() -> void:
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
@@ -73,7 +82,30 @@ func set_zoom_now(z: float) -> void:
 	_zoom = zoom
 
 
+## Liga ou desliga o modo foto (por cima do ombro, lente com zoom).
+func set_photo_mode(on: bool) -> void:
+	if on == photo_mode:
+		return
+	photo_mode = on
+	if on:
+		_normal_fov = fov
+		photo_fov = 50.0
+		photo_pitch = 4.0
+	else:
+		fov = _normal_fov
+	_dragging = false
+
+
+## Zoom da lente no modo foto (graus de campo de visão; positivo aproxima).
+func photo_zoom(step: float) -> void:
+	photo_fov = clampf(photo_fov - step, PHOTO_FOV_MIN, PHOTO_FOV_MAX)
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if photo_mode:
+		if event is InputEventMouseMotion and not (ui and ui.captures(event)):
+			look((event as InputEventMouseMotion).relative)
+		return
 	if ui and ui.captures(event):
 		# Soltar o botão direito sempre para de girar (mesmo em cima de uma janela).
 		if event is InputEventMouseButton and not (event as InputEventMouseButton).pressed:
@@ -110,6 +142,9 @@ func _process(delta: float) -> void:
 	if _heading.length() < 0.01:
 		_heading = _tangent(-target.global_basis.z, up)
 	_heading = _heading.normalized()
+	if photo_mode:
+		_photo_view(player_pos, up, delta)
+		return
 
 	var dist := min_distance * pow(max_distance / min_distance, _zoom)
 	var t := smoothstep(0.4, 0.9, _zoom)
@@ -165,6 +200,21 @@ func _process(delta: float) -> void:
 	far = planet_radius * 2.0 + dist * 2.0 + 500.0
 
 
+## Por cima do ombro direito, olhando para a frente (modo foto).
+func _photo_view(player_pos: Vector3, up: Vector3, delta: float) -> void:
+	far_amount = 0.0
+	distance = 1.5
+	var right := _heading.cross(up).normalized()
+	var head := player_pos + up * 0.85
+	var pitch := deg_to_rad(photo_pitch)
+	var fwd := (_heading * cos(pitch) + up * sin(pitch)).normalized()
+	var pos := head - _heading * 1.4 + right * 0.5 + up * 0.08
+	look_at_from_position(pos, pos + fwd * 10.0, up)
+	fov = lerpf(fov, photo_fov, 1.0 - exp(-10.0 * delta))
+	near = 0.05
+	far = planet_radius * 2.0 + 500.0
+
+
 ## Inclinação extra (graus) para a câmera, a `dist` da cabeça, ficar acima do terreno.
 func _ground_pitch_needed(head: Vector3, up: Vector3, dist: float) -> float:
 	if world == null:
@@ -190,6 +240,12 @@ func target_body_rid() -> RID:
 func look(relative: Vector2) -> void:
 	var s := mouse_sensitivity * MouseSettings.sensitivity()
 	var dy := -relative.y if MouseSettings.invert_y() else relative.y
+	if photo_mode:
+		# Lente: mais devagar com zoom, e o vertical olha para cima e para baixo.
+		s *= photo_fov / 60.0
+		_turn(-relative.x * s)
+		photo_pitch = clampf(photo_pitch - dy * s * 60.0, -35.0, 45.0)
+		return
 	_turn(-relative.x * s)
 	pitch_degrees = clampf(pitch_degrees + dy * s * 60.0, MIN_PITCH, MAX_PITCH)
 

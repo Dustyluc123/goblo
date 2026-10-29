@@ -21,6 +21,7 @@ var dev: DevPanel
 var first_access: FirstAccess
 var settings: SettingsUi
 var sell: SellUi
+var pedia: PediaUi
 ## Todas as janelas (menus): qualquer uma aberta trava o jogo e solta o cursor. Janela nova
 ## só precisa entrar aqui (add_window).
 var windows: Array[Control] = []
@@ -96,6 +97,7 @@ func _ready() -> void:
 	dev = add_window(DevPanel.new()) as DevPanel
 	settings = add_window(SettingsUi.new()) as SettingsUi
 	sell = add_window(SellUi.new()) as SellUi
+	pedia = add_window(PediaUi.new()) as PediaUi
 
 
 ## Registra uma janela (menu) e a coloca na tela.
