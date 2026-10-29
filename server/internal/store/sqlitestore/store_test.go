@@ -18,7 +18,7 @@ func TestMigrationsRunOnce(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if v, err := s.SchemaVersion(ctx); err != nil || v != 1 {
+		if v, err := s.SchemaVersion(ctx); err != nil || v != 2 {
 			t.Fatalf("versão do esquema %d (%v)", v, err)
 		}
 		s.Close()

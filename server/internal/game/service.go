@@ -222,6 +222,9 @@ type HouseView struct {
 	X            int    `json:"x"`
 	Y            int    `json:"y"`
 	Rot          int    `json:"rot"`
+	// Canto da obra (pode diferir de X, Y na melhoria; a obra pode crescer e se deslocar).
+	PendingX int `json:"pending_x"`
+	PendingY int `json:"pending_y"`
 }
 
 // PlacementView é um objeto colocado num lote.
@@ -312,12 +315,18 @@ func (s *Service) slotsUsed(inv []Stack) int {
 // settle conclui a obra se a hora de ficar pronta já passou. Devolve true se mudou.
 func settle(l *Lot, now time.Time) bool {
 	if l.PendingLevel > 0 && !now.Before(l.ReadyAt) {
-		l.HouseLevel = l.PendingLevel
-		l.PendingLevel = 0
-		l.ReadyAt = time.Time{}
+		finish(l)
 		return true
 	}
 	return false
+}
+
+// finish conclui a obra na hora: a casa nova assume o lugar da obra.
+func finish(l *Lot) {
+	l.HouseLevel = l.PendingLevel
+	l.HouseX, l.HouseY = l.PendingX, l.PendingY
+	l.PendingLevel = 0
+	l.ReadyAt = time.Time{}
 }
 
 func (s *Service) lotViews(ctx context.Context, st Store, lots []Lot) ([]LotView, error) {
@@ -352,7 +361,7 @@ func (s *Service) lotViews(ctx context.Context, st Store, lots []Lot) ([]LotView
 			v.Owner = p.Nickname
 		}
 		if l.HouseLevel > 0 || l.PendingLevel > 0 {
-			h := &HouseView{Level: l.HouseLevel, PendingLevel: l.PendingLevel, X: l.HouseX, Y: l.HouseY, Rot: l.HouseRot}
+			h := &HouseView{Level: l.HouseLevel, PendingLevel: l.PendingLevel, X: l.HouseX, Y: l.HouseY, Rot: l.HouseRot, PendingX: l.PendingX, PendingY: l.PendingY}
 			if l.PendingLevel > 0 {
 				h.ReadyAt = l.ReadyAt.Unix()
 			}
@@ -814,12 +823,16 @@ func (s *Service) houseRect(l *Lot, level int) (rect, bool) {
 	return footprintRect(h.Footprint, l.HouseX, l.HouseY, l.HouseRot), true
 }
 
-// occupied devolve os retângulos ocupados no lote (casa + objetos), menos o objeto `skip`.
+// occupied devolve os retângulos ocupados no lote: casa pronta, obra e objetos (sem as
+// casas se skipHouse).
 func (s *Service) occupied(l *Lot, placements []Placement, skipHouse bool) []rect {
 	var out []rect
 	if !skipHouse {
-		if r, ok := s.houseRect(l, max(l.HouseLevel, l.PendingLevel)); ok {
+		if r, ok := s.houseRect(l, l.HouseLevel); ok {
 			out = append(out, r)
+		}
+		if h := s.content.House(l.PendingLevel); h != nil {
+			out = append(out, footprintRect(h.Footprint, l.PendingX, l.PendingY, l.HouseRot))
 		}
 	}
 	for _, p := range placements {
@@ -953,9 +966,91 @@ func (s *Service) Remove(ctx context.Context, p *Player, placementID int64) (*Pl
 	return res, err
 }
 
+// Blocker é um objeto do lote que atrapalha a obra da casa (vai em details.blockers).
+type Blocker struct {
+	ID   int64  `json:"id"`
+	Item string `json:"item"`
+	Name string `json:"name"`
+}
+
+// upgradeOrigin é onde a casa do nível seguinte (footprint fp) fica, a partir da casa
+// atual `cur`: a parede da porta continua no mesmo lugar e a casa cresce para os lados
+// (centralizada) e para trás. rot 0 → porta no sul (y0), 1 → leste (x1), 2 → norte (y1),
+// 3 → oeste (x0).
+func upgradeOrigin(cur rect, fp [2]int, rot int) (int, int) {
+	n := footprintRect(fp, 0, 0, rot)
+	w, h := n.x1, n.y1
+	cx := cur.x0 - (w-(cur.x1-cur.x0))/2
+	cy := cur.y0 - (h-(cur.y1-cur.y0))/2
+	switch rot {
+	case 0:
+		return cx, cur.y0
+	case 1:
+		return cur.x1 - w, cy
+	case 2:
+		return cx, cur.y1 - h
+	default:
+		return cur.x0, cy
+	}
+}
+
+// placeUpgrade escolhe a posição da casa melhorada: a preferida (upgradeOrigin) ou, se
+// ela passar da borda ou bater num objeto, a mais próxima dentro do lote que continue
+// cobrindo a casa atual (a casa cresce, não muda de lugar). Se todas baterem em objetos,
+// devolve a mais próxima e os objetos que atrapalham.
+func (s *Service) placeUpgrade(l *Lot, fp [2]int, placements []Placement) (rect, []Placement) {
+	cur, _ := s.houseRect(l, l.HouseLevel)
+	px, py := upgradeOrigin(cur, fp, l.HouseRot)
+	n := footprintRect(fp, 0, 0, l.HouseRot)
+	type cand struct {
+		r    rect
+		dist int
+	}
+	var cands []cand
+	for y := 0; y+n.y1 <= LotTiles; y++ {
+		for x := 0; x+n.x1 <= LotTiles; x++ {
+			r := footprintRect(fp, x, y, l.HouseRot)
+			covers := r.x0 <= cur.x0 && r.y0 <= cur.y0 && r.x1 >= cur.x1 && r.y1 >= cur.y1
+			if !covers {
+				continue
+			}
+			dx, dy := x-px, y-py
+			cands = append(cands, cand{r, dx*dx + dy*dy})
+		}
+	}
+	if len(cands) == 0 { // não cobre a casa atual em lugar nenhum: aceita qualquer posição
+		for y := 0; y+n.y1 <= LotTiles; y++ {
+			for x := 0; x+n.x1 <= LotTiles; x++ {
+				dx, dy := x-px, y-py
+				cands = append(cands, cand{footprintRect(fp, x, y, l.HouseRot), dx*dx + dy*dy})
+			}
+		}
+	}
+	if len(cands) == 0 {
+		return footprintRect(fp, px, py, l.HouseRot), nil
+	}
+	sort.SliceStable(cands, func(i, j int) bool { return cands[i].dist < cands[j].dist })
+	blockersOf := func(r rect) []Placement {
+		var out []Placement
+		for _, p := range placements {
+			if it := s.content.Item(p.Item); it != nil && footprintRect(it.Footprint, p.X, p.Y, p.Rot).overlaps(r) {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+	for _, c := range cands {
+		if len(blockersOf(c.r)) == 0 {
+			return c.r, nil
+		}
+	}
+	return cands[0].r, blockersOf(cands[0].r)
+}
+
 // BuildHouse começa a obra do próximo nível da casa. Na primeira casa, (x, y, rot) dizem
-// onde ela fica; nas melhorias, a casa cresce no mesmo lugar. A obra fica pronta na
-// próxima virada do dia (5h locais).
+// onde ela fica; nas melhorias, (x, y, rot) são ignorados: a casa cresce a partir da atual,
+// com a porta no mesmo lado (placeUpgrade). Se objetos atrapalharem, o erro traz a lista
+// em details.blockers. A obra fica pronta na próxima virada do dia (5h locais).
 func (s *Service) BuildHouse(ctx context.Context, p *Player, lotID int64, x, y, rot int) (*PlaceResult, error) {
 	if rot < 0 || rot > 3 {
 		return nil, ErrInvalid.with("Rotação inválida.")
@@ -979,22 +1074,40 @@ func (s *Service) BuildHouse(ctx context.Context, p *Player, lotID int64, x, y, 
 		if level == nil {
 			return ErrMaxLevel
 		}
-		if lot.HouseLevel == 0 {
-			lot.HouseX, lot.HouseY, lot.HouseRot = x, y, rot
-		}
-		r := footprintRect(level.Footprint, lot.HouseX, lot.HouseY, lot.HouseRot)
-		if !r.inLot() {
-			return ErrOutOfLot.with("A %s não cabe aí no lote.", strings.ToLower(level.Name))
-		}
 		placements, err := tx.Placements(ctx, []int64{lot.ID})
 		if err != nil {
 			return err
 		}
-		for _, o := range s.occupied(lot, placements, true) {
-			if o.overlaps(r) {
-				return ErrOverlap.with("Abra espaço: a %s precisa de %d × %d quadradinhos.", strings.ToLower(level.Name), r.x1-r.x0, r.y1-r.y0)
+		var r rect
+		if lot.HouseLevel == 0 {
+			r = footprintRect(level.Footprint, x, y, rot)
+			if !r.inLot() {
+				return ErrOutOfLot.with("A %s não cabe aí no lote.", strings.ToLower(level.Name))
+			}
+			for _, o := range s.occupied(lot, placements, true) {
+				if o.overlaps(r) {
+					return ErrOverlap.with("Já tem alguma coisa aí: a %s precisa de %d × %d quadradinhos livres.", strings.ToLower(level.Name), r.x1-r.x0, r.y1-r.y0)
+				}
+			}
+			lot.HouseX, lot.HouseY, lot.HouseRot = x, y, rot
+		} else {
+			var blockers []Placement
+			r, blockers = s.placeUpgrade(lot, level.Footprint, placements)
+			if !r.inLot() {
+				return ErrOutOfLot.with("A %s não cabe neste lote.", strings.ToLower(level.Name))
+			}
+			if len(blockers) > 0 {
+				list := make([]Blocker, len(blockers))
+				names := make([]string, len(blockers))
+				for i, b := range blockers {
+					list[i] = Blocker{ID: b.ID, Item: b.Item, Name: s.itemName(b.Item)}
+					names[i] = strings.ToLower(list[i].Name)
+				}
+				return ErrOverlap.with("Para a %s caber, guarde no bolso: %s.", strings.ToLower(level.Name), strings.Join(names, ", ")).
+					withDetails(map[string]any{"blockers": list})
 			}
 		}
+		lot.PendingX, lot.PendingY = r.x0, r.y0
 		inv, err := tx.Inventory(ctx, p.ID)
 		if err != nil {
 			return err

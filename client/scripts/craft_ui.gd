@@ -10,6 +10,9 @@ var _list: ItemList
 var _detail: VBoxContainer
 var _house_box: VBoxContainer
 var _selected := 0
+## Objetos que atrapalham a melhoria da casa (resposta do servidor), para o aviso.
+var _blockers: Array = []
+var _blockers_message := ""
 
 
 func _ready() -> void:
@@ -46,6 +49,10 @@ func _ready() -> void:
 	_house_box.add_theme_constant_override("separation", 10)
 	_tabs.add_child(_house_box)
 	visible = false
+	visibility_changed.connect(func() -> void:
+		if not visible and not _blockers.is_empty():
+			clear_blockers()
+			game.clear_blocker_highlight())
 
 
 func setup(g: GameMain, s: Session, i: ItemIcons) -> void:
@@ -63,6 +70,20 @@ func setup(g: GameMain, s: Session, i: ItemIcons) -> void:
 func open() -> void:
 	visible = true
 	refresh()
+
+
+## Mostra, na aba Casa, os objetos que atrapalham a melhoria (lista vinda do servidor).
+func show_blockers(message: String, blockers: Array) -> void:
+	_blockers = blockers
+	_blockers_message = message
+	visible = true
+	_tabs.current_tab = 1
+	refresh()
+
+
+func clear_blockers() -> void:
+	_blockers = []
+	_blockers_message = ""
 
 
 func refresh() -> void:
@@ -153,6 +174,16 @@ func _show_house() -> void:
 	var fp: Array = next["footprint"]
 	_house_box.add_child(UiStyle.label("Próximo nível: %s (%d × %d quadradinhos)" % [next["name"], fp[0], fp[1]], 18))
 	_house_box.add_child(_cost_list(next["cost"]))
+	if not _blockers.is_empty():
+		var warn := UiStyle.label(_blockers_message, 17, UiStyle.WARN)
+		warn.autowrap_mode = TextServer.AUTOWRAP_WORD
+		_house_box.add_child(warn)
+		_house_box.add_child(UiStyle.label("Eles estão marcados em vermelho no lote.", 15, UiStyle.INK_SOFT))
+		var store := UiStyle.button("Guardar no bolso e melhorar")
+		store.disabled = not session.can_afford(next["cost"])
+		store.pressed.connect(func() -> void: game.store_blockers_and_upgrade(_blockers.duplicate()))
+		_house_box.add_child(store)
+		return
 	var b := UiStyle.button("Escolher o lugar e construir" if level == 0 else "Melhorar a casa")
 	b.disabled = not session.can_afford(next["cost"])
 	if level == 0:

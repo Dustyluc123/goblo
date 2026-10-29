@@ -58,7 +58,11 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 func writeError(w http.ResponseWriter, s *Server, err error) {
 	var ge *game.Error
 	if errors.As(err, &ge) {
-		writeJSON(w, ge.Status, map[string]string{"error": ge.Code, "message": ge.Message})
+		body := map[string]any{"error": ge.Code, "message": ge.Message}
+		if ge.Details != nil {
+			body["details"] = ge.Details
+		}
+		writeJSON(w, ge.Status, body)
 		return
 	}
 	if s != nil && s.Log != nil {

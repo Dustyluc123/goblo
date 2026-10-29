@@ -217,12 +217,12 @@ func (s *Store) DeletePlayer(ctx context.Context, id int64) error {
 
 // --- Lotes ----------------------------------------------------------------------------------
 
-const lotCols = `id, cell, slot, owner_id, house_level, pending_level, ready_at, house_x, house_y, house_rot`
+const lotCols = `id, cell, slot, owner_id, house_level, pending_level, ready_at, house_x, house_y, house_rot, pending_x, pending_y`
 
 func scanLot(row interface{ Scan(...any) error }) (*game.Lot, error) {
 	var l game.Lot
 	var ready int64
-	if err := row.Scan(&l.ID, &l.Cell, &l.Slot, &l.OwnerID, &l.HouseLevel, &l.PendingLevel, &ready, &l.HouseX, &l.HouseY, &l.HouseRot); err != nil {
+	if err := row.Scan(&l.ID, &l.Cell, &l.Slot, &l.OwnerID, &l.HouseLevel, &l.PendingLevel, &ready, &l.HouseX, &l.HouseY, &l.HouseRot, &l.PendingX, &l.PendingY); err != nil {
 		return nil, notFound(err)
 	}
 	if ready > 0 {
@@ -239,8 +239,8 @@ func unixOrZero(t time.Time) int64 {
 }
 
 func (s *Store) CreateLot(ctx context.Context, l *game.Lot) error {
-	_, err := s.q.ExecContext(ctx, `INSERT INTO lots (`+lotCols+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		l.ID, l.Cell, l.Slot, l.OwnerID, l.HouseLevel, l.PendingLevel, unixOrZero(l.ReadyAt), l.HouseX, l.HouseY, l.HouseRot)
+	_, err := s.q.ExecContext(ctx, `INSERT INTO lots (`+lotCols+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		l.ID, l.Cell, l.Slot, l.OwnerID, l.HouseLevel, l.PendingLevel, unixOrZero(l.ReadyAt), l.HouseX, l.HouseY, l.HouseRot, l.PendingX, l.PendingY)
 	if isUnique(err, "lots") {
 		return game.ErrLotTaken
 	}
@@ -276,8 +276,8 @@ func (s *Store) LotsByCells(ctx context.Context, cells []int) ([]game.Lot, error
 }
 
 func (s *Store) UpdateLot(ctx context.Context, l *game.Lot) error {
-	_, err := s.q.ExecContext(ctx, `UPDATE lots SET house_level = ?, pending_level = ?, ready_at = ?, house_x = ?, house_y = ?, house_rot = ? WHERE id = ?`,
-		l.HouseLevel, l.PendingLevel, unixOrZero(l.ReadyAt), l.HouseX, l.HouseY, l.HouseRot, l.ID)
+	_, err := s.q.ExecContext(ctx, `UPDATE lots SET house_level = ?, pending_level = ?, ready_at = ?, house_x = ?, house_y = ?, house_rot = ?, pending_x = ?, pending_y = ? WHERE id = ?`,
+		l.HouseLevel, l.PendingLevel, unixOrZero(l.ReadyAt), l.HouseX, l.HouseY, l.HouseRot, l.PendingX, l.PendingY, l.ID)
 	return err
 }
 

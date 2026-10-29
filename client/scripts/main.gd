@@ -627,10 +627,38 @@ func upgrade_house() -> void:
 	var lot := _session.lot()
 	var r := await _api.request("POST", "/lot/house", {"lot": lot["id"], "x": 0, "y": 0, "rot": 0})
 	if not r["ok"]:
+		var details: Variant = r.get("details")
+		if details is Dictionary and (details as Dictionary).get("blockers") is Array:
+			# Decorações no caminho: marca em vermelho e oferece guardar no bolso.
+			var blockers: Array = details["blockers"]
+			var ids := blockers.map(func(b: Dictionary) -> int: return int(b["id"]))
+			_neighborhood.highlight_placements(int(lot["id"]), ids)
+			_ui.craft.show_blockers(str(r["message"]), ids)
+			return
 		_ui.toast(str(r["message"]))
 		return
+	_ui.craft.clear_blockers()
 	apply_lot_result(r["data"])
 	_ui.toast("A reforma começou! Fica pronta amanhã às 5h.")
+
+
+func clear_blocker_highlight() -> void:
+	var lot := _session.lot()
+	if not lot.is_empty():
+		_neighborhood.highlight_placements(int(lot["id"]), [])
+
+
+## Guarda no bolso os objetos que atrapalham a obra e tenta melhorar de novo.
+func store_blockers_and_upgrade(ids: Array) -> void:
+	for id: int in ids:
+		var r := await _api.request("POST", "/lot/remove", {"placement": id})
+		if not r["ok"]:
+			_ui.toast(str(r["message"]))
+			return
+		apply_lot_result(r["data"])
+	_ui.craft.clear_blockers()
+	_ui.toast("Guardei %d objeto%s no bolso." % [ids.size(), "" if ids.size() == 1 else "s"])
+	await upgrade_house()
 
 
 # --- Modo dev -------------------------------------------------------------------------------
@@ -860,6 +888,24 @@ func _play_test() -> void:
 	await get_tree().create_timer(0.5).timeout
 	var node := _neighborhood.lot_node(int(lot["id"]))
 	check.call(node != null and node.get_child_count() >= 4, "casa e lampião desenhados no lote")
+	# Melhoria: lampiões atrás e na frente da barraca bloqueiam a casinha; o servidor lista
+	# o objeto e "guardar no bolso e melhorar" resolve.
+	for pair in [["wood", 30], ["stone", 20], ["lantern", 2]]:
+		await dev_give(pair[0], pair[1])
+	var hx := int(_session.lot()["house"]["x"])
+	var hy := int(_session.lot()["house"]["y"])
+	for pos in [[hx + 1, hy + 6], [hx + 1, hy - 1]]:
+		var pr := await _api.request("POST", "/lot/place", {"lot": lot["id"], "item": "lantern", "x": pos[0], "y": pos[1], "rot": 0})
+		if pr["ok"]:
+			apply_lot_result(pr["data"])
+	await upgrade_house()
+	var blocked := not _ui.craft._blockers.is_empty()
+	check.call(blocked, "melhoria bloqueada lista os objetos no caminho")
+	if blocked:
+		await store_blockers_and_upgrade(_ui.craft._blockers.duplicate())
+	var hp: Variant = _session.lot().get("house")
+	check.call(hp is Dictionary and int(hp["pending_level"]) == 2, "guardar no bolso e melhorar começa a obra da casinha")
+	_ui.close_windows()
 	print("Goblo: play-test %s (%d falhas)" % ["OK" if fails.is_empty() else "FALHOU", fails.size()])
 	if _args.has("screenshot"):
 		await get_tree().create_timer(1.0).timeout

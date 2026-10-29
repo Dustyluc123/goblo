@@ -62,6 +62,22 @@ func _remove_lot(id: int) -> void:
 
 
 ## Nó do lote (para o modo construção achar os objetos).
+## Pinta de vermelho os objetos `ids` do lote (os que atrapalham a obra). Vazio limpa.
+func highlight_placements(lot_id: int, ids: Array) -> void:
+	var node := lot_node(lot_id)
+	if node == null:
+		return
+	var red := StandardMaterial3D.new()
+	red.albedo_color = Color(1.0, 0.25, 0.2, 0.55)
+	red.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	red.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	red.no_depth_test = true
+	for c in node.get_children():
+		if c is MeshInstance3D and c.has_meta("placement"):
+			var on := int((c.get_meta("placement") as Dictionary).get("id", -1)) in ids
+			(c as MeshInstance3D).material_overlay = red if on else null
+
+
 func lot_node(id: int) -> Node3D:
 	return _lots.get(id)
 
@@ -167,6 +183,9 @@ func _build_house(root: Node3D, body: StaticBody3D, f: Dictionary, l: Dictionary
 		_add_model(root, f, l, tile, str(h["scene"]), fp, x, y, rot, 1.0)
 		_add_box(body, f, l, tile, fp, x, y, rot, 2.6)
 	if pending > 0:
+		# A obra pode ficar num lugar diferente da casa atual (a melhoria cresce).
+		x = int(house.get("pending_x", x))
+		y = int(house.get("pending_y", y))
 		var hp := session.house_level(pending)
 		var fp := Vector2i(int(hp["footprint"][0]), int(hp["footprint"][1]))
 		var r := LotGeom.rotated(fp, rot)

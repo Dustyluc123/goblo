@@ -28,6 +28,8 @@ type Lot struct {
 	HouseX       int
 	HouseY       int
 	HouseRot     int
+	PendingX     int // canto da casa em obra (a casa melhorada pode crescer e se deslocar)
+	PendingY     int
 }
 
 // Stack é um item do inventário com a quantidade. Order guarda a ordem de chegada.

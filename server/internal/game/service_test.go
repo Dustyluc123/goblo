@@ -493,15 +493,17 @@ func TestHouseIsReadyOnlyAfterRollover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h := res.Lot.House; h.X != 5 || h.Y != 6 || h.PendingLevel != 2 || h.Level != 1 {
+	// A barraca continua no lugar durante a obra; a casinha (9 × 7) cresce para os lados,
+	// com a porta (sul) no mesmo lugar.
+	if h := res.Lot.House; h.X != 5 || h.Y != 6 || h.PendingX != 4 || h.PendingY != 6 || h.PendingLevel != 2 || h.Level != 1 {
 		t.Fatalf("melhoria: %+v", h)
 	}
 	if _, err := f.svc.DevFinishHouse(f.ctx, p); err != nil {
 		t.Fatal(err)
 	}
 	me, _ = f.svc.Me(f.ctx, p)
-	if me.Lot.House.Level != 2 {
-		t.Fatalf("dev deveria concluir a obra na hora: %+v", me.Lot.House)
+	if h := me.Lot.House; h.Level != 2 || h.X != 4 || h.Y != 6 {
+		t.Fatalf("dev deveria concluir a obra na hora, no lugar da obra: %+v", h)
 	}
 }
 

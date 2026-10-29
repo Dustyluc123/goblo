@@ -63,7 +63,7 @@ func (s *Service) DevFinishHouse(ctx context.Context, p *Player) (*MeView, error
 		if lot.PendingLevel == 0 {
 			return ErrInvalid.with("Não há obra em andamento.")
 		}
-		lot.HouseLevel, lot.PendingLevel, lot.ReadyAt = lot.PendingLevel, 0, time.Time{}
+		finish(lot)
 		if err := tx.UpdateLot(ctx, lot); err != nil {
 			return err
 		}
@@ -233,6 +233,7 @@ func (s *Service) createFake(ctx context.Context, tx Store, r *rng, cell int, sl
 	lot := &Lot{ID: slot.ID, Cell: cell, Slot: slot.Slot, OwnerID: fp.ID, HouseLevel: level, HouseRot: 0}
 	lot.HouseX = (LotTiles - h.Footprint[0]) / 2
 	lot.HouseY = LotTiles - h.Footprint[1] - 1 - r.intn(2)
+	lot.PendingX, lot.PendingY = lot.HouseX, lot.HouseY
 	if err := tx.CreateLot(ctx, lot); err != nil {
 		return err
 	}

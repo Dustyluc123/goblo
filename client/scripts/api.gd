@@ -41,7 +41,7 @@ func request(method: String, path: String, body: Variant = null) -> Dictionary:
 	var methods := {"GET": HTTPClient.METHOD_GET, "POST": HTTPClient.METHOD_POST}
 	in_flight += 1
 	var err := http.request(base_url + path, headers, methods.get(method, HTTPClient.METHOD_GET), payload)
-	var out := {"ok": false, "status": 0, "data": null, "error": "", "message": ""}
+	var out := {"ok": false, "status": 0, "data": null, "error": "", "message": "", "details": null}
 	if err != OK:
 		in_flight -= 1
 		http.queue_free()
@@ -65,6 +65,7 @@ func request(method: String, path: String, body: Variant = null) -> Dictionary:
 	if not out["ok"] and data is Dictionary:
 		out["error"] = str(data.get("error", "http"))
 		out["message"] = str(data.get("message", "Erro %d." % code))
+		out["details"] = data.get("details")
 	elif not out["ok"]:
 		out["error"] = "http"
 		out["message"] = "Erro %d no servidor." % code

@@ -39,7 +39,7 @@ Todo erro de regra responde com um status HTTP e o corpo:
 | `no_tool` | 409 | falta machado ou picareta |
 | `inventory_full` | 409 | o item não cabe nos 20 espaços |
 | `missing_materials` | 409 | faltam materiais (a mensagem lista quais) |
-| `overlap` | 409 | já tem alguma coisa nesses quadradinhos |
+| `overlap` | 409 | já tem alguma coisa nesses quadradinhos (na melhoria da casa, `details.blockers` lista os objetos: `[{"id", "item", "name"}]`) |
 | `busy` | 409 | a obra da casa ainda não terminou |
 | `max_level` | 409 | a casa já está no nível máximo |
 | `internal` | 500 | erro inesperado (vai para o log do servidor) |
@@ -112,7 +112,7 @@ Cria o jogador e escolhe um lote livre no país dele, com uma bancada.
   "lot": {
     "id": 85696, "cell": 21424, "slot": 0, "x0": -7.25, "y0": -7.25,
     "owner_id": 1, "owner": "Lucas",
-    "house": {"level": 1, "name": "Barraca", "pending_level": 2, "ready_at": 1793263063, "x": 4, "y": 6, "rot": 0},
+    "house": {"level": 1, "name": "Barraca", "pending_level": 2, "ready_at": 1793263063, "x": 4, "y": 6, "rot": 0, "pending_x": 3, "pending_y": 6},
     "placements": [{"id": 1, "item": "workbench", "x": 11, "y": 1, "rot": 0}]
   },
   "inventory": [{"item": "branch", "count": 7}, {"item": "axe", "count": 1}],
@@ -121,7 +121,7 @@ Cria o jogador e escolhe um lote livre no país dele, com uma bancada.
 }
 ```
 
-- `house` é `null` sem casa. `level` é o nível pronto; `pending_level > 0` indica uma obra que fica pronta em `ready_at` (unix).
+- `house` é `null` sem casa. `level` é o nível pronto, no canto (`x`, `y`); `pending_level > 0` indica uma obra que fica pronta em `ready_at` (unix), no canto (`pending_x`, `pending_y`) — na melhoria a casa cresce e pode se deslocar (ADR 0027).
 - `day.index` muda às **5h no horário local da casa do jogador** (pela longitude: 15° = 1 hora).
 
 ## Objetos e coleta
