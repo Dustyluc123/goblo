@@ -129,16 +129,22 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 
 ## Medições
 
-Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M), Godot 4.7.2 com o renderizador Mobile, janela de 1280 × 720 em primeiro plano.
+Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M, tela Retina), Godot 4.7.2 com o renderizador Mobile.
 
-**Desempenho** (`--perf-test=20`, andando 20 s, com vsync):
+**Fase 2.1: o que pesa na GPU** (`--profile-scene`, parado, janela maximizada de 3136 × 1930 pixels, bairro com 20 vizinhos; medições feitas em sequência, nas mesmas condições). Detalhes e decisões no [ADR 0028](docs/decisoes/0028-desempenho-da-fase-2-1.md).
 
-| Onde | Qualidade | fps médio | 1% piores | Pior quadro | GPU por quadro | Objetos |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Floresta tropical | Baixa | 60,0 | 59,1 | 17 ms | 9,2 ms | 5.406 |
-| Floresta tropical | **Média (padrão)** | **60,0** | **58,7** | **17 ms** | **10,0 ms** | 10.129 |
-| Floresta tropical | Alta | 60,0 | 58,1 | 17 ms | 12,7 ms | 14.674 |
-| Bairro com 20 vizinhos | Média | 60,0 | 58,4 | 17 ms | 9,6 ms | 8.543 |
+| Cena | Qualidade | Antes: GPU / draw calls | Depois da otimização: GPU / draw calls |
+| --- | --- | ---: | ---: |
+| Bairro, 20 vizinhos | Alta | 17,1 ms / 1.151 | 12,2 ms / 641 |
+| Bairro, 20 vizinhos | Média | 11,2 ms / 764 | 10,4 ms / 375 |
+| Floresta tropical | Alta | — | 12,2 ms / 501 |
+| Floresta tropical | Média | — | 8,7 ms / 293 |
+| Globo afastado | Média | 1.755 draw calls | 201 draw calls |
+
+Números do autor antes da fase (janela grande): alta no bairro 28 fps (872 draw calls), média perto das casas 47 fps.
+
+> [!WARNING]
+> **Fps com a janela na frente: medição inconclusiva.** A rodada de `--perf-test` (antes e depois, na mesma sessão) deu valores que pioraram ao longo do tempo independentemente do código (o tempo de GPU da mesma cena subiu de 27 para 45 ms), sinal de aquecimento ou de outro programa usando a placa. O visual novo (névoa, glow, vento) também custa GPU na alta: nas medições em segundo plano, o glow sozinho ficou em ~1,7 ms. Para medir de verdade: feche vídeos e outros apps, deixe o Mac esfriar e rode `client/tools/medir_fps.sh` (~4 min).
 
 **Carga** (com o mundo em cache):
 
@@ -328,7 +334,7 @@ go test ./...
 go vet ./...
 ```
 
-54 testes. Além dos do mundo (grade, biomas, escala, formato binário), os da fase 2 conferem:
+58 testes. Além dos do mundo (grade, biomas, escala, formato binário), os da fase 2 conferem:
 
 - rotas `/dev/…` bloqueadas (403) sem `GOBLO_DEV=1`, e funcionando com ele;
 - criação de jogador com lote no país certo, preferindo biomas agradáveis (China, Austrália, EUA, Rússia), e lote mesmo na Groenlândia (só gelo e tundra);
