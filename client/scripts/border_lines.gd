@@ -7,6 +7,9 @@ extends Node3D
 ##
 ## Modo debug (painel F1): desenha também a costa e os segmentos de todos os países, com
 ## a cor de cada país, para conferir os polígonos.
+##
+## As contas (amostrar cada segmento no chão) rodam numa thread; o nó entra no quadro
+## seguinte, um pedaço por quadro (fase 2.6: um pedaço com fronteira travava o jogo).
 
 const DASH_ON := 0.55
 const DASH_OFF := 0.35
@@ -22,6 +25,7 @@ var show_lines := true
 var debug := false
 
 var _chunks := {}  # chave → Node3D
+var _tasks := {}  # chave → {"id": tarefa, "out": [resultado]}
 var _line_mat: StandardMaterial3D
 var _post_mesh: Mesh
 var _cap_mesh: Mesh
@@ -67,14 +71,42 @@ static func _baked(prim: PrimitiveMesh, mat: Material) -> ArrayMesh:
 	return am
 
 
-## O que mostrar (painel dev): linhas e/ou polígonos de debug. Remonta o que está carregado.
+## O que mostrar (painel dev): linhas e/ou polígonos de debug. Remonta o que está carregado
+## (na hora: é uma ferramenta de conferência).
 func set_mode(lines: bool, show_debug: bool) -> void:
 	show_lines = lines
 	debug = show_debug
 	for key: int in _chunks.keys():
 		_on_chunk_unloaded(key)
+	_wait_tasks()
+	if not (show_lines or debug):
+		return
 	for key: int in data.loaded_keys():
-		_on_chunk_loaded(key)
+		_make_node(key, _compute(_gather(key), debug))
+
+
+func _wait_tasks() -> void:
+	for key: int in _tasks:
+		WorkerThreadPool.wait_for_task_completion(_tasks[key]["id"])
+	_tasks.clear()
+
+
+func _exit_tree() -> void:
+	_wait_tasks()
+
+
+func _process(_delta: float) -> void:
+	for key: int in _tasks.keys():
+		var t: Dictionary = _tasks[key]
+		if not WorkerThreadPool.is_task_completed(t["id"]):
+			continue
+		WorkerThreadPool.wait_for_task_completion(t["id"])
+		_tasks.erase(key)
+		if data.is_loaded(key) and not _chunks.has(key) and (show_lines or debug) and not (t["out"] as Array).is_empty():
+			var t0 := Time.get_ticks_usec()
+			_make_node(key, t["out"][0])
+			HitchLog.note("linhas de fronteira do pedaço %d" % key, (Time.get_ticks_usec() - t0) / 1000.0)
+		return  # um por quadro
 
 
 func update_view(far_amount: float) -> void:
@@ -88,20 +120,43 @@ func _on_chunk_unloaded(key: int) -> void:
 
 
 func _on_chunk_loaded(key: int) -> void:
-	if _chunks.has(key) or not (show_lines or debug):
+	if _chunks.has(key) or _tasks.has(key) or not (show_lines or debug):
 		return
-	var cells := {}
+	var job := _gather(key)
+	if job["segs"].is_empty():
+		return  # longe de qualquer fronteira: nada a desenhar
+	var out := []
+	var dbg := debug
+	var id := WorkerThreadPool.add_task(func() -> void: out.append(_compute(job, dbg)))
+	_tasks[key] = {"id": id, "out": out}
+
+
+## O que a thread precisa: as células do pedaço e os segmentos de cada uma (cópia das
+## listas, que o mapa de fronteiras pode trocar enquanto a thread roda).
+func _gather(key: int) -> Dictionary:
+	var segs := []
 	for c in world.chunk_cells[key]:
+		var list := data.borders.segments(c)
+		if not list.is_empty():
+			segs.append([c, list.duplicate()])
+	return {"cells": world.chunk_cells[key], "segs": segs}
+
+
+## Contas da faixa e dos marquinhos (pode rodar numa thread: só lê o mundo).
+func _compute(job: Dictionary, dbg: bool) -> Dictionary:
+	var cells := {}
+	for c in job["cells"]:
 		cells[c] = true
 	var seen := {}
 	var verts := PackedVector3Array()
 	var colors := PackedColorArray()
 	var markers: Array[Transform3D] = []
 	var scratch: Array[Transform3D] = []  # marquinhos da costa (modo debug): descartados
-	for c in world.chunk_cells[key]:
-		for s: Array in data.borders.segments(c):
+	for pair: Array in job["segs"]:
+		var c: int = pair[0]
+		for s: Array in pair[1]:
 			var shared: bool = s[3]
-			if not shared and not debug:
+			if not shared and not dbg:
 				continue
 			var a: Vector3 = s[0]
 			var b: Vector3 = s[1]
@@ -111,9 +166,17 @@ func _on_chunk_loaded(key: int) -> void:
 				continue
 			seen[k] = true
 			var col := Color("fff3d6")
-			if debug:
+			if dbg:
 				col = _country_color(str(s[2])) if shared else Color("ff4d6d")
-			_add_segment(a, b, cells, col, debug and not shared, verts, colors, markers if shared else scratch)
+			_add_segment(a, b, c, cells, col, dbg and not shared, verts, colors, markers if shared else scratch)
+	return {"verts": verts, "colors": colors, "markers": markers}
+
+
+## Nó do pedaço (na thread principal).
+func _make_node(key: int, r: Dictionary) -> void:
+	var verts: PackedVector3Array = r["verts"]
+	var colors: PackedColorArray = r["colors"]
+	var markers: Array[Transform3D] = r["markers"]
 	if verts.is_empty() and markers.is_empty():
 		return
 	var node := Node3D.new()
@@ -147,6 +210,33 @@ func _on_chunk_loaded(key: int) -> void:
 			node.add_child(mmi)
 
 
+## Um pedacinho de faixa e um marquinho, para o pré-aquecimento dos shaders.
+func warm_nodes() -> Array[Node3D]:
+	var verts := PackedVector3Array()
+	var colors := PackedColorArray()
+	_quad(Vector3(0, 0, 0), Vector3(0, 0, 1), Color("fff3d6"), verts, colors)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_COLOR] = colors
+	var line := ArrayMesh.new()
+	line.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	line.surface_set_material(0, _line_mat)
+	var out: Array[Node3D] = []
+	for mesh: Mesh in [line, _post_mesh, _cap_mesh]:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = mesh
+		mm.instance_count = 1
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		out.append(mmi)
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		out.append(mi)
+	return out
+
+
 static func _seg_key(a: Vector3, b: Vector3) -> String:
 	var ka := "%.5f,%.5f,%.5f" % [a.x, a.y, a.z]
 	var kb := "%.5f,%.5f,%.5f" % [b.x, b.y, b.z]
@@ -168,14 +258,16 @@ func _ground(dir: Vector3, hint: int) -> Array:
 
 
 ## Faixa tracejada ao longo do arco a→b, só nas amostras que caem nas células do pedaço.
-func _add_segment(a: Vector3, b: Vector3, cells: Dictionary, col: Color, solid: bool,
+## `near_cell` é uma célula perto do segmento: a busca da célula de cada amostra começa
+## dali (sem pista, a busca varre o mundo inteiro e um pedaço levava 300 ms).
+func _add_segment(a: Vector3, b: Vector3, near_cell: int, cells: Dictionary, col: Color, solid: bool,
 		verts: PackedVector3Array, colors: PackedColorArray, markers: Array[Transform3D]) -> void:
 	var angle := a.angle_to(b)
 	var length := angle * world.radius
 	if length <= 0.0001:
 		return
 	var n := maxi(1, ceili(length / STEP))
-	var hint := -1
+	var hint := near_cell
 	var prev: Array = []
 	var period := DASH_ON + DASH_OFF
 	for i in n + 1:

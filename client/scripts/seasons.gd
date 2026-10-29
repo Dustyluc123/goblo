@@ -110,11 +110,15 @@ static func object_variant(world: WorldData, o: Dictionary, north: float) -> Str
 	return ""
 
 
-## Modelos de estação que podem aparecer na fase `north` (para pré-carregar): versões de
-## outono e/ou de neve dos modelos dados, conforme a estação em algum dos hemisférios.
+## Modelos de estação que podem aparecer na fase `north` ou nos próximos dias (para
+## pré-carregar): versões de outono e/ou de neve dos modelos dados, conforme a estação em
+## algum dos hemisférios. Olhar uns dias à frente evita carregar modelo no meio do jogo
+## quando a transição começa com o jogo aberto.
+const LOOKAHEAD := 0.05  # ~4,5 dias
+
 static func models_needed(models: Array, north: float) -> Array:
 	var want := []
-	for hemi in [north, fposmod(north + 2.0, 4.0)]:
+	for hemi in [north, fposmod(north + 2.0, 4.0), fposmod(north + LOOKAHEAD, 4.0), fposmod(north + 2.0 + LOOKAHEAD, 4.0)]:
 		if weight(hemi, 2) > 0.0 and not want.has("autumn"):
 			want.append("autumn")
 		if weight(hemi, 3) > 0.0 and not want.has("snow"):

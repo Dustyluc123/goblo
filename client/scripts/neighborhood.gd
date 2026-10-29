@@ -12,8 +12,13 @@ extends Node3D
 ## material (2 a 4 draw calls em vez de ~25). O lote do jogador fica peça por peça, porque
 ## o modo construção, a bancada e o destaque dos objetos que atrapalham precisam disso.
 ## Lotes além de `view_distance` (do preset de qualidade) não são desenhados.
+##
+## Lotes que chegam com um pedaço entram aos poucos (fase 2.6): até BUILD_BUDGET_MS por
+## quadro, o mais perto primeiro; o do jogador entra na hora.
 
 const MAX_LIGHTS := 6
+## Tempo máximo (ms) por quadro montando lotes que chegaram com os pedaços.
+const BUILD_BUDGET_MS := 4.0
 const SIGN_VISIBLE := 45.0
 
 var world: WorldData
@@ -34,6 +39,8 @@ var _own_paint_mat: StandardMaterial3D
 var _scaffold_mat: StandardMaterial3D
 ## Até onde os lotes aparecem.
 var view_distance := 120.0
+## Lotes esperando a vez de ser montados (id → lote).
+var _queue := {}
 
 
 func setup(w: WorldData, d: ChunkData, s: Session) -> void:
@@ -84,12 +91,44 @@ func _apply_range(root: Node) -> void:
 
 func _on_chunk_loaded(key: int) -> void:
 	for l: Dictionary in data.chunk(key).get("lots", []):
-		build_lot(l)
+		if int(l.get("owner_id", -1)) == int(session.me.get("id", -2)):
+			build_lot(l)
+		else:
+			_queue[int(l["id"])] = l
 
 
 func _on_chunk_unloaded(key: int) -> void:
 	for l: Dictionary in data.chunk(key).get("lots", []):
+		_queue.erase(int(l["id"]))
 		_remove_lot(int(l["id"]))
+
+
+## Monta os lotes da fila, o mais perto da câmera primeiro, até o limite de tempo.
+func _process(_delta: float) -> void:
+	if _queue.is_empty():
+		return
+	var cam := get_viewport().get_camera_3d()
+	var focus := cam.global_position if cam else Vector3.ZERO
+	var t0 := Time.get_ticks_usec()
+	while not _queue.is_empty() and (Time.get_ticks_usec() - t0) / 1000.0 < BUILD_BUDGET_MS:
+		var best := -1
+		var best_d := INF
+		for id: int in _queue:
+			var l: Dictionary = _queue[id]
+			var d := world.centers[int(l["cell"])].distance_squared_to(focus.normalized())
+			if d < best_d:
+				best_d = d
+				best = id
+		var lot: Dictionary = _queue[best]
+		_queue.erase(best)
+		build_lot(lot)
+
+
+## Monta já tudo o que está na fila (nascimento, testes).
+func flush() -> void:
+	for id: int in _queue.keys():
+		build_lot(_queue[id])
+	_queue.clear()
 
 
 func _remove_lot(id: int) -> void:
@@ -122,6 +161,13 @@ func lot_node(id: int) -> Node3D:
 
 ## (Re)monta um lote.
 func build_lot(l: Dictionary) -> void:
+	_queue.erase(int(l["id"]))
+	var t0 := Time.get_ticks_usec()
+	_build_lot(l)
+	HitchLog.note("lote %d montado (%d objetos)" % [int(l["id"]), (l.get("placements", []) as Array).size()], (Time.get_ticks_usec() - t0) / 1000.0)
+
+
+func _build_lot(l: Dictionary) -> void:
 	var id := int(l["id"])
 	_remove_lot(id)
 	var root := Node3D.new()

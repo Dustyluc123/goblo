@@ -85,6 +85,20 @@ func update(camera: Camera3D, autumn: float, winter: float, far_amount: float) -
 	_snow.emitting = near and winter > 0.35
 
 
+## Cópias das partículas soltando folhas e neve, para o pré-aquecimento dos shaders.
+func warm_nodes() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for p: GPUParticles3D in [_leaves, _snow]:
+		if p == null:
+			continue
+		var c := p.duplicate() as GPUParticles3D
+		c.amount = 16
+		c.emitting = true
+		c.set_meta("warm_size", 4.0)
+		out.append(c)
+	return out
+
+
 static func _leaf_texture() -> ImageTexture:
 	var n := 32
 	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)

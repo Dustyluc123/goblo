@@ -6,6 +6,9 @@ extends Node
 ##
 ## Cada objeto ganha campos calculados no cliente: "pos" (Vector3 no mundo), "basis",
 ## "hidden" (já colhido hoje por este jogador).
+##
+## Para não travar o quadro (fase 2.6): o JSON é lido numa thread (Api), o preparo dos
+## objetos também, e os pedaços prontos entram no máximo um por quadro (`chunk_loaded`).
 
 signal chunk_loaded(key: int)
 signal chunk_unloaded(key: int)
@@ -43,6 +46,8 @@ var _failed := {}  # chave → instante em que pode tentar de novo
 var _frames := {}  # célula → frame
 var _timer := 0.0
 var _focus := Vector3.ZERO
+## Pedaços que chegaram do servidor e esperam a vez de entrar (um por quadro).
+var _arrived: Array = []
 
 
 func setup(w: WorldData, a: Api) -> void:
@@ -90,10 +95,23 @@ func load_now(point: Vector3, r: float) -> void:
 	for key: int in keys:
 		_pending[key] = true
 		_fetch(key)
-	# Espera todos (os pedidos já estão correndo em paralelo).
+	# Espera todos (os pedidos já estão correndo em paralelo) e entra com tudo de uma vez.
 	for key: int in keys:
 		while _pending.has(key):
-			await get_tree().process_frame
+			_drain(1000)
+			if _pending.has(key):
+				await get_tree().process_frame
+
+
+func _process(_delta: float) -> void:
+	_drain(1)
+
+
+## Entra com até `count` pedaços que já chegaram.
+func _drain(count: int) -> void:
+	while count > 0 and not _arrived.is_empty():
+		count -= 1
+		_finish(_arrived.pop_front())
 
 
 ## Chamado a cada quadro com a posição do personagem.
@@ -167,24 +185,54 @@ func _fetch(key: int) -> void:
 		var d: Dictionary = r1["data"]["day"]
 		day = int(d["index"])
 		next_rollover = int(d["next_rollover"])
-	_pending.erase(key)
+		# Preparo dos objetos (posição, rotação) numa thread: centenas por pedaço.
+		var w := world
+		var task := WorkerThreadPool.add_task(func() -> void: _prepare_all(w, objects, animals))
+		while not WorkerThreadPool.is_task_completed(task):
+			await get_tree().process_frame
+		WorkerThreadPool.wait_for_task_completion(task)
 	if not is_inside_tree():
+		_pending.erase(key)
 		return
+	_arrived.append({"key": key, "cells": cells, "objects": objects, "lots": lots, "animals": animals,
+		"borders": r3.get("data") if not cells.is_empty() else null})
+
+
+## Põe no lugar um pedaço que chegou (no máximo um por quadro, ver _drain).
+func _finish(a: Dictionary) -> void:
+	var key: int = a["key"]
+	_pending.erase(key)
 	# O personagem pode ter ido embora enquanto o pedido corria.
 	if _focus.normalized().angle_to(world.chunk_center[key]) * world.radius - float(world.chunk_radius[key]) > radius * 1.35:
 		return
+	var t0 := Time.get_ticks_usec()
+	var objects: Array = a["objects"]
+	var lots: Array = a["lots"]
+	var animals: Array = a["animals"]
 	for o: Dictionary in objects:
-		_prepare_object(o)
 		_objects[int(o["id"])] = o
 	for l: Dictionary in lots:
 		_lots[int(l["id"])] = l
-	if not cells.is_empty():
-		borders.add_response(r3["data"])
-	for a: Dictionary in animals:
-		a["id"] = int(a["id"])
-		a["cell"] = int(a["cell"])
+	if a["borders"] != null:
+		borders.add_response(a["borders"])
 	_chunks[key] = {"objects": objects, "lots": lots, "animals": animals}
+	var t1 := Time.get_ticks_usec()
 	chunk_loaded.emit(key)
+	HitchLog.note("pedaço %d carregado: %d objetos, %d lotes, %d animais (entrada %.1f ms, quem ouve %.1f ms)" % [
+		key, objects.size(), lots.size(), animals.size(), (t1 - t0) / 1000.0, (Time.get_ticks_usec() - t1) / 1000.0])
+
+
+## Preparo (numa thread): só lê o mundo, com um cache de frames próprio.
+static func _prepare_all(w: WorldData, objects: Array, animals: Array) -> void:
+	var frames := {}
+	for o: Dictionary in objects:
+		var cell := int(o["cell"])
+		if not frames.has(cell):
+			frames[cell] = w.cell_frame(cell)
+		_prepare_object_in(o, frames[cell])
+	for an: Dictionary in animals:
+		an["id"] = int(an["id"])
+		an["cell"] = int(an["cell"])
 
 
 ## Acerta o relógio do servidor pela resposta (a demora do pedido entra como meio erro;
@@ -214,8 +262,7 @@ func animals_near(point: Vector3, r: float) -> Array:
 	return out
 
 
-func _prepare_object(o: Dictionary) -> void:
-	var f := frame(int(o["cell"]))
+static func _prepare_object_in(o: Dictionary, f: Dictionary) -> void:
 	o["id"] = int(o["id"])
 	o["cell"] = int(o["cell"])
 	# Flores usam o modelo com as pétalas na cor do item (flower_red → "flower:red").
@@ -235,7 +282,9 @@ static func _is_hidden(o: Dictionary) -> bool:
 
 
 func _unload(key: int) -> void:
+	var t0 := Time.get_ticks_usec()
 	chunk_unloaded.emit(key)  # antes de apagar, para quem ouve ainda ver os objetos
+	HitchLog.note("pedaço %d descarregado" % key, (Time.get_ticks_usec() - t0) / 1000.0)
 	var c: Dictionary = _chunks.get(key, {})
 	for o: Dictionary in c.get("objects", []):
 		_objects.erase(o["id"])

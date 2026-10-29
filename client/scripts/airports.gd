@@ -83,14 +83,22 @@ func update(focus: Vector3, far_amount: float, delta: float) -> void:
 		return
 	_timer = UPDATE_EVERY
 	var dir := focus.normalized()
+	var nearest := {}
+	var nearest_d := INF
 	for a: Dictionary in list:
 		var cell := int(a["cell"])
 		var d := dir.angle_to(world.centers[cell]) * world.radius
-		if d < BUILD_RADIUS and not _built.has(cell):
-			_build(a)
+		if d < BUILD_RADIUS and not _built.has(cell) and d < nearest_d:
+			nearest = a
+			nearest_d = d
 		elif d > FREE_RADIUS and _built.has(cell):
 			(_built[cell] as Node).queue_free()
 			_built.erase(cell)
+	# Um aeroporto por quadro, o mais perto primeiro (na Europa, uma dúzia ficava pronta
+	# no mesmo quadro: 200 ms). Se faltar outro, volta no quadro seguinte.
+	if not nearest.is_empty():
+		_build(nearest)
+		_timer = 0.0
 
 
 # --- Cenário ------------------------------------------------------------------------------
@@ -119,6 +127,7 @@ func _box(body: StaticBody3D, f: Dictionary, x: float, y: float, size: Vector3) 
 
 
 func _build(a: Dictionary) -> void:
+	HitchLog.note("aeroporto montado: %s" % a.get("country", "?"))
 	var cell := int(a["cell"])
 	var f := data.frame(cell)
 	var root := Node3D.new()
