@@ -126,6 +126,7 @@ func build_lot(l: Dictionary) -> void:
 	_remove_lot(id)
 	var root := Node3D.new()
 	root.name = "Lot%d" % id
+	root.set_meta("occluders", [])
 	add_child(root)
 	_lots[id] = root
 	var f := data.frame(int(l["cell"]))
@@ -147,17 +148,21 @@ func build_lot(l: Dictionary) -> void:
 	_apply_range(root)
 
 
-## Junta todas as malhas do lote numa ArrayMesh com uma superfície por material.
-## Fica de fora: borda (transparente), textos e luzes. A malha juntada mantém o meta
-## "house" (para ficar transparente na frente da câmera).
+## Junta as malhas do lote em duas ArrayMesh com uma superfície por material: a casa
+## (meta "house") e o resto (decorações, placa, andaime). Separadas para a casa e as
+## decorações ficarem transparentes na frente da câmera sem desbotar o lote inteiro; as
+## caixas de `occluders` passam a apontar para a malha juntada certa.
+## Fica de fora: borda (transparente), textos e luzes.
 func _merge(root: Node3D) -> void:
-	var groups := {}  # material → {v, n, uv, c, i}
-	var had_house := false
+	var by_part := {"house": {}, "rest": {}}  # parte → material → {v, n, uv, c, i}
+	var part_of := {}  # malha original → parte
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		if mi.mesh == null or mi.material_override == _border_mat or mi.material_override == _own_border_mat:
 			continue
-		had_house = had_house or mi.has_meta("house")
+		var part := "house" if mi.has_meta("house") else "rest"
+		part_of[mi] = part
+		var groups: Dictionary = by_part[part]
 		var xf := _local_to(mi, root)
 		var nb := xf.basis.inverse().transposed()
 		for si in mi.mesh.get_surface_count():
@@ -193,27 +198,34 @@ func _merge(root: Node3D) -> void:
 			g["c"] = gc
 			g["i"] = gi
 		mi.get_parent().remove_child(mi)
+	var merged := {}
+	for part: String in by_part:
+		var groups: Dictionary = by_part[part]
+		if groups.is_empty():
+			continue
+		var mesh := ArrayMesh.new()
+		for mat: Material in groups:
+			var g: Dictionary = groups[mat]
+			var arrays := []
+			arrays.resize(Mesh.ARRAY_MAX)
+			arrays[Mesh.ARRAY_VERTEX] = g["v"]
+			arrays[Mesh.ARRAY_NORMAL] = g["n"]
+			arrays[Mesh.ARRAY_TEX_UV] = g["uv"]
+			arrays[Mesh.ARRAY_COLOR] = g["c"]
+			arrays[Mesh.ARRAY_INDEX] = g["i"]
+			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
+		var mi := MeshInstance3D.new()
+		mi.name = "Merged" + part.capitalize()
+		mi.mesh = mesh
+		if part == "house":
+			mi.set_meta("house", true)
+		root.add_child(mi)
+		merged[part] = mi
+	for occ: Dictionary in root.get_meta("occluders", []):
+		occ["mi"] = merged.get(part_of.get(occ["mi"], "rest"))
+	for mi: MeshInstance3D in part_of:
 		mi.queue_free()
-	if groups.is_empty():
-		return
-	var mesh := ArrayMesh.new()
-	for mat: Material in groups:
-		var g: Dictionary = groups[mat]
-		var arrays := []
-		arrays.resize(Mesh.ARRAY_MAX)
-		arrays[Mesh.ARRAY_VERTEX] = g["v"]
-		arrays[Mesh.ARRAY_NORMAL] = g["n"]
-		arrays[Mesh.ARRAY_TEX_UV] = g["uv"]
-		arrays[Mesh.ARRAY_COLOR] = g["c"]
-		arrays[Mesh.ARRAY_INDEX] = g["i"]
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
-	var merged := MeshInstance3D.new()
-	merged.name = "Merged"
-	merged.mesh = mesh
-	if had_house:
-		merged.set_meta("house", true)
-	root.add_child(merged)
 
 
 static func _local_to(node: Node3D, root: Node3D) -> Transform3D:
@@ -299,8 +311,9 @@ func _build_house(root: Node3D, body: StaticBody3D, f: Dictionary, l: Dictionary
 		var height := 2.6
 		if house_mi:
 			house_mi.set_meta("house", true)
-			# Caixa da altura da casa com o telhado, para a câmera não entrar nele.
+			# Caixa da altura da casa com o telhado (colisão e transparência na câmera).
 			height = maxf(height, house_mi.mesh.get_aabb().size.y)
+			_add_occluder(root, house_mi, f, l, tile, fp, x, y, rot, height + 0.15)
 		_add_box(body, f, l, tile, fp, x, y, rot, height)
 	if pending > 0:
 		# A obra pode ficar num lugar diferente da casa atual (a melhoria cresce).
@@ -339,6 +352,8 @@ func _build_placement(root: Node3D, body: StaticBody3D, f: Dictionary, l: Dictio
 	var h := float(item.get("height", 0.0))
 	if h > 0.0:
 		_add_box(body, f, l, tile, fp, x, y, rot, h, 0.8)
+		if mi:
+			_add_occluder(root, mi, f, l, tile, fp, x, y, rot, h + 0.1)
 	if item.get("light", false) and mi:
 		var light := OmniLight3D.new()
 		light.light_color = Color(1.0, 0.82, 0.55)
@@ -394,6 +409,21 @@ func _add_model(root: Node3D, f: Dictionary, l: Dictionary, tile: float, model: 
 	mi.transform = LotGeom.model_transform(f, l, tile, fp, x, y, rot, lib["aabb"], scale)
 	root.add_child(mi)
 	return mi
+
+
+## Caixa orientada de algo que pode ficar entre a câmera e o personagem; `mi` é a malha
+## que fica transparente (CameraOcclusion). Um pouco maior que o footprint (beiral).
+func _add_occluder(root: Node3D, mi: MeshInstance3D, f: Dictionary, l: Dictionary, tile: float, fp: Vector2i, x: int, y: int, rot: int, height: float) -> void:
+	var r := LotGeom.rotated(fp, rot)
+	var center := LotGeom.point(f, l, tile, x + r.x * 0.5, y + r.y * 0.5, height * 0.5)
+	var half := Vector3(r.x * tile * 0.5 + 0.1, height * 0.5, r.y * tile * 0.5 + 0.1)
+	(root.get_meta("occluders") as Array).append({"mi": mi, "xf": Transform3D(WorldData.frame_basis(f, 0.0), center), "half": half})
+
+
+## Caixas de quem pode ficar entre a câmera e o personagem no lote `id`.
+func occluders(id: int) -> Array:
+	var node := lot_node(id)
+	return node.get_meta("occluders", []) if node else []
 
 
 func _add_box(body: StaticBody3D, f: Dictionary, l: Dictionary, tile: float, fp: Vector2i, x: int, y: int, rot: int, height: float, shrink := 0.9) -> void:

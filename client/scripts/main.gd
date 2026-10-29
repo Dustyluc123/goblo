@@ -34,8 +34,9 @@ extends Node3D
 ##                       --neighbors=N cria N vizinhos falsos antes (servidor dev)
 ##   --off=A,B           (com --profile-scene) desliga desde o começo: nevoa, glow,
 ##                       tonemap, folhagem, sombras; mede só o total
-##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que ela
-##                       nunca entra em nada (servidor com GOBLO_DEV=1)
+##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
+##                       distância não muda sozinha, que ela não vai para baixo do chão e
+##                       que o que fica no caminho está transparente (servidor dev)
 
 const DEFAULT_SERVER := "http://127.0.0.1:8080"
 const RETRY_SECONDS := 3.0
@@ -1084,30 +1085,48 @@ func _set_layer_visible(layer: String, on: bool) -> void:
 			(c as Node3D).visible = on
 
 
-## A câmera nunca pode ficar dentro de nada: encosta o personagem em casas (vizinhos
-## falsos) e em árvores da floresta, gira a câmera 360° e confere, a cada passo, que a
-## posição da câmera não está dentro de nenhuma colisão nem abaixo do chão.
+## A câmera só muda de distância quando o jogador mexe: encosta o personagem em casas
+## (vizinhos falsos) e em árvores da floresta, gira a câmera 360° e confere, a cada passo,
+## que a distância continua a do zoom, que a câmera não está abaixo do chão e que tudo o
+## que fica entre ela e o personagem (ou em volta dela) está transparente.
 func _camera_test() -> void:
 	var fails: Array[String] = []
 	var space := get_world_3d().direct_space_state
-	var probe := PhysicsPointQueryParameters3D.new()
-	probe.exclude = [_player.get_rid()]
+	var terrain_body: StaticBody3D = _terrain.get("_body")
 	var spin_and_check := func(label: String) -> void:
 		var bad := 0
+		var blocked := 0
+		var pitch_before := _camera.pitch_degrees
 		for step in 24:
 			_camera._turn(TAU / 24.0)
-			for i in 6:
-				await get_tree().process_frame
-			probe.position = _camera.global_position
-			var inside := space.intersect_point(probe, 4)
-			var cell := world.find_cell(_camera.global_position)
-			var below := _camera.global_position.length() < world.surface_radius(cell) + 0.05
-			if not inside.is_empty() or below:
+			await get_tree().create_timer(0.35).timeout
+			var cam := _camera.global_position
+			var up := _player.global_position.normalized()
+			var head := _player.global_position + up * 0.6
+			var cell := world.find_cell(cam)
+			var problem := ""
+			if absf(cam.distance_to(head) - _camera.distance) > _camera.distance * 0.02:
+				problem = "distância mudou sozinha (%.2f, zoom pede %.2f)" % [cam.distance_to(head), _camera.distance]
+			elif cam.length() < world.surface_radius(cell) + 0.05:
+				problem = "abaixo do chão"
+			else:
+				# Algo no caminho (ou a câmera dentro de algo) precisa estar desbotado.
+				var q := PhysicsRayQueryParameters3D.create(head, cam)
+				q.exclude = [_player.get_rid(), terrain_body.get_rid()]
+				q.hit_from_inside = true
+				var hit := space.intersect_ray(q)
+				if not hit.is_empty():
+					blocked += 1
+					if _occlusion.faded_count() == 0 or _occlusion.min_alpha() > CameraOcclusion.ALPHA + 0.05:
+						problem = "%s na frente sem transparência" % str(hit["collider"])
+			if not problem.is_empty():
 				bad += 1
-				var what := "abaixo do chão" if below else str(instance_from_id(inside[0]["collider_id"]))
-				print("Goblo: camera-test   câmera dentro de %s a %.2f do personagem" % [what, _camera.global_position.distance_to(_player.global_position)])
-		print("Goblo: camera-test %s %s (%d de 24 posições ruins, %d objetos desbotados no fim)" % [
-			"ok   " if bad == 0 else "FALHOU", label, bad, _occlusion.faded_count()])
+				print("Goblo: camera-test   %s" % problem)
+		if not is_equal_approx(_camera.pitch_degrees, pitch_before):
+			bad += 1
+			print("Goblo: camera-test   o ângulo vertical mudou sozinho")
+		print("Goblo: camera-test %s %s (%d de 24 posições ruins, %d com algo no caminho, %d objetos desbotados no fim)" % [
+			"ok   " if bad == 0 else "FALHOU", label, bad, blocked, _occlusion.faded_count()])
 		if bad > 0:
 			fails.append(label)
 	_camera.set_zoom_now(0.22)
@@ -1128,6 +1147,22 @@ func _camera_test() -> void:
 		_camera.snap_behind_target()  # personagem de costas para a casa: câmera do lado dela
 		await get_tree().create_timer(0.6).timeout
 		await spin_and_check.call("encostado na casa de %s" % lot.get("owner", "?"))
+		if walls == 0 and _args.has("screenshot"):
+			# Fotos: casa entre a câmera e o personagem (pontilhada) e câmera dentro dela.
+			var base := str(_args["screenshot"]).get_basename()
+			_camera.snap_behind_target()  # personagem de costas para a casa: casa no meio
+			_camera.pitch_degrees = 22.0
+			_camera.set_zoom_now(0.0)
+			await get_tree().create_timer(0.8).timeout
+			await _save_shot(base + "_dentro.png")  # câmera dentro da casa: ela some
+			_camera.set_zoom_now(0.15)
+			await get_tree().create_timer(0.8).timeout
+			await _save_shot(base + "_casa.png")  # casa pontilhada na frente do personagem
+			_camera.pitch_degrees = 50.0
+			await get_tree().create_timer(0.8).timeout
+			await _save_shot(base + "_telhado.png")  # telhado entre a câmera e o personagem
+			_camera.pitch_degrees = 28.0
+			_camera.set_zoom_now(0.22)
 		walls += 1
 	if walls == 0:
 		fails.append("nenhuma casa por perto")
@@ -1157,6 +1192,14 @@ func _camera_test() -> void:
 		print("Goblo: camera-test foto com %d objetos desbotados" % _occlusion.faded_count())
 	print("Goblo: camera-test %s (%d falhas)" % ["OK" if fails.is_empty() else "FALHOU", fails.size()])
 	get_tree().quit(0 if fails.is_empty() else 1)
+
+
+## Salva um PNG da tela agora (testes).
+func _save_shot(path: String) -> void:
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(path)
+	print("Goblo: foto %s (%d objetos desbotados, opacidade mínima %.2f, câmera a %.2f)" % [
+		path, _occlusion.faded_count(), _occlusion.min_alpha(), _camera.distance])
 
 
 ## Piloto automático até --route=LAT,LON. Segue o grande círculo; se ficar preso (árvore,

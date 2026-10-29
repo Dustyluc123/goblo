@@ -134,8 +134,9 @@ Todas as rotas, com exemplos, estão em [`API.md`](API.md). O mundo continua em 
 | `scripts/game_ui.gd`, `inventory_ui.gd`, `hotbar.gd`, `craft_ui.gd`, `dev_panel.gd`, `first_access.gd`, `ui_style.gd`, `item_icons.gd` | janelas aconchegantes (cartões creme) e ícones desenhados a partir dos modelos 3D |
 | `scenes/houses/house_level_N.tscn` + `tools/montar_casas.gd` | as três casas, montadas com o Fantasy Town Kit |
 | `scenes/player.tscn` + `scripts/player.gd` | `CharacterBody3D` com gravidade para o centro, pulo, degraus e bloqueio do oceano; animações num `AnimationTree` |
-| `scripts/camera_rig.gd` | câmera em terceira pessoa com zoom contínuo até o planeta inteiro; não atravessa nada (esfera lançada do personagem até ela) |
-| `scripts/camera_occlusion.gd` | árvores, pedras e casas entre a câmera e o personagem ficam transparentes |
+| `scripts/camera_rig.gd` | câmera em terceira pessoa com zoom contínuo até o planeta inteiro, girada pelo mouse; só sobe sozinha para não entrar no chão |
+| `scripts/camera_occlusion.gd` | o que fica entre a câmera e o personagem (casas, árvores, pedras, postes) fica pontilhado, com fade; some se a câmera estiver dentro |
+| `scripts/mouse_settings.gd` | sensibilidade do mouse e eixo vertical invertido (F6) |
 | `scripts/home_icon.gd` | ícone de casinha (mini mapa e marcador no globo afastado) |
 | `scripts/settings_ui.gd` | configurações (F6): qualidade, tamanho da interface, tela cheia |
 | `shaders/foliage.gdshader` | vento e variação de tom da vegetação |
@@ -162,7 +163,7 @@ A cada quadro físico: `up_direction = position.normalized()`; a velocidade é s
 
 ### Câmera
 
-O zoom vai de 0 (3,5 unidades do personagem) a 1 (1.650 unidades acima da superfície), em escala exponencial. `near` e `far` acompanham a distância. A câmera nunca entra no chão (consulta a altura da célula embaixo dela) nem em nada com colisão: uma esfera de raio 0,25 é lançada da cabeça do personagem até onde a câmera quer ficar (sem contar o personagem); se bater em casa, tronco, pedra ou degrau, a câmera para antes, e se o espaço atrás ficar menor que 1,6 ela sobe (inclina por cima do ombro). Voltar para a distância normal é suave. Grama e flores não têm colisão. Árvores, pedras grandes e casas entre a câmera e o personagem ficam transparentes (`CameraOcclusion`, 10 vezes por segundo). Longe, ela olha para o centro do planeta com o norte para cima e gira em volta do eixo norte–sul.
+O zoom vai de 0 (3,5 unidades do personagem) a 1 (1.650 unidades acima da superfície), em escala exponencial. `near` e `far` acompanham a distância. Distância e ângulo só mudam quando o jogador mexe (mouse e zoom); o cursor fica capturado durante o jogo (`GameUi`) e o movimento do mouse gira a câmera. A única exceção é o chão: se o ângulo levaria a câmera para dentro do terreno, ela inclina o mínimo necessário, com suavidade (consulta a altura da célula embaixo dela). O que fica entre a câmera e o personagem (casas com telhado, árvores, pedras grandes, decorações altas) fica pontilhado com fade, e some se a câmera estiver dentro dele (`CameraOcclusion`, ADR 0030). Grama e flores nunca contam. Longe, ela olha para o centro do planeta com o norte para cima e gira em volta do eixo norte–sul.
 
 ### Dia e noite
 

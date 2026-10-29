@@ -72,7 +72,7 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 
 **Fase 2.1: polimento** ✅
 
-- [x] **Câmera que não atravessa nada:** para antes de casas, troncos e morros (e sobe quando o espaço aperta); árvores e casas entre a câmera e o personagem ficam transparentes
+- [x] **Câmera que não entra em nada** (na fase 2.2 virou só transparência, ver abaixo)
 - [x] **Melhorar a casa funciona:** a casa cresce no lugar, com a porta do mesmo lado, acha sozinha uma posição que caiba e, se decorações atrapalharem, diz quais, marca em vermelho e guarda no bolso com um clique
 - [x] **Sem texturas piscando** nos cantos das casas, no telhado e na sacada
 - [x] **Menus capturam mouse e teclado** (a roda rola a lista, não dá zoom) e todos têm botão **X**
@@ -81,6 +81,12 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 - [x] **Mais bonito:** tonemapping AgX, luz do céu, névoa de distância na cor do horizonte, glow leve, vento na vegetação, AO nos vértices e paleta pastel ([ADR 0029](docs/decisoes/0029-visual-luz-nevoa-vento.md))
 - [x] **Relógio do modo dev** volta para a hora real sem reiniciar o servidor
 - [x] O Goblo não cita outros jogos (verificação no CI)
+
+**Fase 2.2: últimos ajustes** ✅
+
+- [x] **Câmera só com transparência:** a distância e o ângulo só mudam quando você mexe; o que fica entre a câmera e o personagem (casas com telhado, árvores, postes) fica pontilhado com fade suave, e some se a câmera estiver dentro dele ([ADR 0030](docs/decisoes/0030-camera-so-com-transparencia.md))
+- [x] **Câmera no mouse:** o cursor fica capturado durante o jogo e é solto nos menus, no modo construção, com Alt e com Esc; sensibilidade e eixo invertido no F6
+- [x] **Seta do mini mapa** aponta para o lado certo (leste e oeste estavam trocados)
 
 ## Telas
 
