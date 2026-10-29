@@ -4,6 +4,7 @@ extends SceneTree
 ##
 ##   godot --headless --path . -s tools/montar_casas.gd          # só gera as cenas
 ##   godot --path . -s tools/montar_casas.gd -- --fotos=/tmp/c   # gera e tira fotos (janela)
+##   godot --path . -s tools/montar_casas.gd -- --fotos=/tmp/c --so-fotos   # só fotografa
 ##
 ## As peças do kit medem 1 × 1 × 1 e são escaladas por KIT_SCALE (1,5), o que deixa cada
 ## peça com 3 quadradinhos do lote (0,5) e a porta mais alta que o personagem (1,0).
@@ -29,6 +30,8 @@ var houses := {
 func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(OUT)
 	for level: int in houses:
+		if "--so-fotos" in OS.get_cmdline_user_args():
+			break
 		var scene := _build(level, houses[level])
 		var packed := PackedScene.new()
 		packed.pack(scene)
@@ -46,17 +49,62 @@ func _init() -> void:
 	_take_photos(photos)
 
 
+## Espessura das paredes do kit, de dentro da peça até a face de fora (borda +X).
+## As paredes comuns têm 0,1; a de pedra com janela é mais grossa (sai 0,025 para fora).
+const WALL_DEPTH := {"wall-window-stone": 0.125}
+const WALL_DEPTH_DEFAULT := 0.1
+## Recuo das bordas de fora do piso de tábuas, para a ponta ficar dentro da parede ou da
+## grade em vez de no mesmo plano que a face de fora delas.
+const PLANKS_INSET := 0.015
+
+
 ## Paredes em volta de um retângulo w × d no andar `floor`. `special` troca peças:
 ## {"lado:índice": peça} com lado = s (sul/frente), n, l (leste), o (oeste).
+##
+## As peças do kit vão de ponta a ponta da casa da grade. Nos cantos, a parede sul (ou
+## norte) e a leste (ou oeste) ocupariam o mesmo cantinho, com faces no mesmo plano: era
+## isso que fazia a textura piscar (z-fighting). Então as paredes norte e sul vão até o
+## canto e as paredes leste e oeste param na face de dentro delas (encurtadas).
 static func _walls(w: int, d: int, floor: int, base: String, special: Dictionary) -> Array:
 	var out: Array = []
 	for i in w:
 		out.append([special.get("s:%d" % i, base), i, floor, d - 1, 270])
 		out.append([special.get("n:%d" % i, base), i, floor, 0, 90])
-	for j in d:
-		out.append([special.get("l:%d" % j, base), w - 1, floor, j, 0])
-		out.append([special.get("o:%d" % j, base), 0, floor, j, 180])
+	for side in [["l", w - 1, 0], ["o", 0, 180]]:
+		var col: int = side[1]
+		for j in d:
+			var piece: String = special.get("%s:%d" % [side[0], j], base)
+			var cut_n := _depth(special.get("n:%d" % col, base)) if j == 0 else 0.0
+			var cut_s := _depth(special.get("s:%d" % col, base)) if j == d - 1 else 0.0
+			# Encurta no eixo z da peça e desloca o centro para longe dos cantos.
+			var length := 1.0 - cut_n - cut_s
+			out.append([piece, col, floor, j + (cut_n - cut_s) * 0.5, side[2], Vector3(1, 1, length)])
 	return out
+
+
+static func _depth(piece: String) -> float:
+	return WALL_DEPTH.get(piece, WALL_DEPTH_DEFAULT)
+
+
+## Piso de tábuas w × d no andar `floor`, com as bordas de fora recuadas (PLANKS_INSET).
+static func _floor(w: int, d: int, floor: int) -> Array:
+	var out: Array = []
+	for i in w:
+		for j in d:
+			var x0 := PLANKS_INSET if i == 0 else 0.0
+			var x1 := PLANKS_INSET if i == w - 1 else 0.0
+			var z0 := PLANKS_INSET if j == 0 else 0.0
+			var z1 := PLANKS_INSET if j == d - 1 else 0.0
+			out.append(["planks", i + (x0 - x1) * 0.5, floor, j + (z0 - z1) * 0.5, 0, Vector3(1.0 - x0 - x1, 1, 1.0 - z0 - z1)])
+	return out
+
+
+## Telhado de duas águas inteiro numa peça só, esticada no comprimento (cumeeira de leste
+## a oeste, de largura `w` peças). Peças lado a lado se sobrepunham (cada uma tem 1,1 de
+## largura) e as águas piscavam; o kit usa uma paleta de cores (colormap), então esticar
+## não deforma nada. A sobra de 0,05 de cada lado (beiral) é mantida.
+static func _roof(piece: String, w: int, floor: int, z: float, depth_scale: float, height_scale: float) -> Array:
+	return [piece, (w - 1) * 0.5, floor, z, 0, Vector3((w + 0.1) / 1.1, height_scale, depth_scale)]
 
 
 ## Barraca: 2 × 2 peças de madeira, porta na frente, janela de lado e telhado baixo.
@@ -71,9 +119,8 @@ func _house_level_1() -> Dictionary:
 func _house_level_2() -> Dictionary:
 	var p := _walls(3, 2, 0, "wall-wood-window-shutters", {
 		"s:1": "wall-wood-door", "n:1": "wall-wood", "l:0": "wall-wood", "o:1": "wall-wood"})
-	# Uma cumeeira só, de leste a oeste: cada peça cobre uma coluna e as duas fileiras.
-	for i in 3:
-		p.append(["roof-gable", i, 1, 0.5, 0, Vector3(1.0, 1.35, 2.0)])
+	# Uma cumeeira só, de leste a oeste, cobrindo as 3 colunas e as duas fileiras.
+	p.append(_roof("roof-gable", 3, 1, 0.5, 2.0, 1.35))
 	p.append(["chimney", 2, 1, 0, 0, Vector3(1, 1.4, 1)])
 	return {"w": 3, "d": 2, "pieces": p}
 
@@ -83,19 +130,18 @@ func _house_level_2() -> Dictionary:
 func _house_level_3() -> Dictionary:
 	var p := _walls(3, 3, 0, "wall-window-stone", {"s:1": "wall-door", "n:1": "wall", "l:1": "wall", "o:1": "wall"})
 	# Piso do andar de cima (também é o teto do térreo) e o andar de cima recuado.
-	for i in 3:
-		for j in 3:
-			p.append(["planks", i, 1, j, 0, Vector3.ONE])
+	p.append_array(_floor(3, 3, 1))
 	var upper := _walls(3, 2, 1, "wall-wood-window-shutters", {"n:1": "wall-wood", "l:0": "wall-wood", "o:0": "wall-wood", "s:1": "wall-wood-door"})
 	p.append_array(upper)
 	# Sacada na frente do andar de cima (fileira z = 2), com grade de cerquinha.
 	for i in 3:
 		p.append(["fence", i, 1, 2, 270, Vector3.ONE])
-	p.append(["fence", 0, 1, 2, 180, Vector3.ONE])
-	p.append(["fence", 2, 1, 2, 0, Vector3.ONE])
+	# As laterais param na face de dentro da grade da frente (0,075), sem cruzar com ela.
+	const FENCE_DEPTH := 0.075
+	p.append(["fence", 0, 1, 2 - FENCE_DEPTH * 0.5, 180, Vector3(1, 1, 1.0 - FENCE_DEPTH)])
+	p.append(["fence", 2, 1, 2 - FENCE_DEPTH * 0.5, 0, Vector3(1, 1, 1.0 - FENCE_DEPTH)])
 	p.append(["lantern", 2.35, 1, 2.35, 0, Vector3(0.6, 0.45, 0.6)])
-	for i in 3:
-		p.append(["roof-high-gable", i, 2, 0.5, 0, Vector3(1.0, 1.0, 2.0)])
+	p.append(_roof("roof-high-gable", 3, 2, 0.5, 2.0, 1.0))
 	p.append(["chimney", 0, 2, 0, 180, Vector3(1, 1.3, 1)])
 	return {"w": 3, "d": 3, "pieces": p}
 
@@ -163,8 +209,15 @@ func _take_photos(dir: String) -> void:
 		var half := float(houses[level]["d"]) * KIT_SCALE * 0.5
 		character.position = Vector3(0.9, 0, half + 0.6)
 		character.rotation.y = 0.4
-		for view in [["frente", Vector3(4.5, 3.6, 7.5)], ["tras", Vector3(-5.5, 4.5, -6.5)]]:
-			cam.look_at_from_position(view[1], Vector3(0, 1.4, 0))
+		var views := [["frente", Vector3(4.5, 3.6, 7.5), Vector3(0, 1.4, 0)], ["tras", Vector3(-5.5, 4.5, -6.5), Vector3(0, 1.4, 0)]]
+		# De perto, nos cantos (onde as paredes se encontram) e no telhado.
+		var hw := float(houses[level]["w"]) * KIT_SCALE * 0.5
+		var hd := float(houses[level]["d"]) * KIT_SCALE * 0.5
+		views.append(["canto_frente", Vector3(hw + 1.6, 1.2, hd + 1.4), Vector3(hw, 1.0, hd)])
+		views.append(["canto_tras", Vector3(-hw - 1.5, 1.6, -hd - 1.2), Vector3(-hw, 1.2, -hd)])
+		views.append(["telhado", Vector3(hw * 0.4, 5.5, hd + 2.5), Vector3(0, 2.5, 0)])
+		for view in views:
+			cam.look_at_from_position(view[1], view[2])
 			for f in 4:
 				await process_frame
 			await RenderingServer.frame_post_draw

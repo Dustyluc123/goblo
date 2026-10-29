@@ -63,16 +63,26 @@ static func get_model(name: String) -> Dictionary:
 
 ## Carrega vários modelos em paralelo (WorkerThreadPool), sem travar a tela: espera
 ## quadro a quadro até terminar. Usado na entrada do jogo, para não haver travadas depois.
+##
+## Em duas fases: primeiro os modelos soltos (.glb, .fbx, primitivos), depois as cenas
+## (.tscn das casas). As cenas usam as mesmas peças (cerca, lampião); carregar a mesma
+## peça em duas threads ao mesmo tempo fazia o Godot dizer que ela "não existe" e a casa
+## grande saía sem a sacada.
 static func preload_all(names: Array, tree: SceneTree) -> void:
 	baked_material()  # cria antes, no thread principal
-	var list: Array = []
-	for n in names:
-		if not list.has(n):
-			list.append(n)
-	var id := WorkerThreadPool.add_group_task(func(i: int) -> void: get_model(list[i]), list.size())
-	while not WorkerThreadPool.is_group_task_completed(id):
-		await tree.process_frame
-	WorkerThreadPool.wait_for_group_task_completion(id)
+	var models: Array = []
+	var scenes: Array = []
+	for n: String in names:
+		var target := scenes if n.ends_with(".tscn") else models
+		if not target.has(n):
+			target.append(n)
+	for list: Array in [models, scenes]:
+		if list.is_empty():
+			continue
+		var id := WorkerThreadPool.add_group_task(func(i: int) -> void: get_model(list[i]), list.size())
+		while not WorkerThreadPool.is_group_task_completed(id):
+			await tree.process_frame
+		WorkerThreadPool.wait_for_group_task_completion(id)
 
 
 static func _close(a: Color, b: Color) -> bool:
