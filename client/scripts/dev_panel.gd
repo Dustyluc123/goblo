@@ -168,6 +168,9 @@ func _travel_tab() -> Control:
 	barrier.button_pressed = true
 	barrier.focus_mode = Control.FOCUS_NONE
 	barrier.add_theme_color_override("font_color", UiStyle.INK)
+	barrier.add_theme_color_override("font_pressed_color", UiStyle.INK)
+	barrier.add_theme_color_override("font_hover_pressed_color", UiStyle.INK)
+	barrier.add_theme_color_override("font_hover_color", UiStyle.INK)
 	barrier.toggled.connect(func(on: bool) -> void: game.set_barrier(on))
 	box.add_child(barrier)
 	var lines := CheckButton.new()
@@ -175,10 +178,16 @@ func _travel_tab() -> Control:
 	lines.button_pressed = true
 	lines.focus_mode = Control.FOCUS_NONE
 	lines.add_theme_color_override("font_color", UiStyle.INK)
+	lines.add_theme_color_override("font_pressed_color", UiStyle.INK)
+	lines.add_theme_color_override("font_hover_pressed_color", UiStyle.INK)
+	lines.add_theme_color_override("font_hover_color", UiStyle.INK)
 	var debug := CheckButton.new()
 	debug.text = "Polígonos de debug (costa e cores por país)"
 	debug.focus_mode = Control.FOCUS_NONE
 	debug.add_theme_color_override("font_color", UiStyle.INK)
+	debug.add_theme_color_override("font_pressed_color", UiStyle.INK)
+	debug.add_theme_color_override("font_hover_pressed_color", UiStyle.INK)
+	debug.add_theme_color_override("font_hover_color", UiStyle.INK)
 	lines.toggled.connect(func(on: bool) -> void: game.set_border_lines(on, debug.button_pressed))
 	debug.toggled.connect(func(on: bool) -> void: game.set_border_lines(lines.button_pressed, on))
 	box.add_child(lines)
@@ -298,6 +307,9 @@ func _world_tab() -> Control:
 	_noclip.text = "Voar (noclip)"
 	_noclip.focus_mode = Control.FOCUS_NONE
 	_noclip.add_theme_color_override("font_color", UiStyle.INK)
+	_noclip.add_theme_color_override("font_pressed_color", UiStyle.INK)
+	_noclip.add_theme_color_override("font_hover_pressed_color", UiStyle.INK)
+	_noclip.add_theme_color_override("font_hover_color", UiStyle.INK)
 	_noclip.toggled.connect(func(on: bool) -> void: game.set_noclip(on))
 	row3.add_child(_noclip)
 	var fast := UiStyle.button("Tempo mais rápido (F3)", false)

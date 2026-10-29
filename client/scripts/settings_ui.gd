@@ -70,7 +70,7 @@ func refresh() -> void:
 	for c in _fps_row.get_children():
 		c.queue_free()
 	for v: int in FpsLimit.OPTIONS:
-		var fb := UiStyle.button(FpsLimit.label_of(v).capitalize(), v == FpsLimit.value())
+		var fb := UiStyle.button(FpsLimit.label_of(v), v == FpsLimit.value())
 		fb.custom_minimum_size = Vector2(150, 0)
 		fb.pressed.connect(func() -> void:
 			FpsLimit.set_value(v)

@@ -66,11 +66,30 @@ func toggle() -> void:
 		_render(r["data"])
 
 
+## Quantos nomes de passaportes aparecem antes do "e mais N" (com muitos, a lista empurrava
+## a página dos carimbos para fora da janela).
+const MAX_NAMES := 12
+
+
 func _render(book: Dictionary) -> void:
+	# Nome do país: o do mundo e, para os territórios sem hexágono, o que veio nos carimbos.
+	var known := {}
+	for st: Dictionary in book.get("stamps", []):
+		known[str(st["country"])] = str(st["name"])
+	var home := str(session.me.get("country", ""))
 	var names: Array = []
-	for c: String in book.get("passports", session.passports()):
-		names.append(game.country_name(c) + (" (residência)" if c == str(session.me.get("country", "")) else ""))
-	_passports.text = "Passaportes: " + ", ".join(names)
+	var codes: Array = book.get("passports", session.passports())
+	for c: String in codes:
+		var n := game.country_name(c)
+		if n == c and known.has(c):
+			n = known[c]
+		names.append(n + (" (residência)" if c == home else ""))
+	names.sort_custom(func(a: String, b: String) -> bool: return a.ends_with("(residência)") and not b.ends_with("(residência)"))
+	var shown := names.slice(0, MAX_NAMES)
+	var text := "%d %s: %s" % [names.size(), "passaporte" if names.size() == 1 else "passaportes", ", ".join(shown)]
+	if names.size() > MAX_NAMES:
+		text += " e mais %d" % (names.size() - MAX_NAMES)
+	_passports.text = text
 	for c in _grid.get_children():
 		c.queue_free()
 	var stamps: Array = book.get("stamps", [])
