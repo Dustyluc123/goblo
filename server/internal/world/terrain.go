@@ -19,8 +19,12 @@ const (
 
 const (
 	landFile      = "naturalearth/ne_110m_land.geojson"
-	countriesFile = "naturalearth/ne_110m_admin_0_countries.geojson"
+	countriesFile = "naturalearth/paises.geojson" // 1:50m, filtrado por cmd/filtra-paises
 )
+
+// Até onde (graus) procurar um país para uma célula que o 1:110m chama de terra e o 1:50m
+// deixa fora de qualquer país (costas e ilhas pequenas).
+const nearestCountryDeg = 2.0
 
 type shape struct {
 	geom  orb.MultiPolygon
@@ -39,11 +43,14 @@ type Country struct {
 	shape
 }
 
-// Geography responde se um ponto (lat/lon) é terra e a qual país pertence.
+// Geography responde se um ponto (lat/lon) é terra e a qual país pertence. Terra e oceano
+// vêm do 1:110m (a forma do globo); países, do 1:50m (veja borders.go e o ADR 0031).
 type Geography struct {
 	land      []shape
 	regions   []region
 	Countries []Country
+	byCode    map[string]int
+	borders   *borderIndex
 }
 
 // LoadGeography lê os GeoJSON do Natural Earth de fsys (normalmente data.NaturalEarth).
@@ -64,21 +71,24 @@ func LoadGeography(fsys fs.FS) (*Geography, error) {
 	if err != nil {
 		return nil, err
 	}
+	g.byCode = map[string]int{}
 	for _, f := range countries {
 		s, ok := toShape(f.Geometry)
 		if !ok {
 			continue
 		}
-		code := countryCode(f.Properties)
-		if code == "" {
+		code := f.Properties.MustString("CODE", "")
+		if len(code) != 3 {
 			return nil, fmt.Errorf("%s: país sem código (%v)", countriesFile, f.Properties["NAME"])
 		}
-		name := f.Properties.MustString("NAME_PT", "")
-		if name == "" {
-			name = f.Properties.MustString("NAME", code)
+		if _, dup := g.byCode[code]; dup {
+			return nil, fmt.Errorf("%s: país %s repetido", countriesFile, code)
 		}
-		g.Countries = append(g.Countries, Country{Code: code, A2: countryA2(f.Properties), Name: name, shape: s})
+		g.byCode[code] = len(g.Countries)
+		g.Countries = append(g.Countries, Country{Code: code, A2: f.Properties.MustString("A2", ""),
+			Name: f.Properties.MustString("NAME", code), shape: s})
 	}
+	g.borders = newBorderIndex(g.Countries)
 	if g.regions, err = loadRegions(fsys); err != nil {
 		return nil, err
 	}
@@ -88,29 +98,8 @@ func LoadGeography(fsys fs.FS) (*Geography, error) {
 	return g, nil
 }
 
-// countryCode escolhe o código ISO A3. O Natural Earth usa "-99" em alguns países
-// (França e Noruega, por exemplo); nesse caso tenta ISO_A3_EH e depois ADM0_A3.
-func countryCode(p geojson.Properties) string {
-	for _, k := range []string{"ISO_A3", "ISO_A3_EH", "ADM0_A3"} {
-		if v := p.MustString(k, ""); v != "" && v != "-99" {
-			return v
-		}
-	}
-	return ""
-}
-
-// countryA2 escolhe o código ISO A2, com a mesma regra do "-99" de countryCode.
-func countryA2(p geojson.Properties) string {
-	for _, k := range []string{"ISO_A2", "ISO_A2_EH", "WB_A2"} {
-		if v := p.MustString(k, ""); v != "" && v != "-99" {
-			return v
-		}
-	}
-	return ""
-}
-
-// Classify diz se o ponto é terra e, se for, o código do país ("" no oceano ou em terra
-// fora de qualquer país, o que é raro na escala 1:110m).
+// Classify diz se o ponto é terra (1:110m) e, se for, o código do país (1:50m; se o ponto
+// cair fora de qualquer país, o país mais perto até nearestCountryDeg). "" no oceano.
 func (g *Geography) Classify(lat, lon float64) (Terrain, string) {
 	p := orb.Point{lon, lat}
 	isLand := false
@@ -123,10 +112,11 @@ func (g *Geography) Classify(lat, lon float64) (Terrain, string) {
 	if !isLand {
 		return Ocean, ""
 	}
-	for _, c := range g.Countries {
-		if c.contains(p) {
-			return Land, c.Code
-		}
+	if code := g.CountryAt(lat, lon); code != "" {
+		return Land, code
+	}
+	if i := g.borders.nearestCountry(lat, lon, nearestCountryDeg); i >= 0 {
+		return Land, g.Countries[i].Code
 	}
 	return Land, ""
 }

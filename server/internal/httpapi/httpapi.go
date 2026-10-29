@@ -27,6 +27,7 @@ import (
 // Server junta o que as rotas precisam. Game pode ser nil (só o mundo é servido).
 type Server struct {
 	World    *world.World
+	Geo      *world.Geography // países pela posição exata e fronteiras (pode ser nil nos testes)
 	Snapshot *world.Snapshot
 	Game     *game.Service
 	GeoIP    *geoip.DB         // pode ser nil: aí o país vem só do idioma do sistema
@@ -47,6 +48,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /world/version", versionHandler(s.World, s.Snapshot))
 	mux.HandleFunc("GET /world.bin", blob(s.Snapshot, "application/octet-stream", s.Snapshot.Binary, s.Snapshot.BinaryGzip))
 	mux.HandleFunc("GET /world", blob(s.Snapshot, "application/json", s.Snapshot.JSON, s.Snapshot.JSONGzip))
+	if s.Geo != nil {
+		mux.HandleFunc("GET /borders", s.borders)
+	}
 	if s.Game != nil {
 		s.gameRoutes(mux)
 	}

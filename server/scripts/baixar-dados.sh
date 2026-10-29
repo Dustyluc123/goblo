@@ -3,7 +3,9 @@
 # Fonte: https://www.naturalearthdata.com — espelho em GeoJSON mantido pelo próprio projeto:
 #   https://github.com/nvkelso/natural-earth-vector
 #
-# - 1:110m land e admin_0_countries: terra/oceano e países (usados como vêm);
+# - 1:110m land: terra/oceano (usado como vem);
+# - 1:50m admin_0_countries e populated_places_simple: países e capitais, filtrados para
+#   paises.geojson e capitais.json (fronteiras pela posição exata, aeroportos; ADR 0031);
 # - 1:50m geography_regions_polys: desertos, cordilheiras etc. para os biomas. É grande
 #   (4 MB), então fica em data/raw/ (fora do Git) e é filtrado para regioes.geojson.
 #
@@ -17,10 +19,16 @@ DESTINO="${SERVER}/data/naturalearth"
 BRUTO="${SERVER}/data/raw"
 
 mkdir -p "$DESTINO" "$BRUTO"
-for arquivo in ne_110m_land.geojson ne_110m_admin_0_countries.geojson; do
+echo "Baixando ne_110m_land.geojson (${VERSAO})..."
+curl -fsSL "${BASE}/ne_110m_land.geojson" -o "${DESTINO}/ne_110m_land.geojson"
+
+for arquivo in ne_50m_admin_0_countries.geojson ne_50m_populated_places_simple.geojson; do
   echo "Baixando ${arquivo} (${VERSAO})..."
-  curl -fsSL "${BASE}/${arquivo}" -o "${DESTINO}/${arquivo}"
+  curl -fsSL "${BASE}/${arquivo}" -o "${BRUTO}/${arquivo}"
 done
+echo "Filtrando países e capitais..."
+(cd "$SERVER" && go run ./cmd/filtra-paises "${BRUTO}/ne_50m_admin_0_countries.geojson" \
+  "${BRUTO}/ne_50m_populated_places_simple.geojson" "${DESTINO}/paises.geojson" "${DESTINO}/capitais.json")
 
 echo "Baixando ne_50m_geography_regions_polys.geojson (${VERSAO})..."
 curl -fsSL "${BASE}/ne_50m_geography_regions_polys.geojson" -o "${BRUTO}/ne_50m_geography_regions_polys.geojson"

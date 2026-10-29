@@ -4,10 +4,11 @@ package data
 
 import "embed"
 
-// NaturalEarth contém ne_110m_land.geojson e ne_110m_admin_0_countries.geojson
-// (Natural Earth, escala 1:110m, domínio público). Veja docs/DADOS.md.
+// NaturalEarth contém a terra (1:110m), os países e as capitais (1:50m, filtrados por
+// cmd/filtra-paises) e as regiões dos biomas (Natural Earth, domínio público). Veja
+// docs/DADOS.md.
 //
-//go:embed naturalearth/*.geojson
+//go:embed naturalearth/*.geojson naturalearth/*.json
 var NaturalEarth embed.FS
 
 // Game contém o conteúdo do jogo que dá para balancear sem programar: itens, receitas,

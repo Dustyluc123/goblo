@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -24,6 +25,7 @@ var (
 	gameWorld *world.World
 	gameSnap  *world.Snapshot
 	gameData  *game.Content
+	gameGeo   *world.Geography
 	a2        map[string]string
 )
 
@@ -35,6 +37,7 @@ func gameServer(t *testing.T, dev bool) http.Handler {
 		if err != nil {
 			panic(err)
 		}
+		gameGeo = geo
 		if gameWorld, err = world.New(world.Config{Frequency: 20, Radius: 1000}, geo); err != nil {
 			panic(err)
 		}
@@ -59,7 +62,7 @@ func gameServer(t *testing.T, dev bool) http.Handler {
 		t.Fatal(err)
 	}
 	s := &Server{
-		World: gameWorld, Snapshot: gameSnap, Game: game.NewService(gameWorld, gameData, store, game.NewOffsetClock(nil)),
+		World: gameWorld, Geo: gameGeo, Snapshot: gameSnap, Game: game.NewService(gameWorld, gameData, store, game.NewOffsetClock(nil)),
 		GeoIP: db, A2ToA3: a2, Dev: dev, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 	return s.Handler()
@@ -221,4 +224,35 @@ func itoa(n int) string { return fmtInt(n) }
 func fmtInt(n int) string {
 	b, _ := json.Marshal(n)
 	return string(b)
+}
+
+func TestBordersRoute(t *testing.T) {
+	h := gameServer(t, false)
+	foz := gameWorld.CellAt(-25.55, -54.58).ID
+	inland := gameWorld.CellAt(-10, -55).ID
+	rec, body := call(t, h, "GET", fmt.Sprintf("/borders?cells=%d,%d", foz, inland), "", nil)
+	if rec.Code != 200 {
+		t.Fatalf("status %d: %v", rec.Code, body)
+	}
+	cells := body["cells"].([]any)
+	if len(cells) != 2 {
+		t.Fatalf("%d células", len(cells))
+	}
+	countries := body["countries"].([]any)
+	names := map[string]bool{}
+	for _, c := range countries {
+		names[c.(map[string]any)["code"].(string)] = true
+	}
+	for _, code := range []string{"BRA", "PRY", "ARG"} {
+		if !names[code] {
+			t.Errorf("Foz do Iguaçu sem %s nos países: %v", code, names)
+		}
+	}
+	segs, _ := cells[0].(map[string]any)["segs"].([]any)
+	if len(segs) == 0 || len(segs)%6 != 0 {
+		t.Errorf("segmentos de Foz: %d números", len(segs))
+	}
+	if c := cells[1].(map[string]any)["country"]; c != "BRA" {
+		t.Errorf("interior do Brasil: %v", cells[1])
+	}
 }
