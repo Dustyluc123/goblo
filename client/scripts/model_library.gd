@@ -74,6 +74,7 @@ static func get_model(name: String) -> Dictionary:
 		_mutex.unlock()
 		return hit
 	_mutex.unlock()
+	HitchLog.note("modelo carregado na hora: %s" % name)
 	var out := {}
 	if name.begins_with("primitive:"):
 		out = _primitive(name.substr(10))
@@ -85,6 +86,14 @@ static func get_model(name: String) -> Dictionary:
 		out = _load_scene(NATURE_DIR + name + ".fbx")
 	_mutex.lock()
 	_cache[name] = out
+	_mutex.unlock()
+	return out
+
+
+## Nomes de todos os modelos já carregados (pré-aquecimento dos shaders).
+static func cached_names() -> Array:
+	_mutex.lock()
+	var out := _cache.keys()
 	_mutex.unlock()
 	return out
 

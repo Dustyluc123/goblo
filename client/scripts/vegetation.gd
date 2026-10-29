@@ -178,6 +178,7 @@ func _build_layer(key: int, layer: String, now: bool) -> bool:
 		_chunks[key] = {}
 	if (_chunks[key] as Dictionary).has(layer):
 		return false
+	var t0 := Time.get_ticks_usec()
 	match layer:
 		"big":
 			_chunks[key]["big"] = _build_objects(key)
@@ -193,6 +194,8 @@ func _build_layer(key: int, layer: String, now: bool) -> bool:
 				var holder := []
 				var id := WorkerThreadPool.add_task(func() -> void: holder.append(_generate_small(key, density, lots, north)))
 				_tasks[_task_key(key, layer)] = {"id": id, "result": holder, "key": key, "gen": _generation}
+	var names := {"big": "árvores e pedras", "body": "colisão dos objetos", "small": "grama"}
+	HitchLog.note("%s do pedaço %d" % [names[layer], key], (Time.get_ticks_usec() - t0) / 1000.0)
 	return true
 
 
@@ -437,6 +440,7 @@ func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary, nort
 
 
 func _apply_small(key: int, result: Dictionary) -> void:
+	HitchLog.note("grama do pedaço %d pronta (thread)" % key)
 	if not _chunks.has(key):
 		_chunks[key] = {}
 	if (_chunks[key] as Dictionary).has("small"):

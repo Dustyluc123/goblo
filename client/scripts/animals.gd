@@ -145,6 +145,12 @@ func _spawn(a: Dictionary) -> void:
 	var sp := str(a["species"])
 	if not _scenes.has(sp) or not species.has(sp):
 		return
+	var t0 := Time.get_ticks_usec()
+	_spawn_model(a, sp)
+	HitchLog.note("animal criado: %s" % sp, (Time.get_ticks_usec() - t0) / 1000.0)
+
+
+func _spawn_model(a: Dictionary, sp: String) -> void:
 	var model := (_scenes[sp] as PackedScene).instantiate() as Node3D
 	if not _heights.has(sp):
 		_heights[sp] = maxf(Player._model_height(model), 0.01)
