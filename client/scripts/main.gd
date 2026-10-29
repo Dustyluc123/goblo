@@ -1,16 +1,22 @@
+class_name GameMain
 extends Node3D
-## Ponto de entrada: baixa o mundo do servidor (com cache local), monta o globo e solta o
-## personagem.
+## Ponto de entrada: baixa o mundo do servidor (com cache local), identifica o jogador
+## (token guardado ou tela de primeiro acesso), monta o globo e solta o personagem no lote
+## dele. Também é o "controlador" que as janelas chamam (fabricar, casa, modo dev).
 ##
 ## Argumentos opcionais (depois de "--" na linha de comando):
-##   --server=URL        servidor do mundo (também: GOBLO_SERVER_URL ou goblo/server_url)
+##   --server=URL        servidor (também: GOBLO_SERVER_URL ou goblo/server_url)
+##   --profile=NOME      perfil do token (user://NOME.cfg); padrão "player"
+##   --nickname=APELIDO  cria o jogador sem a tela de primeiro acesso (com --country=BRA)
 ##   --quality=Q         low, medium ou high (padrão: o salvo, ou medium)
-##   --spawn=LAT,LON     onde o personagem nasce (padrão: São Paulo)
+##   --spawn=LAT,LON     nasce aqui em vez de no lote
 ##   --zoom=0..1         zoom inicial da câmera
 ##   --utc=HORA          fixa o horário UTC (ex.: 15.5) para testes e screenshots
 ##   --no-cache          ignora o mundo guardado em cache
+##   --equip=ITEM        segura uma ferramenta (precisa ter no inventário)
 ##   --smoke-test        anda alguns segundos, imprime onde o personagem está e fecha
 ##   --jump              (com --smoke-test) pula e mede a altura do pulo
+##   --play-test         testa o ciclo: coleta, fabricação, decoração e casa (servidor dev)
 ##   --screenshot=ARQ    salva um PNG da tela e fecha (combine com --zoom e --walk)
 ##   --walk=SEGUNDOS     anda antes do teste/screenshot
 ##   --dir=DIREÇÃO       forward (padrão), back, left ou right
@@ -38,6 +44,16 @@ var _server_url := ""
 var _cached_version := ""
 var _request_started := 0
 var _collision_timer := 0.0
+var _ready_to_play := false
+
+var _api: Api
+var _session: Session
+var _data: ChunkData
+var _neighborhood: Neighborhood
+var _icons: ItemIcons
+var _ui: GameUi
+var _build: BuildMode
+var _interaction: Interaction
 
 @onready var _terrain: Terrain = $Terrain
 @onready var _vegetation: Vegetation = $Vegetation
@@ -72,6 +88,27 @@ func _ready() -> void:
 	Quality.emitter.changed.connect(_apply_quality)
 	_apply_quality()
 
+	_api = Api.new()
+	_api.base_url = _server_url
+	add_child(_api)
+	_session = Session.new()
+	_session.profile = str(_args.get("profile", "player"))
+	add_child(_session)
+	_data = ChunkData.new()
+	add_child(_data)
+	_neighborhood = Neighborhood.new()
+	_neighborhood.name = "Neighborhood"
+	add_child(_neighborhood)
+	_icons = ItemIcons.new()
+	add_child(_icons)
+	_ui = GameUi.new()
+	add_child(_ui)
+	_build = BuildMode.new()
+	add_child(_build)
+	_interaction = Interaction.new()
+	add_child(_interaction)
+	_session.equipped_changed.connect(_on_equipped)
+
 	_http = HTTPRequest.new()
 	_http.timeout = 30.0
 	_http.request_completed.connect(_on_world_downloaded)
@@ -103,10 +140,6 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 		load_stats["source"] = "download"
 		load_stats["bytes"] = body.size()
 		_write_cache(body, _header_version(headers))
-	elif not _cached_version.is_empty() and FileAccess.file_exists(CACHE_FILE):
-		data = FileAccess.get_file_as_bytes(CACHE_FILE)
-		load_stats["source"] = "cache (servidor fora do ar)"
-		push_warning("Servidor fora do ar; usando o mundo em cache.")
 	else:
 		_fail("Sem resposta do servidor em %s (resultado %d, HTTP %d).\nEle está rodando? cd server && go run ./cmd/server" % [_server_url, result, code])
 		return
@@ -125,26 +158,168 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	_camera.set_planet_radius(world.radius)
 	_camera.world = world
 	_clouds.build(world.radius, Quality.current()["clouds"])
-	t0 = Time.get_ticks_msec()
 	_hud.build_minimap(world)
-	load_stats["minimap_ms"] = Time.get_ticks_msec() - t0
 
-	var spawn := world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(spawn_lat, spawn_lon)))
-	t0 = Time.get_ticks_msec()
-	_terrain.update_collision(world.centers[spawn] * world.radius, -1)
-	load_stats["collision_ms"] = Time.get_ticks_msec() - t0
-	_player.spawn(world, spawn)
+	_hud.show_status("Entrando no Goblo…")
+	if not await _identify():
+		return
+	if not await _load_content():
+		return
+	_hud.show_status("Carregando árvores e casas…")
+	var tm := Time.get_ticks_msec()
+	await ModelLibrary.preload_all(_models_to_preload(), get_tree())
+	load_stats["models_ms"] = Time.get_ticks_msec() - tm
+	_setup_game()
+
+	var t1 := Time.get_ticks_msec()
+	var spawn_cell: int
+	var spawn_pos: Vector3
+	if _args.has("spawn") or _session.lot().is_empty():
+		spawn_cell = world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(spawn_lat, spawn_lon)))
+		spawn_pos = world.centers[spawn_cell] * world.surface_radius(spawn_cell)
+	else:
+		spawn_pos = home_point()
+		spawn_cell = world.find_cell(spawn_pos)
+	_terrain.update_collision(spawn_pos, -1)
+	_player.spawn(world, spawn_cell)
+	_player.teleport(spawn_pos)
 	_camera.snap_behind_target()
-	t0 = Time.get_ticks_msec()
-	_vegetation.setup(world)
+	await _data.load_now(spawn_pos, 60.0)
 	_vegetation.load_now(_player.global_position)
-	load_stats["vegetation_ms"] = Time.get_ticks_msec() - t0
+	load_stats["content_ms"] = Time.get_ticks_msec() - t1
 	_hud.hide_status()
-	print("Goblo: mundo %d células (n = %d, raio %.0f) — %s, download %d ms, leitura %d ms, malhas %d ms, colisão %d ms, vegetação %d ms (%d objetos, qualidade %s)" % [
-		world.cell_count(), world.frequency, world.radius, load_stats["source"],
-		load_stats["download_ms"], load_stats["parse_ms"], load_stats["mesh_ms"], load_stats["collision_ms"],
-		load_stats["vegetation_ms"], _vegetation.instance_count, Quality.current_name()])
+	_ready_to_play = true
+	var lot := _session.lot()
+	print("Goblo: mundo %d células — %s, download %d ms, leitura %d ms, malhas %d ms, modelos %d ms, objetos %d ms (%d objetos, qualidade %s); jogador %s (%s), lote %s" % [
+		world.cell_count(), load_stats["source"], load_stats["download_ms"], load_stats["parse_ms"], load_stats["mesh_ms"],
+		load_stats["models_ms"], load_stats["content_ms"], _vegetation.instance_count, Quality.current_name(), _session.me.get("nickname", "?"),
+		_session.me.get("country", "?"), str(int(lot.get("id", -1)))])
+	if _args.has("equip"):
+		_session.equip(str(_args["equip"]))
 	_run_automation()
+
+
+## Identifica o jogador: token guardado (GET /me) ou primeiro acesso (POST /players).
+func _identify() -> bool:
+	var token := _session.load_token()
+	while true:
+		if token.is_empty():
+			break
+		_api.token = token
+		var r := await _api.request("GET", "/me")
+		if r["ok"]:
+			_session.set_me(r["data"])
+			return true
+		if r["status"] == 401:
+			_session.clear_token()
+			token = ""
+			break
+		if _is_automation():
+			_fail("Servidor não respondeu ao /me: %s" % r["message"])
+			return false
+		_hud.show_status("Sem resposta do servidor (%s).\nTentando de novo…" % r["message"])
+		await get_tree().create_timer(RETRY_SECONDS).timeout
+
+	var geo := await _api.request("GET", "/geo?locale=" + OS.get_locale().uri_encode())
+	var detected := ""
+	var source := "none"
+	if geo["ok"]:
+		detected = str(geo["data"]["country"])
+		source = str(geo["data"]["source"])
+	var created: Dictionary
+	if (_is_automation() or _args.has("nickname")) and _args.get("ui", "") != "first":
+		var nick := str(_args.get("nickname", "Robo %d" % randi_range(1000, 9999)))
+		var country := str(_args.get("country", detected if not detected.is_empty() else "BRA"))
+		var r := await _api.request("POST", "/players", {"nickname": nick, "country": country})
+		if not r["ok"]:
+			_fail("Não consegui criar o jogador: %s" % r["message"])
+			return false
+		created = r["data"]
+	elif _args.get("ui", "") == "first":
+		# Screenshot da tela de primeiro acesso (testes): mostra, fotografa e fecha.
+		_hud.hide_status()
+		_ui.show_first_access(world.countries, detected, source)
+		await get_tree().create_timer(1.5).timeout
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(str(_args.get("screenshot", "user://primeiro.png")))
+		get_tree().quit()
+		return false
+	else:
+		_hud.hide_status()
+		var screen := _ui.show_first_access(world.countries, detected, source)
+		while true:
+			var sub: Array = await screen.submitted
+			var r := await _api.request("POST", "/players", {"nickname": sub[0], "country": sub[1]})
+			if r["ok"]:
+				created = r["data"]
+				break
+			screen.show_error(str(r["message"]))
+		_ui.close_first_access()
+		_hud.show_status("Preparando o seu lote…")
+	_session.save_token(str(created["token"]))
+	_api.token = str(created["token"])
+	_session.set_me(created["me"])
+	return true
+
+
+func _load_content() -> bool:
+	var r := await _api.request("GET", "/content")
+	if not r["ok"]:
+		_fail("Não consegui baixar o conteúdo do jogo: %s" % r["message"])
+		return false
+	_session.set_content(r["data"])
+	_session.dev = bool(r["data"].get("dev", false))
+	return true
+
+
+## Todos os modelos que podem aparecer: objetos do servidor, grama, itens e casas.
+func _models_to_preload() -> Array:
+	var out: Array = []
+	out.append_array(_session.object_models)
+	for c in ["red", "yellow", "white", "purple"]:
+		out.append("flower:" + c)
+	var decor: Variant = JSON.parse_string(FileAccess.get_file_as_string(Vegetation.DECOR_FILE))
+	if decor is Dictionary:
+		for list: Array in (decor["biomes"] as Dictionary).values():
+			for e: Dictionary in list:
+				out.append_array(e["models"])
+	for id: String in _session.items:
+		out.append(str(_session.items[id].get("model", "")))
+	for h: Dictionary in _session.houses:
+		out.append(str(h["scene"]))
+	return out.filter(func(m: String) -> bool: return not m.is_empty())
+
+
+func _setup_game() -> void:
+	_data.setup(world, _api)
+	_data.lot_size_units = _session.tile_size * _session.lot_tiles
+	_data.radius = float(Quality.current()["big_radius"]) + 20.0
+	_vegetation.setup(world, _data)
+	_neighborhood.setup(world, _data, _session)
+	_icons.setup(_session.items)
+	_ui.setup(self, _session, _icons, world.countries)
+	_ui.inventory.place_requested.connect(func(item: String) -> void: _build.enter(item))
+	_build.game = self
+	_build.session = _session
+	_build.data = _data
+	_build.api = _api
+	_build.ui = _ui
+	_build.camera = _camera
+	_build.player = _player
+	_interaction.game = self
+	_interaction.player = _player
+	_interaction.data = _data
+	_interaction.session = _session
+	_interaction.api = _api
+	_interaction.ui = _ui
+	_interaction.vegetation = _vegetation
+	_interaction.icons = _icons
+	_interaction.neighborhood = _neighborhood
+	_session.me_changed.connect(func() -> void:
+		var lot := _session.lot()
+		if not lot.is_empty():
+			_data.set_lot(lot))
+	_hud.set_dev(_session.dev)
 
 
 func _fail(message: String) -> void:
@@ -155,7 +330,10 @@ func _fail(message: String) -> void:
 		return
 	_hud.show_status(message + "\nTentando de novo em %d s…" % int(RETRY_SECONDS))
 	await get_tree().create_timer(RETRY_SECONDS).timeout
-	_request_world()
+	if world == null:
+		_request_world()
+	else:
+		get_tree().reload_current_scene()
 
 
 func _read_cached_version() -> String:
@@ -198,47 +376,88 @@ func _on_cell_changed(id: int) -> void:
 	_highlight.mesh = GlobeBuilder.highlight(world, id)
 
 
+func _on_equipped() -> void:
+	var id := _session.equipped
+	if id.is_empty():
+		_player.set_tool(null)
+		return
+	var lib := ModelLibrary.get_model(str(_session.items.get(id, {}).get("model", "")))
+	_player.set_tool(lib.get("mesh"))
+	_ui.toast("Na mão: %s" % _session.item_name(id), id)
+
+
 func _process(delta: float) -> void:
 	if world == null or not _player.visible:
 		return
+	var focus := get_viewport().gui_get_focus_owner()
+	var typing := focus is LineEdit or focus is SpinBox
+	_player.input_blocked = typing or _ui.blocking()
+	_camera.input_blocked = typing
 	_collision_timer -= delta
 	if _collision_timer <= 0.0:
 		_collision_timer = 0.25
 		_terrain.update_collision(_player.global_position)
+	_data.update_focus(_player.global_position, delta)
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
+	_neighborhood.daylight = _day_night.local_day
+	_neighborhood.update_lights(_player.global_position, delta)
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
 	_clouds.update(delta, _camera.far_amount, maxf(_day_night.local_day, _camera.far_amount))
 	_hud.show_time(_day_night.local_hours(world.lons[_player.cell_id]), _day_night.speed)
 	_hud.update_navigation(_camera.global_basis, _player.global_position.normalized(), _day_night.sun_dir)
 	if _hud.perf_visible():
-		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos de vegetação\nqualidade %s" % [
-			Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d pedidos\nqualidade %s" % [
+			Engine.get_frames_per_second(), 1000.0 / maxf(1.0, Engine.get_frames_per_second()),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
-			_vegetation.instance_count, Quality.label()])
+			_vegetation.instance_count, _data.all_lots().size(), _api.in_flight, Quality.label()])
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
 		mat.albedo_color.a = 0.45 + 0.15 * sin(Time.get_ticks_msec() / 300.0)
-		_highlight.visible = _camera.far_amount < 0.5
+		_highlight.visible = _camera.far_amount < 0.5 and not _build.active
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		match (event as InputEventKey).keycode:
-			KEY_F2:
-				_hud.toggle_perf()
-			KEY_F3:
-				_day_night.faster()
-				_hud.flash("Tempo ×%d" % int(_day_night.speed))
-			KEY_F4:
-				_day_night.real_time()
-				_hud.flash("Horário real")
-			KEY_F6:
-				Quality.cycle()
-				_hud.flash("Qualidade: %s" % Quality.label())
+	if not (event is InputEventKey) or not event.pressed or event.is_echo():
+		return
+	var key := (event as InputEventKey).keycode
+	match key:
+		KEY_F2:
+			_hud.toggle_perf()
+		KEY_F3:
+			time_faster()
+		KEY_F4:
+			time_real()
+		KEY_F6:
+			Quality.cycle()
+			_hud.flash("Qualidade: %s" % Quality.label())
+	if not _ready_to_play:
+		return
+	if event.is_action_pressed("dev_panel"):
+		if _session.dev:
+			_ui.dev.toggle()
+		else:
+			_ui.toast("Modo dev desligado. Rode o servidor com GOBLO_DEV=1.")
+	elif event.is_action_pressed("ui_cancel"):
+		if _ui.close_windows():
+			get_viewport().set_input_as_handled()
+	elif _ui.first_access != null:
+		return
+	elif event.is_action_pressed("inventory"):
+		_ui.craft.visible = false
+		_ui.inventory.toggle()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("build"):
+		if not _build.active:
+			_ui.close_windows()
+			_build.enter()
+	elif event.is_action_pressed("home"):
+		go_home()
+	elif key >= KEY_1 and key <= KEY_5:
+		_ui.hotbar.press(key - KEY_1)
 
 
-## Aplica a qualidade atual: antisserrilhado e sombras (a vegetação se recarrega sozinha).
+## Aplica quality: antisserrilhado e sombras (a vegetação se recarrega sozinha).
 func _apply_quality() -> void:
 	var q := Quality.current()
 	get_viewport().msaa_3d = q["msaa"]
@@ -246,12 +465,188 @@ func _apply_quality() -> void:
 	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if q["big_shadows"] else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	_day_night.set_shadows_wanted(q["shadows"])
 	_sun.directional_shadow_max_distance = maxf(1.0, q["shadow_distance"])
+	if _data:
+		_data.radius = float(q["big_radius"]) + 20.0
+
+
+# --- Ações chamadas pelas janelas ----------------------------------------------------------
+
+func building() -> bool:
+	return _build.active
+
+
+## Ponto de "casa": na frente do lote, do lado de dentro.
+func home_point() -> Vector3:
+	var lot := _session.lot()
+	if lot.is_empty():
+		return world.centers[_player.cell_id] * world.surface_radius(_player.cell_id)
+	var f := _data.frame(int(lot["cell"])) if _data.world else world.cell_frame(int(lot["cell"]))
+	return LotGeom.point(f, lot, _session.tile_size, _session.lot_tiles * 0.5, 1.2)
+
+
+func go_home() -> void:
+	if _session.lot().is_empty():
+		_ui.toast("Você ainda não tem lote.")
+		return
+	await _teleport(home_point())
+	_ui.toast("Bem-vindo de volta para casa!")
+
+
+func _teleport(pos: Vector3) -> void:
+	_build.exit()
+	_player.set_physics_process(false)
+	_player.teleport(pos)
+	_terrain.update_collision(pos, -1)
+	_camera.snap_behind_target()
+	await _data.load_now(pos, 40.0)
+	_vegetation.load_now(pos)
+	_player.set_physics_process(true)
+
+
+func _teleport_to_cell(cell: int) -> void:
+	await _teleport(world.centers[cell] * world.surface_radius(cell))
+
+
+func teleport_country(code: String) -> void:
+	# Célula de terra do país mais perto do "centro" dele, preferindo biomas agradáveis.
+	var sum := Vector3.ZERO
+	var cells: Array[int] = []
+	for i in world.cell_count():
+		if world.country_codes[i] == code and world.land[i] == 1:
+			cells.append(i)
+			sum += world.centers[i]
+	if cells.is_empty():
+		_ui.dev.status("Esse país não tem células no mundo.")
+		return
+	var anchor := sum.normalized()
+	var nice := [WorldData.Biome.GRASSLAND, WorldData.Biome.FOREST, WorldData.Biome.TROPICAL_FOREST, WorldData.Biome.BEACH]
+	var best := cells[0]
+	var best_score := -INF
+	for c in cells:
+		var score := world.centers[c].dot(anchor) + (0.5 if int(world.biomes[c]) in nice else 0.0)
+		if score > best_score:
+			best_score = score
+			best = c
+	await _teleport_to_cell(best)
+	_ui.dev.status("Você está em %s." % world.countries.get(code, code))
+
+
+func teleport_lat_lon(lat: float, lon: float) -> void:
+	var cell := world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(lat, lon)))
+	await _teleport_to_cell(cell)
+	_ui.dev.status("Teleportado para %s." % WorldData.format_lat_lon(world.lats[cell], world.lons[cell]))
+
+
+func set_noclip(on: bool) -> void:
+	if on and not _session.dev:
+		return
+	_player.set_noclip(on)
+	_ui.toast("Voando: Espaço sobe, Ctrl desce, Shift acelera" if on else "Voltou a andar")
+
+
+func time_faster() -> void:
+	_day_night.faster()
+	_hud.flash("Tempo ×%d" % int(_day_night.speed))
+
+
+func time_real() -> void:
+	_day_night.real_time()
+	_hud.flash("Horário real")
+
+
+## Resposta de /lot/place, /lot/remove ou /lot/house: inventário e lote novos.
+func apply_lot_result(res: Dictionary) -> void:
+	_session.set_inventory(res["inventory"], int(res["slots_used"]))
+	_session.set_lot(res["lot"])
+
+
+func craft(recipe: String) -> void:
+	var r := await _api.request("POST", "/craft", {"recipe": recipe, "times": 1})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return
+	_session.set_inventory(r["data"]["inventory"], int(r["data"]["slots_used"]))
+	var made: Dictionary = r["data"]["crafted"]
+	_ui.toast("+%d %s" % [int(made["count"]), _session.item_name(made["item"])], made["item"])
+
+
+func start_house_placement() -> void:
+	_build.enter_house()
+
+
+func upgrade_house() -> void:
+	var lot := _session.lot()
+	var r := await _api.request("POST", "/lot/house", {"lot": lot["id"], "x": 0, "y": 0, "rot": 0})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return
+	apply_lot_result(r["data"])
+	_ui.toast("A reforma começou! Fica pronta amanhã às 5h.")
+
+
+# --- Modo dev -------------------------------------------------------------------------------
+
+func _dev(path: String, body: Dictionary, done: String) -> Dictionary:
+	var r := await _api.request("POST", path, body)
+	if not r["ok"]:
+		_ui.dev.status("Erro: %s" % r["message"])
+		_ui.toast(str(r["message"]))
+		return r
+	if r["data"] is Dictionary and (r["data"] as Dictionary).has("inventory"):
+		_session.set_me(r["data"])
+	_ui.dev.status(done)
+	return r
+
+
+func dev_give(item: String, count: int) -> void:
+	await _dev("/dev/give", {"item": item, "count": count}, "Você ganhou %d× %s." % [count, _session.item_name(item)])
+
+
+func dev_starter_kit() -> void:
+	for pair in [["axe", 1], ["pickaxe", 1], ["wood", 99], ["stone", 99], ["branch", 30], ["flower_red", 10], ["flower_yellow", 10]]:
+		if _session.count(pair[0]) < int(pair[1]) or pair[0] != "axe" and pair[0] != "pickaxe":
+			await _dev("/dev/give", {"item": pair[0], "count": pair[1]}, "Kit inicial entregue.")
+
+
+func dev_finish_house() -> void:
+	await _dev("/dev/finish-house", {}, "Obra concluída!")
+
+
+func dev_next_day() -> void:
+	var r := await _dev("/dev/next-day", {}, "Bom dia! Os limites diários voltaram e as obras ficaram prontas.")
+	if r["ok"]:
+		_data.refresh_all()
+
+
+func dev_fake_neighbors(count: int) -> void:
+	var r := await _dev("/dev/fake-neighbors", {"cell": _player.cell_id, "count": count}, "")
+	if r["ok"]:
+		_ui.dev.status("%d vizinhos falsos criados aqui perto." % int(r["data"]["created"]))
+		_data.refresh_all()
+
+
+func dev_set_country(code: String) -> void:
+	var r := await _dev("/dev/country", {"country": code}, "Agora você mora em %s." % world.countries.get(code, code))
+	if r["ok"]:
+		_data.refresh_all()
+		await go_home()
+
+
+func dev_reset(what: String) -> void:
+	var r := await _dev("/dev/reset", {"what": what}, "Pronto: %s resetado." % what)
+	if not r["ok"]:
+		return
+	if what == "player":
+		_session.clear_token()
+		get_tree().reload_current_scene()
+		return
+	_data.refresh_all()
 
 
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -266,6 +661,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("perf-test"):
 		await _perf_test()
+		return
+	if _args.has("play-test"):
+		await _play_test()
 		return
 	if not (_args.has("smoke-test") or _args.has("screenshot")):
 		return
@@ -306,11 +704,105 @@ func _run_automation() -> void:
 
 	if not _args.has("moving"):
 		await get_tree().create_timer(float(_args.get("settle", 1.0))).timeout
+	match str(_args.get("ui", "")):
+		"inventory":
+			_ui.inventory.toggle()
+		"craft":
+			_ui.craft.open()
+		"house":
+			_ui.craft.open()
+			_ui.craft.get_child(0).get_child(1).current_tab = 1
+		"dev":
+			_ui.dev.toggle()
+		"build":
+			_build.enter()
+			Input.warp_mouse(get_viewport().get_visible_rect().size * Vector2(0.55, 0.6))
+	if _args.has("ui"):
+		await get_tree().create_timer(1.0).timeout
 	await RenderingServer.frame_post_draw
 	var path := str(_args["screenshot"])
 	var err := get_viewport().get_texture().get_image().save_png(path)
 	print("Goblo: screenshot salvo em %s (erro %d)" % [path, err])
 	get_tree().quit(0 if err == OK else 1)
+
+
+## Testa o ciclo do jogo de ponta a ponta contra um servidor com GOBLO_DEV=1:
+## coleta (sacudir, cortar, quebrar, colher), fabricação, decoração e casa.
+func _play_test() -> void:
+	var fails: Array[String] = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: play-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	check.call(_session.dev, "servidor em modo dev")
+	await dev_starter_kit()
+	check.call(_session.count("axe") == 1 and _session.count("wood") >= 99, "kit inicial (machado e madeira)")
+
+	# Coleta: acha uma árvore, uma pedra e uma flor perto de casa e interage com cada uma.
+	for spec in [["tree", "", "branch"], ["tree", "axe", "wood"], ["rock", "pickaxe", "stone"], ["flower", "", ""]]:
+		var kind: String = spec[0]
+		var obj := {}
+		for o: Dictionary in _data.objects_near(_player.global_position, 140.0):
+			if o["kind"] == kind and not (kind == "tree" and (o.get("drop", "") != "branch" or not o.get("chop", false))):
+				var st: Dictionary = o.get("state", {}) if o.get("state") is Dictionary else {}
+				if st.is_empty():
+					obj = o
+					break
+		if obj.is_empty():
+			check.call(false, "achar %s perto de casa" % kind)
+			continue
+		_session.equip(spec[1])
+		var up: Vector3 = obj["up"]
+		var side := up.cross(Vector3.UP if absf(up.y) < 0.9 else Vector3.RIGHT).normalized()
+		await _teleport((obj["pos"] as Vector3) + side * 1.1)
+		await get_tree().create_timer(0.3).timeout
+		_interaction.target = {"type": "object", "obj": obj}
+		var before := _session.count(spec[2]) if spec[2] != "" else _session.count(str(obj.get("item", "")))
+		var r: Dictionary = await _interaction.interact()
+		var after := _session.count(spec[2]) if spec[2] != "" else _session.count(str(obj.get("item", "")))
+		check.call(r.get("ok", false) and after > before, "interagir com %s (%s): %d → %d" % [kind, spec[1] if spec[1] != "" else "mão", before, after])
+	# Limite diário: sacudir a mesma árvore de novo falha.
+	_session.equip("")
+
+	await go_home()
+	var lot := _session.lot()
+	# Fabricação.
+	await craft("lantern")
+	check.call(_session.count("lantern") >= 1, "fabricar lampião")
+	# Decoração: coloca o lampião no primeiro lugar livre.
+	var placed := false
+	for y in range(0, _session.lot_tiles):
+		for x in range(0, _session.lot_tiles):
+			if placed:
+				break
+			var r := await _api.request("POST", "/lot/place", {"lot": lot["id"], "item": "lantern", "x": x, "y": y, "rot": 0})
+			if r["ok"]:
+				apply_lot_result(r["data"])
+				placed = true
+		if placed:
+			break
+	check.call(placed, "colocar o lampião no lote")
+	# Casa: barraca no meio do lote, concluída na hora pelo modo dev.
+	var house := false
+	for y in [6, 4, 2, 0]:
+		var r := await _api.request("POST", "/lot/house", {"lot": lot["id"], "x": 2, "y": y, "rot": 0})
+		if r["ok"]:
+			apply_lot_result(r["data"])
+			house = true
+			break
+	check.call(house, "começar a obra da barraca")
+	await dev_finish_house()
+	var h: Variant = _session.lot().get("house")
+	check.call(h is Dictionary and int(h["level"]) == 1, "barraca pronta pelo modo dev")
+	await get_tree().create_timer(0.5).timeout
+	var node := _neighborhood.lot_node(int(lot["id"]))
+	check.call(node != null and node.get_child_count() >= 4, "casa e lampião desenhados no lote")
+	print("Goblo: play-test %s (%d falhas)" % ["OK" if fails.is_empty() else "FALHOU", fails.size()])
+	if _args.has("screenshot"):
+		await get_tree().create_timer(1.0).timeout
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(str(_args["screenshot"]))
+	get_tree().quit(0 if fails.is_empty() else 1)
 
 
 ## Piloto automático até --route=LAT,LON. Segue o grande círculo; se ficar preso (árvore,
@@ -414,10 +906,9 @@ func _perf_test() -> void:
 	for x in worst:
 		worst_avg += x
 	worst_avg /= maxf(1.0, worst.size())
-	print("Goblo: desempenho (%s, qualidade %s): média %.1f fps, 1%% piores %.1f fps, pior quadro %.1f ms, %d draw calls, %.0f mil triângulos, %s" % [
+	print("Goblo: desempenho (%s, qualidade %s): média %.1f fps, 1%% piores %.1f fps, pior quadro %.1f ms, %d draw calls, %.0f mil triângulos, %d objetos, %s" % [
 		world.biome_label(_player.cell_id), Quality.current_name(), n / total, 1.0 / worst_avg, times[n - 1] * 1000.0,
-		int(draw_calls / n), primitives / n / 1000.0, Engine.get_version_info()["string"]])
-	print("Goblo: janela %s, escala da tela %.1f, viewport %s, renderizador %s" % [DisplayServer.window_get_size(), DisplayServer.screen_get_scale(), get_viewport().get_visible_rect().size, RenderingServer.get_current_rendering_method()])
+		int(draw_calls / n), primitives / n / 1000.0, _vegetation.instance_count, Engine.get_version_info()["string"]])
 	print("Goblo: tempo médio por quadro: física %.1f ms, render CPU %.1f ms, GPU %.1f ms; GPU: %s" % [
 		phys_ms / n, cpu_ms / n, gpu_ms / n, RenderingServer.get_video_adapter_name()])
 	get_tree().quit()

@@ -15,6 +15,7 @@ var _status: Label
 var _compass: Compass
 var _minimap: Minimap
 var _perf: Label
+var _dev_badge: Label
 
 
 func _ready() -> void:
@@ -45,7 +46,7 @@ func _ready() -> void:
 	_status_panel.add_child(_status)
 
 	var help := _label(13, Color(1, 1, 1, 0.9))
-	help.text = "WASD andar · Shift correr · Espaço pular · botão direito gira a câmera · roda do mouse: zoom\nF2 desempenho · F3 acelera o tempo · F4 hora real · F6 qualidade"
+	help.text = "WASD andar · Shift correr · Espaço pular · E interagir · Tab/I bolso · 1–5 ferramentas · B construir · H casa\nbotão direito gira a câmera (ou Q/C) · roda do mouse: zoom · F2 desempenho · F3 acelera o tempo · F4 hora real · F6 qualidade"
 	help.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
 	help.add_theme_constant_override("outline_size", 4)
 	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
@@ -80,6 +81,16 @@ func _ready() -> void:
 	perf_card.add_child(_perf)
 	perf_card.visible = false
 	add_child(perf_card)
+
+
+## Mostra o selo "MODO DEV · F1" quando o servidor está com GOBLO_DEV=1.
+func set_dev(on: bool) -> void:
+	if _dev_badge == null:
+		_dev_badge = _label(13, Color("6b4c9a"))
+		_dev_badge.text = "MODO DEV · F1 abre o painel"
+		_dev_badge.position = Vector2(22, 126)
+		add_child(_dev_badge)
+	_dev_badge.visible = on
 
 
 ## Mensagem rápida no centro da tela, que some sozinha.
