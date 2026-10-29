@@ -20,6 +20,8 @@ extends Camera3D
 @export var spin_speed := 0.08
 
 var target: Node3D
+## Quando true (digitando num campo de texto), Q/C não giram a câmera.
+var input_blocked := false
 var planet_radius := 1000.0
 ## Mundo, para a câmera não entrar no chão (montanhas).
 var world: WorldData
@@ -84,7 +86,7 @@ func _process(delta: float) -> void:
 		return
 	_zoom = lerpf(_zoom, zoom, 1.0 - exp(-8.0 * delta))
 	var turn := Input.get_axis("camera_right", "camera_left")
-	if turn != 0.0:
+	if turn != 0.0 and not input_blocked:
 		_turn(turn * key_turn_speed * delta)
 
 	var player_pos := target.get_global_transform_interpolated().origin

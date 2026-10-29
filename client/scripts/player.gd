@@ -9,7 +9,8 @@ extends CharacterBody3D
 ##
 ## O visual é um personagem do Mini Characters (Kenney), escolhido por `character` e
 ## escalado para `model_height`. Um AnimationTree mistura idle/walk/sprint pela velocidade
-## e jump/fall no ar.
+## e jump/fall no ar, e toca ações por cima (interact-right, pick-up).
+## A ferramenta na mão fica presa ao osso "arm-right". No modo dev dá para voar (noclip).
 
 signal cell_changed(cell_id: int)
 
@@ -52,6 +53,15 @@ var jumps := 0
 var autopilot := false
 var auto_wish := Vector3.ZERO
 var auto_run := false
+## Quando true, o teclado não move o personagem (janela aberta, digitando).
+var input_blocked := false
+## Modo dev: voa e atravessa tudo.
+var noclip := false
+## Velocidade do voo (unidades/s), multiplicada por 4 com Shift.
+var fly_speed := 14.0
+
+var _tool_holder: Node3D
+var _skeleton: Skeleton3D
 
 var _anim_tree: AnimationTree
 var _since_floor := 0.0
@@ -91,6 +101,9 @@ func _load_character() -> void:
 		model.scale = Vector3.ONE * (model_height / height)
 	_visual.add_child(model)
 	_setup_animation(model)
+	var sks := model.find_children("*", "Skeleton3D", true, false)
+	_skeleton = sks[0] if not sks.is_empty() else null
+	_tool_holder = null
 
 
 ## Altura do modelo na pose de repouso, somando as malhas (a origem fica nos pés).
@@ -119,6 +132,9 @@ func _setup_animation(model: Node3D) -> void:
 	for anim_name in ["idle", "walk", "sprint", "fall"]:
 		if player.has_animation(anim_name):
 			player.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
+	for anim_name in ["interact-right", "pick-up"]:
+		if player.has_animation(anim_name):
+			player.get_animation(anim_name).loop_mode = Animation.LOOP_NONE
 
 	var locomotion := AnimationNodeBlendSpace1D.new()
 	locomotion.min_space = 0.0
@@ -138,7 +154,15 @@ func _setup_animation(model: Node3D) -> void:
 	tree.connect_node("jumpfall", 1, "fall")
 	tree.connect_node("air", 0, "locomotion")
 	tree.connect_node("air", 1, "jumpfall")
-	tree.connect_node("output", 0, "air")
+	# Ações (bater com a ferramenta, pegar do chão) tocam uma vez por cima de tudo.
+	var shot := AnimationNodeOneShot.new()
+	shot.fadein_time = 0.08
+	shot.fadeout_time = 0.15
+	tree.add_node("action_anim", _anim_node("interact-right"), Vector2(600, 300))
+	tree.add_node("action", shot, Vector2(800, 100))
+	tree.connect_node("action", 0, "air")
+	tree.connect_node("action", 1, "action_anim")
+	tree.connect_node("output", 0, "action")
 
 	_anim_tree = AnimationTree.new()
 	_anim_tree.tree_root = tree
@@ -152,6 +176,62 @@ static func _anim_node(anim_name: String) -> AnimationNodeAnimation:
 	var node := AnimationNodeAnimation.new()
 	node.animation = anim_name
 	return node
+
+
+## Toca uma ação uma vez ("interact-right" para bater/sacudir, "pick-up" para pegar).
+func play_action(anim_name: String) -> void:
+	if _anim_tree == null:
+		return
+	var tree := _anim_tree.tree_root as AnimationNodeBlendTree
+	(tree.get_node("action_anim") as AnimationNodeAnimation).animation = anim_name
+	_anim_tree.set("parameters/action/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+
+## Vira o personagem para um ponto do mundo.
+func face(point: Vector3) -> void:
+	var up := global_position.normalized()
+	var f := _tangent(point - global_position, up)
+	if f.length() > 0.01:
+		facing = f.normalized()
+		_align(up)
+
+
+## Põe uma ferramenta na mão (mesh da ModelLibrary) ou tira (null).
+func set_tool(mesh: Mesh) -> void:
+	if _tool_holder:
+		_tool_holder.queue_free()
+		_tool_holder = null
+	if mesh == null or _skeleton == null:
+		return
+	var att := BoneAttachment3D.new()
+	att.bone_name = "arm-right"
+	_skeleton.add_child(att)
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	# O osso começa no ombro e o braço aponta para −X (pose em T): a ferramenta fica na
+	# ponta da mão, com o cabo para a frente.
+	mi.transform = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(90.0)).scaled(Vector3.ONE * 0.7), Vector3(-0.21, -0.01, -0.07))
+	att.add_child(mi)
+	_tool_holder = att
+
+
+## Leva o personagem para um ponto (já em cima do chão).
+func teleport(pos: Vector3) -> void:
+	var up := pos.normalized()
+	global_position = pos + up * 0.4
+	velocity = Vector3.ZERO
+	_align(up)
+	reset_physics_interpolation()
+	var id := world.find_cell(global_position, cell_id)
+	if id != cell_id:
+		cell_id = id
+		cell_changed.emit(cell_id)
+
+
+func set_noclip(on: bool) -> void:
+	noclip = on
+	$CollisionShape3D.disabled = on
+	velocity = Vector3.ZERO
 
 
 ## Coloca o personagem em pé sobre a célula `id`.
@@ -173,7 +253,7 @@ func spawn(w: WorldData, id: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("jump"):
+	if event.is_action_pressed("jump") and not input_blocked and not noclip:
 		request_jump()
 
 
@@ -186,6 +266,9 @@ func request_jump() -> void:
 func _physics_process(delta: float) -> void:
 	var up := global_position.normalized()
 	up_direction = up
+	if noclip:
+		_fly(delta, up)
+		return
 
 	var vertical_speed := velocity.dot(up)
 	var horizontal := velocity - up * vertical_speed
@@ -208,7 +291,7 @@ func _physics_process(delta: float) -> void:
 			_anim_tree.set("parameters/jump_seek/seek_request", 0.0)
 
 	var wish := auto_wish.limit_length(1.0) if autopilot else _wish_direction(up)
-	var running := auto_run if autopilot else Input.is_action_pressed("run")
+	var running := auto_run if autopilot else (Input.is_action_pressed("run") and not input_blocked)
 	var speed := walk_speed * (run_multiplier if running else 1.0)
 	var accel := acceleration if is_on_floor() else air_acceleration
 	horizontal = horizontal.lerp(wish * speed, clampf(accel * delta, 0.0, 1.0))
@@ -228,6 +311,28 @@ func _physics_process(delta: float) -> void:
 		facing = f.rotated(new_up, angle * (1.0 - exp(-turn_speed * delta)))
 	_align(new_up)
 
+	var id := world.find_cell(global_position, cell_id)
+	if id != cell_id:
+		cell_id = id
+		cell_changed.emit(cell_id)
+
+
+## Voo do modo dev: WASD no plano, Espaço sobe, Ctrl desce, Shift acelera. Sem colisão.
+func _fly(delta: float, up: Vector3) -> void:
+	var wish := _wish_direction(up)
+	var vertical := 0.0
+	if not input_blocked:
+		vertical = (1.0 if Input.is_key_pressed(KEY_SPACE) else 0.0) - (1.0 if Input.is_key_pressed(KEY_CTRL) else 0.0)
+	var speed := fly_speed * (4.0 if Input.is_action_pressed("run") and not input_blocked else 1.0)
+	velocity = (wish + up * vertical) * speed
+	global_position += velocity * delta
+	if world and global_position.length() < world.radius - 2.0:
+		global_position = global_position.normalized() * (world.radius - 2.0)
+	var new_up := global_position.normalized()
+	if wish.length() > 0.1:
+		facing = _tangent(wish, new_up).normalized()
+	_align(new_up)
+	_update_animation(delta, new_up)
 	var id := world.find_cell(global_position, cell_id)
 	if id != cell_id:
 		cell_id = id
@@ -272,6 +377,8 @@ func _update_animation(delta: float, up: Vector3) -> void:
 
 ## Direção pedida pelo teclado, no plano tangente, relativa à câmera.
 func _wish_direction(up: Vector3) -> Vector3:
+	if input_blocked:
+		return Vector3.ZERO
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if input == Vector2.ZERO or camera == null:
 		return Vector3.ZERO

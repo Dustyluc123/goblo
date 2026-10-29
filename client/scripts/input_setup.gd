@@ -11,7 +11,14 @@ const ACTIONS := {
 	"run": [KEY_SHIFT],
 	"jump": [KEY_SPACE],
 	"camera_left": [KEY_Q],
-	"camera_right": [KEY_E],
+	"camera_right": [KEY_C],
+	"interact": [KEY_E],
+	"inventory": [KEY_TAB, KEY_I],
+	"build": [KEY_B],
+	"rotate": [KEY_R],
+	"pick_up": [KEY_X],
+	"home": [KEY_H],
+	"dev_panel": [KEY_F1],
 }
 
 
