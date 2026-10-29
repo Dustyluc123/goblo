@@ -213,6 +213,25 @@ func (c *Content) House(level int) *HouseLevel {
 	return &c.Houses[level-1]
 }
 
+// ObjectModels lista, sem repetição e em ordem, os modelos usados pelos objetos do mundo
+// (sem as versões de outono, que ainda não aparecem). O cliente pré-carrega esses modelos.
+func (c *Content) ObjectModels() []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, rules := range c.Objects {
+		for _, r := range rules {
+			for _, m := range r.Models {
+				if !seen[m] {
+					seen[m] = true
+					out = append(out, m)
+				}
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 func (c *Content) itemsWithTag(tag string) []string {
 	var out []string
 	for _, it := range c.Items {

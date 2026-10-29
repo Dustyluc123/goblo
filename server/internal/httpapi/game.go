@@ -104,6 +104,7 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"items":           c.Items,
 		"recipes":         c.Recipes,
 		"houses":          c.Houses,
+		"object_models":   c.ObjectModels(),
 		"tile_size":       game.TileSize,
 		"lot_tiles":       game.LotTiles,
 		"inventory_slots": game.InventorySlots,
