@@ -2,21 +2,22 @@
 
 <p align="center">
   <strong>Um MMO cozy no planeta Terra de verdade.</strong><br />
-  O globo da aula de geografia, pequeno e fofo, com os continentes e países reais: ande por ele, pegue um terreno perto da sua cidade, construa e encontre gente do mundo todo.
+  O globo da aula de geografia, pequeno e fofo, com os continentes e países reais: nasça no seu país, colete materiais, construa sua casa e conheça os vizinhos.
 </p>
 
 <p align="center">
   <img alt="Go" src="https://img.shields.io/badge/Go-1.27-00add8?logo=go&logoColor=white" />
   <img alt="Godot" src="https://img.shields.io/badge/Godot-4.7-478cbf?logo=godotengine&logoColor=white" />
   <img alt="GDScript" src="https://img.shields.io/badge/GDScript-2.0-355570?logo=godotengine&logoColor=white" />
+  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-Go_puro-003b57?logo=sqlite&logoColor=white" />
   <img alt="Natural Earth" src="https://img.shields.io/badge/dados-Natural_Earth-6aa84f" />
   <a href="https://github.com/Dustyluc123/goblo/actions/workflows/server.yml"><img alt="CI" src="https://github.com/Dustyluc123/goblo/actions/workflows/server.yml/badge.svg" /></a>
-  <img alt="Testes" src="https://img.shields.io/badge/testes-30_passando-12a85f" />
-  <img alt="Fase" src="https://img.shields.io/badge/fase-1.5_de_4-f4a6b8" />
+  <img alt="Testes" src="https://img.shields.io/badge/testes-54_passando-12a85f" />
+  <img alt="Fase" src="https://img.shields.io/badge/fase-2_de_4-f4a6b8" />
 </p>
 
 <p align="center">
-  <img src="docs/imagens/passeio.gif" alt="Personagem anda e pula entre árvores perto de São Paulo; a câmera se afasta até o globo inteiro, com nuvens e a linha do pôr do sol, e depois volta" width="720" />
+  <img src="docs/imagens/bairro.png" alt="Um bairro no Brasil: casas de madeira com telhado verde e casas grandes com telhado vermelho, cada uma no seu lote com plaquinha, lampiões e bancadas, no meio de uma floresta tropical" width="760" />
 </p>
 
 ---
@@ -26,6 +27,7 @@
 - [O que é](#o-que-é)
 - [O que já dá para fazer](#o-que-já-dá-para-fazer)
 - [Telas](#telas)
+- [Como testar com o modo dev](#como-testar-com-o-modo-dev)
 - [Medições](#medições)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
@@ -33,6 +35,7 @@
 - [Como rodar](#como-rodar)
 - [Controles](#controles)
 - [Testes](#testes)
+- [Privacidade](#privacidade)
 - [Dados](#dados)
 - [Créditos](#créditos)
 - [Roadmap](#roadmap)
@@ -42,162 +45,180 @@
 
 Um MMO cozy, no estilo Animal Crossing, que se passa **no planeta Terra de verdade**, visto como o globo da aula de geografia: pequeno, estilizado e fofo, com os continentes e países reais divididos em hexágonos.
 
-A ideia é que os jogadores andem pelo globo, peguem um terreno perto de uma cidade real, construam, atravessem fronteiras entre países e negociem com uma moeda do jogo, todos no mesmo mundo ao mesmo tempo.
+O ciclo central é o do Animal Crossing: **coletar materiais → fabricar ferramentas e objetos → construir a casa e decorar o lote → voltar amanhã**. Cada hexágono do globo tem até quatro lotes, e quem mora no mesmo hexágono é vizinho.
 
 ## O que já dá para fazer
 
-**Fase 1: o globo**
+**Fase 1: o globo** ✅ e **Fase 1.5: um mundo de verdade** ✅
 
-- [x] Globo low-poly com os continentes e países reais, dividido em hexágonos (e 12 pentágonos, como numa bola de futebol)
-- [x] Zoom contínuo do personagem até o planeta inteiro, que gira devagar sozinho
-- [x] Personagem animado (Mini Characters da Kenney) andando por cima da esfera, com a gravidade puxando para o centro
-- [x] Não dá para entrar no oceano (o personagem desliza pela costa)
-- [x] Servidor como fonte da verdade: o cliente baixa o mundo pronto e só desenha
+- Globo low-poly com os países reais, 25.002 hexágonos num planeta de raio 1000, zoom do personagem até o planeta inteiro
+- Personagem animado que anda e pula por cima da esfera; São Paulo → Venezuela leva ~2 min andando
+- Biomas do servidor, dia e noite pelo horário real (UTC), oceano animado, nuvens, bússola, mini mapa, qualidade gráfica (F6)
 
-**Fase 1.5: um mundo de verdade**
+**Fase 2: coletar e construir**
 
-- [x] **Pulo** com Espaço, com *coyote time* e *jump buffer*, sem pulo duplo; degraus pequenos sobem andando
-- [x] **Globo 10× maior**: raio 1000 e **25.002 hexágonos** de ~23 unidades. São Paulo → fronteira da Venezuela leva **~1 min 55 s andando** e **~55 s correndo**
-- [x] **Biomas** definidos no servidor: oceano, praia, floresta tropical, floresta, campo, deserto, montanha, tundra e gelo, cada um com sua altura (montanhas em degraus para escalar pulando)
-- [x] **Vegetação 3D** da Kenney espalhada por bioma (árvores, pinheiros, pedras, grama, plantas), sempre nas mesmas posições para todo mundo, carregada só perto do jogador
-- [x] **Dia e noite pelo horário real (UTC)**: o sol sai do ponto subsolar de verdade; a noite é azulada, com estrelas, e dá para ver o caminho
-- [x] **Oceano animado** (ondas, água rasa na costa, espuma, brilho do sol) e **nuvens low-poly** orbitando o globo
-- [x] **HUD de navegação**: país, bioma, coordenadas, horário local, **bússola**, **mini mapa** com a linha dia/noite e painel de desempenho (F2)
-- [x] **Formato binário compacto** do mundo (353 KB com gzip) com versão e cache local: o cliente só baixa de novo quando o mundo muda
-- [x] **Qualidade gráfica** baixa, média e alta (F6)
+- [x] **Primeiro acesso sem login:** apelido (com filtro de palavrões) e país sugerido pelo IP ou pelo idioma do sistema, que o jogador confirma ou troca. O servidor devolve um token secreto que o cliente guarda
+- [x] **Lote próprio no seu país**, de 14 × 14 quadradinhos, com borda no chão, plaquinha com o seu apelido e uma bancada. **H** volta para casa
+- [x] **Objetos do servidor**: árvores, pedras, flores, arbustos de frutinhas, pedrinhas e galhos, gerados de forma determinística (todo mundo vê os mesmos)
+- [x] **Coleta com E:** sacudir árvores (galhos; palmeira dá coco), cortar com machado (madeira), quebrar pedras com picareta, colher flores e frutinhas, pegar o que está no chão. A árvore balança, o item faz um "pop" e o servidor confere os **limites do dia, por jogador**. O dia vira às **5h no seu horário**
+- [x] **Inventário** de 20 espaços (Tab ou I), **barra rápida** com as ferramentas (1 a 5) e a ferramenta aparece na mão
+- [x] **Bancada** com 21 receitas (machado, picareta, cercas, cerca viva, lampião, banco, caminho, canteiro, barraquinhas, carrinho, fonte…), num arquivo de dados para balancear sem programar
+- [x] **Modo construção (B):** prévia transparente verde ou vermelha, R gira, clique coloca, X guarda de volta. Tudo encaixa na grade e o servidor valida
+- [x] **Casa em três níveis** (barraca → casinha → casa grande), montada com o Fantasy Town Kit. A obra aparece com andaime e fica **pronta no dia seguinte**
+- [x] **Bairro:** as casas e a decoração dos vizinhos aparecem com o nome do dono; lampiões acendem à noite
+- [x] **Ultimate Nature Pack** em todos os biomas: palmeiras e salgueiros, bétulas, pinheiros com neve, cactos floridos, pedras com musgo
+- [x] **Banco SQLite** (Go puro, sem cgo) com migrações e repositórios trocáveis
+- [x] **Modo dev (F1)** para testar tudo sem jogar: dar itens, obra na hora, dia seguinte, voar, teleportar, trocar país, resets e 20 vizinhos falsos
 
 ## Telas
 
-| Floresta tropical (Amazônia) | Noite em São Paulo | O planeta ao pôr do sol |
+| Primeiro acesso | Bancada | Bolso (inventário) |
 | --- | --- | --- |
-| <img src="docs/imagens/floresta.png" alt="Personagem no meio de uma floresta densa de árvores low-poly na Amazônia, com bússola no topo e mini mapa no canto" width="300" /> | <img src="docs/imagens/noite.png" alt="A mesma região à noite, com céu azul-escuro, árvores azuladas e o caminho ainda visível" width="300" /> | <img src="docs/imagens/globo.png" alt="Globo visto de longe com nuvens fofas em volta e a linha entre o dia e a noite cruzando a América do Sul" width="300" /> |
+| <img src="docs/imagens/primeiro-acesso.png" alt="Tela de boas-vindas com campo de apelido, sugestão de país pelo idioma do computador e lista pesquisável de países" width="300" /> | <img src="docs/imagens/bancada.png" alt="Menu da bancada com a lista de receitas e os ingredientes do machado, em verde porque o jogador tem tudo" width="300" /> | <img src="docs/imagens/bolso.png" alt="Inventário de 20 espaços com machado, picareta, madeira, pedras, galhos e flores, com ícones 3D" width="300" /> |
 
-| Andes (montanha) | Saara (deserto) |
-| --- | --- |
-| <img src="docs/imagens/montanha.png" alt="Montanhas cinzentas em degraus no Peru, com pedras e pinheiros" width="450" /> | <img src="docs/imagens/deserto.png" alt="Deserto cor de areia na Líbia, com pedras espalhadas" width="450" /> |
+| Modo construção | Noite no bairro | Modo dev |
+| --- | --- | --- |
+| <img src="docs/imagens/construcao.png" alt="Prévia transparente de uma fonte em vermelho fora do lote, com a barra de objetos para colocar" width="300" /> | <img src="docs/imagens/noite.png" alt="O mesmo bairro à noite, céu azul-escuro e um lampião aceso no lote do jogador" width="300" /> | <img src="docs/imagens/modo-dev.png" alt="Painel do modo dev com a lista pesquisável de itens, quantidade e botões Dar e Kit inicial" width="300" /> |
+
+| Amazônia | Andes | Saara |
+| --- | --- | --- |
+| <img src="docs/imagens/floresta.png" alt="Floresta tropical densa com árvores e palmeiras do Ultimate Nature Pack" width="300" /> | <img src="docs/imagens/montanha.png" alt="Montanhas em degraus no Peru com pinheiros e pedras grandes" width="300" /> | <img src="docs/imagens/deserto.png" alt="Deserto cor de areia na Líbia com cactos e pedras" width="300" /> |
+
+## Como testar com o modo dev
+
+1. **Servidor em modo dev** (terminal 1, deixe aberto):
+   ```bash
+   cd server
+   GOBLO_DEV=1 go run ./cmd/server
+   ```
+   O log mostra `MODO DEV LIGADO`. Sem `GOBLO_DEV=1`, todas as rotas `/dev/…` respondem 403.
+2. **Abra o jogo** no Godot (F5). Na primeira vez, escolha um apelido e confirme o país. Você nasce no seu lote, com uma bancada.
+3. Aperte **F1** para abrir o **painel dev**. Na aba **Itens**, clique em **Kit inicial** (machado, picareta, madeira, pedras, galhos e flores) ou procure qualquer item, escolha a quantidade e clique em **Dar**.
+4. **Coleta:** chegue perto de uma árvore e aperte **E** para sacudir. Aperte **1** para segurar o machado e **E** de novo para cortar (3 vezes). Com a picareta (**2**), quebre uma pedra grande. Colha flores e pegue pedrinhas.
+5. **Limites:** tente sacudir a mesma árvore de novo ("Já sacudida hoje"). No painel, aba **Jogador**, clique em **Avançar para o dia seguinte**: os limites voltam.
+6. **Fabricação:** aperte **H** para voltar para casa, chegue perto da bancada e aperte **E**. Fabrique um lampião e uma cerca.
+7. **Decoração:** aperte **B**, escolha o objeto na barra, mire com o mouse dentro do lote (verde = pode), **R** para girar, clique para colocar. **X** com o mouse em cima guarda de volta.
+8. **Casa:** na bancada, aba **Casa**, clique em **Escolher o lugar e construir** e clique no lote (o contorno mostra o tamanho da casa grande, para sobrar espaço). Aparece o andaime. No painel, **Concluir a obra agora** (ou **Avançar para o dia seguinte**). Depois melhore para casinha e casa grande.
+9. **Vizinhos:** no painel, **Criar 20 vizinhos falsos aqui perto**. Passeie pelo bairro.
+10. **Mundo:** aba **Mundo**: procure um país e clique em **Ir para o país**, ou digite lat/lon. Ligue **Voar (noclip)** (Espaço sobe, Ctrl desce, Shift acelera). **F3** acelera o tempo para ver os lampiões à noite.
+11. **Resets:** aba **Jogador**: trocar de país (muda o lote), resetar lote, inventário, coletas de hoje ou apagar o jogador (volta à tela de primeiro acesso).
+
+> [!TIP]
+> O relógio adiantado pelo "dia seguinte" vale até reiniciar o servidor. O banco fica em `server/goblo.db`; apague o arquivo para começar do zero.
 
 ## Medições
 
-Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M + Intel UHD 630), Godot 4.7.2 com o renderizador Mobile.
+Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M), Godot 4.7.2 com o renderizador Mobile, janela de 1280 × 720 em primeiro plano.
 
-**Escala** (piloto automático `--route`, que segue o caminho mais curto, pula degraus e desvia de árvores):
+**Desempenho** (`--perf-test=20`, andando 20 s, com vsync):
 
-| Trajeto | Linha reta | Andando (5,3 u/s) | Correndo (12,2 u/s) |
-| --- | ---: | ---: | ---: |
-| São Paulo → Pacaraima (4,5° N, 61,1° O) | 548 unidades | 110–116 s | 50–56 s |
+| Onde | Qualidade | fps médio | 1% piores | Pior quadro | GPU por quadro | Objetos |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Floresta tropical | Baixa | 60,0 | 59,1 | 17 ms | 9,2 ms | 5.406 |
+| Floresta tropical | **Média (padrão)** | **60,0** | **58,7** | **17 ms** | **10,0 ms** | 10.129 |
+| Floresta tropical | Alta | 60,0 | 58,1 | 17 ms | 12,7 ms | 14.674 |
+| Bairro com 20 vizinhos | Média | 60,0 | 58,4 | 17 ms | 9,6 ms | 8.543 |
 
-**Mundo e carga:**
+**Carga** (com o mundo em cache):
 
-| O quê | Valor |
+| O quê | Tempo |
 | --- | --- |
-| Células | 25.002 (n = 50), hexágono com ~23 unidades de largura |
-| Geração no servidor (grade, países, biomas, JSON e binário) | 4,2 s, uma vez na inicialização |
-| Download do mundo binário | 1.076 KB, **353 KB com gzip** (o JSON de depuração tem 9,3 MB, 1,6 MB com gzip) |
-| Leitura do binário no cliente | 0,4–0,6 s |
-| Montagem das malhas do globo | 1,2–1,5 s |
-| Vegetação inicial em volta do personagem | 0,2–0,3 s |
-| Com o cache em dia | o servidor responde 304 e o cliente lê o arquivo local |
-
-**Desempenho** (`--perf-test=20`, andando 20 s pela floresta tropical, com vsync):
-
-| Qualidade | fps médio | GPU por quadro | Triângulos | Draw calls |
-| --- | ---: | ---: | ---: | ---: |
-| Baixa | 55,7 | 9,2 ms | 132 mil | 107 |
-| **Média (padrão)** | **54,1** | **11,7 ms** | 159 mil | 120 |
-| Alta | 36,3 | 24,0 ms | 215 mil | 151 |
-
-> [!NOTE]
-> Nesta medição automatizada, até uma cena vazia do Godot (um cubo) ficou em **55 fps**, com picos de 80 ms: a janela aberta pelo terminal fica atrás de outras e o macOS reduz o ritmo dela. Então ~55 fps é o teto deste teste, e a qualidade média chega nele. A GPU gasta 11,7 ms por quadro, o que deixa folga para 60 fps. Para conferir no uso normal, abra o jogo com a janela em primeiro plano e aperte **F2**.
+| Ler o mundo binário | 0,2–0,4 s |
+| Montar as malhas do globo | 0,6–0,9 s |
+| Pré-carregar ~130 modelos (em paralelo) | 1,8 s |
+| Buscar objetos e lotes em volta e montar a vegetação | 0,5–0,7 s |
+| Servidor: gerar o mundo e abrir o banco | ~3,7 s, uma vez |
+| `GET /objects` de um pedaço (16 células, ~500 objetos) | 3 ms, 47 KB |
 
 **Decisões de otimização:**
 
-- **Renderizador Mobile** em vez do Forward+: a GPU caiu de 21,7 para 11,7 ms por quadro na floresta, sem diferença visível neste estilo low-poly ([ADR 0014](docs/decisoes/0014-renderizador-mobile-e-qualidade.md)).
-- **Vegetação por pedaços** com um `MultiMeshInstance3D` por modelo e pedaço. O sorteio roda em threads (`WorkerThreadPool`) e chega pronto como buffer; o thread principal gasta no máximo ~4 ms para mostrar um pedaço (antes eram 24 a 49 ms).
-- **Colisão só perto:** o chão tem colisão nos pedaços a até 60 unidades, e as árvores só a até 40, criadas direto no `PhysicsServer3D` (sem um nó por árvore).
-- **Malha do globo indexada** em 96 grupos, com o sombreamento flat calculado no shader (sem duplicar vértices).
-- **HUD leve:** a bússola só redesenha quando o rumo muda, o mini mapa renderiza 10 vezes por segundo e a qualidade média usa FXAA em vez de MSAA.
-- **Precisão:** com raio 1000, um `float` de 32 bits tem precisão de ~0,06 mm na superfície, então não há tremedeira. A câmera usa a posição interpolada da física e ajusta `near`/`far` ao zoom.
+- **Modelos juntados numa malha só:** as árvores do Ultimate Nature Pack têm 2 a 4 materiais de cor sólida; as cores viram cor por vértice e cada modelo vira **1 draw call** por pedaço, com LOD gerado de novo. As casas também viram uma malha só ([ADR 0025](docs/decisoes/0025-malhas-juntadas-e-pre-carregamento.md)).
+- **Pré-carregamento em paralelo:** antes, cada modelo novo era processado no thread principal na primeira vez que aparecia, e o pior quadro chegava a 133 ms. Agora todos são carregados no `WorkerThreadPool` durante a entrada: o pior quadro caiu para 17 ms.
+- **MultiMesh por modelo e pedaço**, com o buffer montado de uma vez. Objetos colhidos ficam escondidos (escala zero) sem refazer o pedaço.
+- **Só o que está perto:** objetos e lotes são pedidos por pedaço em volta do personagem e soltos quando ele se afasta; colisão das árvores só a até 40 unidades, direto no `PhysicsServer3D`; só os 6 lampiões mais próximos ganham luz de verdade.
+- Da fase 1.5: renderizador Mobile, malha do globo em 96 grupos, grama sorteada em threads, HUD leve.
 
 ## Arquitetura
 
-O servidor define o mundo; o cliente só desenha. Isso já prepara o terreno para o multiplayer: todo mundo vai receber exatamente o mesmo planeta.
+O servidor define o mundo e aplica as regras; o cliente pede e desenha. Isso já prepara o terreno para o multiplayer: todo mundo recebe o mesmo planeta e as mesmas regras.
 
 ```mermaid
 flowchart LR
-    ne[("Natural Earth<br/>terra, países, regiões")]
+    ne[("Natural Earth")]
+    content[("data/game/*.json<br/>itens, receitas,<br/>casas, objetos")]
     subgraph server["server/ — Go"]
-        grid["grade geodésica<br/>10·n²+2 células"]
-        terrain["terra, país, bioma e altura"]
-        world["World<br/>binário + JSON, gzip, versão"]
-        api["HTTP<br/>/world.bin · /world · /world/version"]
+        world["world<br/>grade, países, biomas"]
+        game["game<br/>jogador, lote, coleta,<br/>fabricação, casa"]
+        db[("SQLite<br/>Go puro")]
+        api["HTTP<br/>/world.bin · /me · /objects<br/>/interact · /craft · /lot/…"]
     end
     subgraph client["client/ — Godot 4"]
-        data["WorldData<br/>+ cache local"]
-        mesh["Terrain<br/>malhas por grupo + colisão perto"]
-        veg["Vegetation<br/>MultiMesh por pedaço"]
-        player["personagem<br/>gravidade esférica, pulo"]
-        sky["DayNight<br/>sol pelo UTC, céu, lua"]
-        hud["HUD<br/>bússola, mini mapa"]
+        globe["globo, céu,<br/>personagem"]
+        chunks["ChunkData<br/>objetos e lotes por pedaço"]
+        draw["Vegetation + Neighborhood"]
+        play["Interaction (E)<br/>BuildMode (B)"]
+        ui["bolso, bancada,<br/>modo dev"]
     end
-    ne --> terrain
-    grid --> world
-    terrain --> world
+    ne --> world
+    content --> game
+    world --> game
+    game <--> db
     world --> api
-    api -- "HTTP (gzip, ETag)" --> data
-    data --> mesh
-    data --> veg
-    data --> player
-    player --> hud
-    sky --> hud
+    game --> api
+    api -- "binário" --> globe
+    api -- "JSON + token" --> chunks
+    chunks --> draw
+    play -- "pedidos" --> api
+    ui --> play
 ```
 
 Princípios que guiaram o código:
 
-- **O servidor é a fonte da verdade.** Grade, terreno, país, bioma e altura de cada célula saem do servidor. O cliente só desenha.
-- **Determinístico.** Mesma frequência e mesmos dados geram o mesmo mundo, byte a byte (há teste). A vegetação usa uma semente baseada no id da célula, então todos os jogadores vão ver as mesmas árvores ([ADR 0011](docs/decisoes/0011-espalhamento-deterministico.md)).
-- **Geometria pura separada dos dados.** `geodesic.go` não sabe nada de geografia; `terrain.go`, `regions.go` e `biome.go` não sabem nada de grade. `world.go` junta tudo.
-- **Só o que está perto.** Colisão e vegetação existem só em volta do personagem, por pedaços; no zoom afastado, só o globo e as nuvens.
-- **Cada hexágono é uma região.** Na fase 2, cada célula vai ganhar uma grade fina de construção por dentro; o id da célula já é estável e o formato binário tem versão.
-- **Tudo ajustável num lugar só:** raio e grade em `server/internal/world/world.go` (`DefaultConfig`); velocidades, pulo e câmera em `client/scripts/game_config.gd`; qualidade em `client/scripts/quality.gd`.
+- **O servidor é a fonte da verdade.** Mundo, objetos que dão material, inventário, limites do dia, lotes e casas são decididos no servidor. O cliente pede ("sacudi a árvore X") e mostra a resposta.
+- **Determinístico.** Os objetos de cada célula saem de uma semente no id da célula: todo mundo vê as mesmas árvores, e o servidor não precisa guardá-las, só as coletas ([ADR 0020](docs/decisoes/0020-objetos-interativos-no-servidor.md)).
+- **Regras sem saber do banco.** `internal/game` só conhece a interface `game.Store`; hoje é SQLite, amanhã pode ser PostgreSQL ([ADR 0018](docs/decisoes/0018-sqlite-em-go-puro-atras-de-repositorios.md)). O relógio é injetável, então os testes viram o dia e concluem obras sem esperar.
+- **Balancear sem programar.** Itens, receitas, casas e objetos de cada bioma ficam em JSON ([`docs/CONTEUDO.md`](docs/CONTEUDO.md)).
+- **Só o que está perto.** Objetos, lotes, colisão e luzes existem só em volta do personagem, por pedaços.
 
-Mais detalhes em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e nas decisões em [`docs/decisoes/`](docs/decisoes/).
+Mais detalhes em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md), todas as rotas em [`docs/API.md`](docs/API.md) e as decisões em [`docs/decisoes/`](docs/decisoes/).
 
 ## Tecnologias
 
 | Camada | Ferramenta | Por quê |
 | --- | --- | --- |
 | Servidor | Go 1.27, biblioteca padrão | Binário único, rápido, testes embutidos |
+| Banco | SQLite com [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite) | Go puro, sem cgo nem Xcode; migrações versionadas |
 | Geometria | [`paulmach/orb`](https://github.com/paulmach/orb) | GeoJSON e point-in-polygon prontos |
+| IP → país | [DB-IP IP to Country Lite](https://db-ip.com) | Gratuita (CC BY 4.0), carregada na memória |
 | Cliente | Godot 4.7 + GDScript | Leve, código aberto, exporta para tudo; física com `up_direction` livre |
-| Arte 3D | [Kenney](https://www.kenney.nl) (CC0) | Personagens low-poly fofos com animações prontas |
-| Dados | Natural Earth 1:110m e 1:50m | Domínio público, com nomes dos países em português e regiões geográficas para os biomas |
+| Arte 3D | [Kenney](https://www.kenney.nl) e [Quaternius](https://quaternius.com) (CC0) | Personagens, casas modulares e natureza low-poly fofos |
+| Dados | Natural Earth 1:110m e 1:50m | Domínio público, com nomes dos países em português |
 | CI | GitHub Actions | `gofmt`, `go vet` e `go test -race` a cada push |
 
 ## Estrutura de pastas
 
 ```
 .
-├── client/                    # Godot 4
-│   ├── project.godot
-│   ├── assets/kenney/         # Mini Characters, Mini Forest, Graveyard Kit, Monster Builder (CC0)
-│   ├── scenes/                # main.tscn, player.tscn
-│   ├── shaders/               # terrain, ocean, sky, cloud, minimap_globe
-│   └── scripts/               # world_data, terrain, globe_builder, vegetation, player, day_night, hud…
-├── server/                    # Go
-│   ├── cmd/server/            # main.go
-│   ├── cmd/filtra-regioes/    # reduz as regiões do Natural Earth 1:50m
-│   ├── internal/world/        # geodesic, terrain, regions, biome, noise, binary, world (+ testes)
-│   ├── internal/httpapi/      # rotas HTTP (+ testes)
-│   ├── data/naturalearth/     # GeoJSON embutido no binário
+├── client/                         # Godot 4
+│   ├── assets/kenney/              # Mini Characters, Fantasy Town Kit, Car Kit, Watercraft… (CC0)
+│   ├── assets/quaternius/          # Ultimate Nature Pack, Ultimate Animated Animals (CC0)
+│   ├── data/decoracao.json         # grama e plantinhas de cada bioma
+│   ├── scenes/                     # main, player e houses/house_level_1..3
+│   ├── scripts/                    # world_data, terrain, vegetation, neighborhood, interaction, build_mode, UI…
+│   ├── shaders/
+│   └── tools/montar_casas.gd       # monta as casas com as peças do kit
+├── server/                         # Go
+│   ├── cmd/server/                 # main.go
+│   ├── internal/world/             # grade, terreno, biomas, binário (+ testes)
+│   ├── internal/game/              # regras: jogador, lote, objetos, coleta, fabricação, casa, dev (+ testes)
+│   ├── internal/store/sqlitestore/ # SQLite e migrações (+ testes)
+│   ├── internal/geoip/             # IP → país (+ testes)
+│   ├── internal/httpapi/           # rotas HTTP (+ testes)
+│   ├── data/naturalearth/          # GeoJSON embutido
+│   ├── data/game/                  # itens, receitas, casas e objetos (JSON)
 │   └── scripts/baixar-dados.sh
-├── docs/
-│   ├── ARQUITETURA.md
-│   ├── DADOS.md
-│   ├── BIOMAS.md
-│   ├── briefing-fase-1.md
-│   ├── briefing-fase-1-5.md
-│   ├── decisoes/              # ADRs
-│   └── imagens/
+├── tools/gltf_para_glb.py
+├── docs/                           # ARQUITETURA, API, CONTEUDO, BIOMAS, DADOS, briefings, decisoes/, imagens/
 ├── CLAUDE.md
 └── README.md
 ```
@@ -216,18 +237,29 @@ Pré-requisitos: [Go 1.27+](https://go.dev/dl/) e [Godot 4.7+](https://godotengi
 > O Godot fica em `~/sdk/godot/Godot.app` (dá para arrastar para `/Applications`).
 
 > [!IMPORTANT]
-> **O servidor precisa estar rodando antes de dar Play no Godot.** O cliente não gera o mundo: ele baixa tudo do servidor. Deixe o servidor aberto num **terminal separado** enquanto joga. Sem ele, o jogo mostra "Sem resposta do servidor" e fica tentando de novo a cada 3 segundos.
+> **O servidor precisa estar rodando antes de dar Play no Godot.** O cliente não gera nada: o mundo, o jogador, os objetos e as casas vêm do servidor. Deixe o servidor aberto num **terminal separado** enquanto joga. Sem ele, o jogo mostra "Sem resposta do servidor" e fica tentando de novo a cada 3 segundos.
 
 **1. Servidor (terminal 1, deixe aberto)**
 
 ```bash
 cd server
-go run ./cmd/server
-# mundo gerado versão=9ce1… frequência=50 células=25002 raio=1000 oceano=70.9% …
+./scripts/baixar-dados.sh        # opcional: baixa a base IP → país da DB-IP (fora do Git)
+GOBLO_DEV=1 go run ./cmd/server  # com o modo dev; sem GOBLO_DEV=1 é o modo normal
+# mundo gerado versão=9ce1… células=25002 …
+# banco aberto arquivo=goblo.db migração=1
 # servidor no ar endereço=:8080
 ```
 
-A geração leva uns 4 segundos. Opções: `-addr :8080`, `-frequency 50` (células = 10·n²+2) e `-radius 1000`, ou as variáveis `GOBLO_ADDR`, `GOBLO_FREQUENCY` e `GOBLO_RADIUS`. Para parar, `Ctrl+C`. Rotas: `/world.bin` (o que o jogo usa), `/world` (JSON para depuração) e `/world/version`.
+A inicialização leva uns 4 segundos. Opções (flag ou variável de ambiente):
+
+| Flag | Variável | Padrão | O quê |
+| --- | --- | --- | --- |
+| `-addr` | `GOBLO_ADDR` | `:8080` | endereço HTTP |
+| `-db` | `GOBLO_DB` | `goblo.db` | arquivo do banco SQLite (fora do Git) |
+| `-geoip` | `GOBLO_GEOIP` | `data/raw/dbip-country-lite.csv.gz` | base IP → país (opcional) |
+| `-frequency` | `GOBLO_FREQUENCY` | `50` | grade (células = 10·n²+2) |
+| `-radius` | `GOBLO_RADIUS` | `1000` | raio do planeta |
+| | `GOBLO_DEV=1` | desligado | modo desenvolvedor (rotas `/dev/…` e F1 no jogo) |
 
 **2. Cliente (Godot)**
 
@@ -240,9 +272,9 @@ cd client
 
 O cliente procura o servidor em `http://127.0.0.1:8080`. Para trocar: `godot --path . -- --server=http://outro:8080`, a variável `GOBLO_SERVER_URL` ou a opção `goblo/server_url` no `project.godot`.
 
-O mundo fica em cache (no macOS: `~/Library/Application Support/Godot/app_userdata/Goblo/cache/`). Se o servidor estiver fora do ar mas houver cache, o jogo abre com o mundo guardado. A qualidade escolhida no F6 fica salva; também dá para forçar com `-- --quality=low`.
+No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_userdata/Goblo/player.cfg` e o mundo em cache na pasta `cache/` ao lado. Apague o `player.cfg` para criar outro jogador (ou use `-- --profile=outro`).
 
-**Trocar o personagem:** selecione o nó `Player` em `scenes/main.tscn` (ou abra `scenes/player.tscn`) e escolha outro na propriedade **Character** do Inspetor. São 12 opções, de `character-female-a` a `character-male-f`. A altura fica em **Model Height**.
+**Trocar o personagem:** selecione o nó `Player` em `scenes/main.tscn` e escolha outro na propriedade **Character** do Inspetor (12 opções).
 
 ## Controles
 
@@ -251,12 +283,19 @@ O mundo fica em cache (no macOS: `~/Library/Application Support/Godot/app_userda
 | W A S D / setas | andar (relativo à câmera) |
 | Shift | correr |
 | Espaço | pular |
-| Botão direito (ou do meio) + arrastar | girar a câmera em volta do personagem |
-| Q / E | girar a câmera |
+| **E** | interagir: sacudir, cortar, quebrar, colher, pegar, abrir a bancada |
+| **Tab** ou **I** | bolso (inventário) |
+| **1** a **5** | segurar / guardar uma ferramenta |
+| **B** | modo construção (no seu lote) |
+| **R** / clique / **X** | no modo construção: girar, colocar, guardar |
+| **H** | voltar para casa |
+| Esc | fechar janelas, sair do modo construção |
+| Botão direito (ou do meio) + arrastar | girar a câmera |
+| Q / C | girar a câmera |
 | Roda do mouse / dois dedos no trackpad | zoom, do personagem até o planeta inteiro |
-| F2 | painel de desempenho (fps, GPU, triângulos, vegetação) |
-| F3 | acelerar o tempo (×60, ×600, ×3600) |
-| F4 | voltar ao horário real |
+| **F1** | painel do modo dev (servidor com `GOBLO_DEV=1`) |
+| F2 | painel de desempenho |
+| F3 / F4 | acelerar o tempo do céu / voltar ao horário real |
 | F6 | trocar a qualidade (baixa, média, alta) |
 
 ## Testes
@@ -267,42 +306,61 @@ go test ./...
 go vet ./...
 ```
 
-Os testes conferem, entre outras coisas:
+54 testes. Além dos do mundo (grade, biomas, escala, formato binário), os da fase 2 conferem:
 
-- número de células = `10·n² + 2` (25.002 com n = 50), exatamente 12 pentágonos e o resto hexágonos;
-- vizinhança simétrica e alinhada com as arestas dos polígonos; cantos em sentido anti-horário, e os cantos calculados no cliente batem com os do servidor;
-- determinismo (duas gerações dão o mesmo JSON e o mesmo binário);
-- São Paulo é terra, `BRA` e não é deserto nem gelo; o meio do Atlântico é oceano;
-- biomas: Amazônia (-3, -60) é floresta tropical, Saara (23, 13) é deserto, Himalaia (28, 85) é montanha, Antártida (-80, 0) é gelo, e mais Congo, Alpes, Grandes Planícies, Sibéria, Europa, Arábia e Austrália;
-- alturas: montanha bem mais alta que campo, praia mais baixa, degraus fora das montanhas que dá para pular;
-- escala: SP → Pacaraima em 1min30–2min andando e menos de 1 min correndo; formato binário de ida e volta;
-- rotas `/health`, `/world`, `/world.bin` e `/world/version`, com gzip, ETag e 304.
+- rotas `/dev/…` bloqueadas (403) sem `GOBLO_DEV=1`, e funcionando com ele;
+- criação de jogador com lote no país certo, preferindo biomas agradáveis (China, Austrália, EUA, Rússia), e lote mesmo na Groenlândia (só gelo e tundra);
+- dois jogadores nunca recebem o mesmo lote (criação em paralelo até esgotar os lotes de um país pequeno);
+- limites diários: sacudir 1 vez, 3 golpes de machado, 3 de picareta, e reset às 5h locais com relógio falso (às 4h59 ainda não, às 5h sim);
+- a coleta de um jogador não afeta outro; flor colhida some só para quem colheu;
+- fabricação consome os materiais certos (inclusive "qualquer flor") e falha sem materiais, sem gastar nada;
+- não dá para construir no lote dos outros, fora da grade ou sobrepondo; guardar devolve ao inventário; 20 espaços;
+- a casa só fica pronta depois da virada do dia, e cresce no mesmo lugar;
+- objetos determinísticos, dentro da célula e sem encavalar; objetos somem dos lotes ocupados;
+- 90% das células comportam 4 lotes;
+- país: IP local cai no idioma do sistema; IPs conhecidos (linhas reais da DB-IP) dão o país certo, inclusive IPv6;
+- apelidos: palavrões disfarçados são barrados ("P0RR4", "m.e.r.d.a"), nomes inocentes passam ("Curió", "computador");
+- migrações rodam uma vez só; transação que falha não grava nada; apagar o jogador apaga o lote.
 
-O cliente tem testes automáticos que rodam sem janela (com o servidor no ar):
+O cliente tem testes automáticos que rodam sem janela (com o servidor no ar; o `--play-test` precisa de `GOBLO_DEV=1`):
 
 ```bash
 cd client
-godot --headless --path . -- --smoke-test --jump                       # anda, pula, confere chão e terra
-godot --headless --fixed-fps 60 --path . -- --route=4.5,-61.1 --run    # mede SP → Pacaraima correndo
-godot --path . -- --perf-test=20 --spawn=-3,-60                         # fps na floresta tropical (com janela)
+godot --headless --path . -- --smoke-test --jump --profile=teste          # nasce no lote, anda, pula
+godot --headless --path . -- --play-test --profile=teste2                 # coleta, fabricação, decoração e casa
+godot --path . -- --perf-test=20 --spawn=-3,-60                           # fps na floresta tropical (com janela)
 ```
+
+## Privacidade
+
+- **IP:** quando um jogador novo abre o jogo, o servidor usa o IP da conexão **só para sugerir o país**, consultando uma base local (DB-IP, sem enviar nada para fora). O IP é descartado na hora: **não é guardado no banco nem aparece no log**. Rodando na própria máquina (IP `127.0.0.1`), o país vem do idioma do sistema (`pt_BR` → Brasil). De qualquer jeito, o jogador confirma ou troca o país na tela.
+- **Identidade:** não há e-mail nem senha. O jogo cria um token aleatório guardado só no seu computador; o servidor guarda apenas um hash dele.
+- **O que o servidor guarda:** apelido, país, lote, inventário, o que você coletou em cada dia e o que colocou no lote.
 
 ## Dados
 
-Terra e países vêm do [Natural Earth](https://www.naturalearthdata.com/) na escala 1:110m, e as regiões geográficas usadas nos biomas (desertos, cordilheiras, planícies), da escala 1:50m, filtradas para 583 KB. Tudo em domínio público. Os arquivos ficam em `server/data/naturalearth/` e são embutidos no binário; para baixar de novo, `server/scripts/baixar-dados.sh`. Fonte e versão em [`docs/DADOS.md`](docs/DADOS.md); o método dos biomas em [`docs/BIOMAS.md`](docs/BIOMAS.md).
+- **Mapa:** [Natural Earth](https://www.naturalearthdata.com/), escalas 1:110m (terra e países) e 1:50m (regiões para os biomas), domínio público. Embutido no binário do servidor.
+- **IP → país:** [IP to Country Lite](https://db-ip.com/db/download/ip-to-country-lite) da DB-IP, licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). **IP Geolocation by [DB-IP](https://db-ip.com).** Baixada por `server/scripts/baixar-dados.sh`, fora do Git.
+
+Detalhes em [`docs/DADOS.md`](docs/DADOS.md); o método dos biomas em [`docs/BIOMAS.md`](docs/BIOMAS.md); o conteúdo do jogo em [`docs/CONTEUDO.md`](docs/CONTEUDO.md).
 
 ## Créditos
 
-- **Personagem, árvores, pedras e grama:** [Kenney](https://www.kenney.nl), pacotes Mini Characters, Mini Forest, Graveyard Kit (só itens neutros: pinheiros, pedras, troncos) e Monster Builder Pack, licença [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Detalhes em [`client/assets/CREDITOS.md`](client/assets/CREDITOS.md).
-- **Mapa:** [Natural Earth](https://www.naturalearthdata.com/), domínio público.
+- **[Kenney](https://www.kenney.nl)** (CC0): Mini Characters (personagem), **Fantasy Town Kit** (casas e decoração), Car Kit e Watercraft Pack (guardados para o futuro), Mini Forest, Graveyard Kit e Monster Builder Pack.
+- **[Quaternius](https://quaternius.com)** (CC0): **Ultimate Nature Pack** (toda a natureza dos biomas) e Ultimate Animated Animals (guardado para a fase 2.5).
+- **[Natural Earth](https://www.naturalearthdata.com/)**: mapa, domínio público.
+- **[DB-IP](https://db-ip.com)**: IP Geolocation by DB-IP, CC BY 4.0.
+
+Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITOS.md`](client/assets/CREDITOS.md).
 
 ## Roadmap
 
 1. **Fase 1: o globo.** Globo, personagem andando e servidor do mundo. ✅
 2. **Fase 1.5: um mundo de verdade.** Escala, pulo, biomas, vegetação, dia e noite, oceano, nuvens e navegação. ✅
-3. **Fase 2: construir.** Terreno do jogador com grade fina dentro de uma região, cidades reais no mapa, construções salvas no servidor.
-4. **Fase 3: multiplayer.** Ver outros jogadores em tempo real, com o servidor mandando para cada um só quem está perto (avaliar o Nakama, veja o [ADR 0005](docs/decisoes/0005-nakama-na-fase-multiplayer.md)).
-5. **Fase 4: fronteiras e moeda.** Países com "passaporte", loja e troca entre jogadores.
+3. **Fase 2: coletar e construir.** Jogador e país, lotes, coleta, inventário, bancada, decoração, casa em níveis, bairro, banco de dados e modo dev. ✅
+4. **Fase 2.5: explorar e colecionar.** Animais andando pelos biomas, estações do ano reais por hemisfério (outono e neve do Nature Pack), aeroporto com viagem pelo globo, passaporte com carimbos e Goblopédia.
+5. **Fase 3: multiplayer em tempo real.** Ver os outros jogadores andando, com o servidor validando a posição (avaliar o Nakama, [ADR 0005](docs/decisoes/0005-nakama-na-fase-multiplayer.md)).
+6. **Fase 4: economia e fronteiras.** Dinheiro, loja, troca entre jogadores e regras de fronteira.
 
 ## Sobre mim
 
@@ -315,4 +373,4 @@ Gostou do projeto, achou um bug ou tem uma ideia? Abra uma issue ou me chame no 
 
 ## Licença
 
-[MIT](LICENSE) © 2026 Lucas Barreto. Dados do Natural Earth e assets da Kenney em domínio público (CC0).
+[MIT](LICENSE) © 2026 Lucas Barreto. Dados do Natural Earth em domínio público, assets da Kenney e do Quaternius em CC0, base IP → país da DB-IP em CC BY 4.0.
