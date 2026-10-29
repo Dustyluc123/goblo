@@ -130,10 +130,13 @@ func _update_houses(cam: Vector3, head: Vector3, active: bool) -> void:
 					continue
 				if box.intersects_segment(a, b) != null:
 					hit[mi] = true
-	for mi: MeshInstance3D in _houses.keys():
-		if not is_instance_valid(mi):
-			_houses.erase(mi)
-		elif not hit.has(mi):
+	for key: Variant in _houses.keys():
+		# O lote pode ter sido refeito (nó apagado): sem tipo na variável até conferir.
+		if not is_instance_valid(key):
+			_houses.erase(key)
+			continue
+		var mi := key as MeshInstance3D
+		if not hit.has(mi):
 			for i in mi.mesh.get_surface_count():
 				mi.set_surface_override_material(i, null)
 			_houses.erase(mi)
