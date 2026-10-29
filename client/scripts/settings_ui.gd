@@ -1,11 +1,13 @@
 class_name SettingsUi
 extends PanelContainer
-## Configurações (F6): qualidade gráfica, tamanho da interface, mouse (sensibilidade e eixo
-## vertical invertido) e tela cheia. Tudo fica salvo em user://settings.cfg.
+## Configurações (F6): qualidade gráfica, limite de fps, tamanho da interface, mouse
+## (sensibilidade e eixo vertical invertido) e tela cheia. Tudo fica salvo em
+## user://settings.cfg.
 
 const SENSITIVITIES := [0.5, 0.75, 1.0, 1.5, 2.0]
 
 var _quality_row: HBoxContainer
+var _fps_row: HBoxContainer
 var _scale_row: HBoxContainer
 var _mouse_row: HBoxContainer
 var _invert: Button
@@ -24,6 +26,10 @@ func _ready() -> void:
 	_quality_row = HBoxContainer.new()
 	_quality_row.add_theme_constant_override("separation", 8)
 	box.add_child(_quality_row)
+	box.add_child(UiStyle.label("Limite de fps (o V-Sync fica sempre ligado; menos fps esquenta menos)", 18))
+	_fps_row = HBoxContainer.new()
+	_fps_row.add_theme_constant_override("separation", 8)
+	box.add_child(_fps_row)
 	box.add_child(UiStyle.label("Tamanho da interface", 18))
 	_scale_row = HBoxContainer.new()
 	_scale_row.add_theme_constant_override("separation", 8)
@@ -61,6 +67,15 @@ func refresh() -> void:
 		c.queue_free()
 	for c in _mouse_row.get_children():
 		c.queue_free()
+	for c in _fps_row.get_children():
+		c.queue_free()
+	for v: int in FpsLimit.OPTIONS:
+		var fb := UiStyle.button(FpsLimit.label_of(v).capitalize(), v == FpsLimit.value())
+		fb.custom_minimum_size = Vector2(150, 0)
+		fb.pressed.connect(func() -> void:
+			FpsLimit.set_value(v)
+			refresh())
+		_fps_row.add_child(fb)
 	for v: float in SENSITIVITIES:
 		var b := UiStyle.button("%d%%" % roundi(v * 100.0), is_equal_approx(v, MouseSettings.sensitivity()))
 		b.custom_minimum_size = Vector2(90, 0)
