@@ -62,6 +62,9 @@ var noclip := false
 var border_guard := Callable()
 ## Velocidade do voo (unidades/s), multiplicada por 4 com Shift.
 var fly_speed := 14.0
+## Pose do selfie (modo foto) e a mistura atual dela (0 a 1).
+var posing := false
+var pose_blend := 0.0
 
 var _tool_holder: Node3D
 var _skeleton: Skeleton3D
@@ -132,7 +135,7 @@ func _setup_animation(model: Node3D) -> void:
 	if players.is_empty():
 		return
 	var player := players[0] as AnimationPlayer
-	for anim_name in ["idle", "walk", "sprint", "fall"]:
+	for anim_name in ["idle", "walk", "sprint", "fall", "holding-right"]:
 		if player.has_animation(anim_name):
 			player.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
 	for anim_name in ["interact-right", "pick-up"]:
@@ -165,7 +168,12 @@ func _setup_animation(model: Node3D) -> void:
 	tree.add_node("action", shot, Vector2(800, 100))
 	tree.connect_node("action", 0, "air")
 	tree.connect_node("action", 1, "action_anim")
-	tree.connect_node("output", 0, "action")
+	# Pose do selfie (modo foto): braço esticado segurando a câmera, por cima de tudo.
+	tree.add_node("pose_anim", _anim_node("holding-right"), Vector2(800, 300))
+	tree.add_node("pose", AnimationNodeBlend2.new(), Vector2(1000, 100))
+	tree.connect_node("pose", 0, "action")
+	tree.connect_node("pose", 1, "pose_anim")
+	tree.connect_node("output", 0, "pose")
 
 	_anim_tree = AnimationTree.new()
 	_anim_tree.tree_root = tree
@@ -188,6 +196,20 @@ func play_action(anim_name: String) -> void:
 	var tree := _anim_tree.tree_root as AnimationNodeBlendTree
 	(tree.get_node("action_anim") as AnimationNodeAnimation).animation = anim_name
 	_anim_tree.set("parameters/action/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+
+## Pose do selfie ligada ou desligada (a mistura muda aos poucos).
+func set_pose(on: bool) -> void:
+	posing = on
+
+
+## Mostra ou esconde o corpo (primeira pessoa no modo foto). A colisão continua.
+func set_body_visible(on: bool) -> void:
+	_visual.visible = on
+
+
+func body_visible() -> bool:
+	return _visual.visible
 
 
 ## Vira o personagem para um ponto do mundo.
@@ -400,7 +422,9 @@ func _update_animation(delta: float, up: Vector3) -> void:
 	var airborne := not is_on_floor() and (_jumping or _since_floor > 0.15)
 	air_blend = lerpf(air_blend, 1.0 if airborne else 0.0, clampf(14.0 * delta, 0.0, 1.0))
 	var falling := clampf(-v.dot(up) / 4.0, 0.0, 1.0)
+	pose_blend = move_toward(pose_blend, 1.0 if posing else 0.0, delta * 4.0)
 	if _anim_tree:
+		_anim_tree.set("parameters/pose/blend_amount", pose_blend)
 		_anim_tree.set("parameters/locomotion/blend_position", anim_blend)
 		_anim_tree.set("parameters/air/blend_amount", air_blend)
 		_anim_tree.set("parameters/jumpfall/blend_amount", falling)

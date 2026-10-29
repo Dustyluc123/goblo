@@ -728,7 +728,7 @@ func _process(delta: float) -> void:
 		return
 	var focus := get_viewport().gui_get_focus_owner()
 	var typing := focus is LineEdit or focus is SpinBox
-	_player.input_blocked = typing or _ui.menu_open()
+	_player.input_blocked = typing or _ui.menu_open() or _photo.selfie()
 	_hud.set_help_visible(not _ui.any_open())
 	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
 	_ui.hotbar.visible = not _ui.menu_open()
@@ -1711,13 +1711,34 @@ func _photo_test() -> void:
 	_camera._turn(PI)
 	await get_tree().create_timer(0.4).timeout
 	check.call(_photo.find_subjects().filter(func(x: Dictionary) -> bool: return x["entry"] == "cow").is_empty(), "de costas para a vaca, ela não conta")
+	# Primeira pessoa: câmera nos olhos e corpo escondido.
+	var head := _player.global_position + _player.global_position.normalized() * CameraRig.EYE_HEIGHT
+	check.call(_camera.global_position.distance_to(head) < 0.3 and not _player.body_visible(),
+		"primeira pessoa: câmera nos olhos (%.2f) e corpo escondido" % _camera.global_position.distance_to(head))
+	# F: selfie, de costas para a vaca (ela aparece atrás do personagem).
+	var key_f := InputEventKey.new()
+	key_f.keycode = KEY_F
+	key_f.pressed = true
+	Input.parse_input_event(key_f)
+	await get_tree().create_timer(0.6).timeout
+	var to_cam := _camera.global_position - _player.global_position
+	check.call(_photo.selfie() and _player.body_visible() and _player.pose_blend > 0.5 and to_cam.dot(-_player.global_basis.z) > 1.0 and _player.input_blocked,
+		"F liga o selfie: câmera na frente, corpo à vista, pose (%.2f), parado" % _player.pose_blend)
+	entries = _photo.find_subjects().map(func(x: Dictionary) -> String: return str(x["entry"]))
+	check.call("cow" in entries, "selfie: vaca atrás do personagem enquadrada: %s" % str(entries))
+	var reg3 := await _photo.take_photo()
+	check.call(not reg3.is_empty() and reg3[0]["entry"] == "cow", "selfie registra a vaca na Goblopédia")
+	Input.parse_input_event(key_f)
+	await get_tree().create_timer(0.3).timeout
+	check.call(not _photo.selfie() and not _player.body_visible() and _camera.global_position.distance_to(head) < 0.3, "F de novo volta para a primeira pessoa")
 	_photo.exit()
+	check.call(_player.body_visible() and not _player.posing, "sair do modo foto mostra o corpo de novo")
 	check.call(not _camera.photo_mode, "botão direito ou Esc sai do modo foto")
 	_ui.pedia.toggle()
 	await get_tree().create_timer(1.0).timeout
 	var cow_page: Array = _ui.pedia._entries.filter(func(e: Dictionary) -> bool: return e["id"] == "cow")
-	check.call(not cow_page.is_empty() and bool(cow_page[0]["discovered"]) and int(cow_page[0]["sightings"]) == 2 and str(cow_page[0]["country"]) == "ARG",
-		"Goblopédia: vaca descoberta na Argentina, 2 fotos (%s)" % str(cow_page))
+	check.call(not cow_page.is_empty() and bool(cow_page[0]["discovered"]) and int(cow_page[0]["sightings"]) == 3 and str(cow_page[0]["country"]) == "ARG",
+		"Goblopédia: vaca descoberta na Argentina, 3 fotos (%s)" % str(cow_page))
 	check.call(_ui.pedia._entries.size() >= 15, "álbum com %d páginas" % _ui.pedia._entries.size())
 	_ui.close_windows()
 	print("Goblo: photo-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))

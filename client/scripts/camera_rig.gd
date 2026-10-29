@@ -48,13 +48,21 @@ const GROUND_CLEARANCE := 0.45
 ## Inclinação extra atual (graus) para a câmera não entrar no terreno (morros).
 var _ground_pitch := 0.0
 
-## Modo foto (câmera fotográfica na mão, botão direito): visão por cima do ombro, com
-## zoom de lente (campo de visão) na roda do mouse.
+## Modo foto (câmera fotográfica na mão, botão direito): primeira pessoa, nos olhos do
+## personagem, com zoom de lente (campo de visão) na roda do mouse. Com `photo_selfie`, a
+## câmera fica na frente do personagem, olhando para ele (o cenário aparece atrás); o mouse
+## gira a câmera em volta dele.
 var photo_mode := false
+var photo_selfie := false
 var photo_fov := 50.0
 var photo_pitch := 4.0
 const PHOTO_FOV_MIN := 18.0
 const PHOTO_FOV_MAX := 70.0
+## Altura dos olhos (o personagem tem 1 de altura) e distância do selfie (braço esticado
+## mais um pouco, para caber o corpo e o cenário).
+const EYE_HEIGHT := 0.78
+const SELFIE_DISTANCE := 1.9
+const SELFIE_PITCH := 8.0
 var _normal_fov := 75.0
 
 
@@ -91,9 +99,26 @@ func set_photo_mode(on: bool) -> void:
 		_normal_fov = fov
 		photo_fov = 50.0
 		photo_pitch = 4.0
+		photo_selfie = false
 	else:
 		fov = _normal_fov
+		photo_selfie = false
 	_dragging = false
+
+
+## Troca entre primeira pessoa e selfie (no modo foto). A direção é a mesma nos dois: para
+## onde o personagem olha (na primeira pessoa, a câmera olha para lá; no selfie, fica lá).
+func set_selfie(on: bool) -> void:
+	if not photo_mode or on == photo_selfie:
+		return
+	photo_selfie = on
+	photo_pitch = SELFIE_PITCH if on else 4.0
+	photo_fov = 50.0
+
+
+## Direção (no chão) para onde a câmera olha (primeira pessoa) ou onde ela está (selfie).
+func photo_heading() -> Vector3:
+	return _heading
 
 
 ## Zoom da lente no modo foto (graus de campo de visão; positivo aproxima).
@@ -200,16 +225,31 @@ func _process(delta: float) -> void:
 	far = planet_radius * 2.0 + dist * 2.0 + 500.0
 
 
-## Por cima do ombro direito, olhando para a frente (modo foto).
+## Modo foto: nos olhos do personagem, olhando para a frente; ou, no selfie, na frente
+## dele, olhando para o rosto (o cenário atrás dele entra na foto).
 func _photo_view(player_pos: Vector3, up: Vector3, delta: float) -> void:
 	far_amount = 0.0
-	distance = 1.5
-	var right := _heading.cross(up).normalized()
-	var head := player_pos + up * 0.85
 	var pitch := deg_to_rad(photo_pitch)
-	var fwd := (_heading * cos(pitch) + up * sin(pitch)).normalized()
-	var pos := head - _heading * 1.4 + right * 0.5 + up * 0.08
-	look_at_from_position(pos, pos + fwd * 10.0, up)
+	var head := player_pos + up * EYE_HEIGHT
+	var pos: Vector3
+	var look: Vector3
+	if photo_selfie:
+		distance = SELFIE_DISTANCE
+		var out := (_heading * cos(pitch) + up * sin(pitch)).normalized()
+		pos = head + out * SELFIE_DISTANCE
+		# Nunca dentro do chão (morro na frente).
+		if world:
+			_cam_cell = world.find_cell(pos, _cam_cell)
+			var min_r := world.surface_radius(_cam_cell) + GROUND_CLEARANCE
+			if pos.length() < min_r:
+				pos = pos.normalized() * min_r
+		look = head - up * 0.05
+	else:
+		distance = 0.0
+		var fwd := (_heading * cos(pitch) + up * sin(pitch)).normalized()
+		pos = head + _heading * 0.12  # um pouco à frente do rosto
+		look = pos + fwd * 10.0
+	look_at_from_position(pos, look, up)
 	fov = lerpf(fov, photo_fov, 1.0 - exp(-10.0 * delta))
 	near = 0.05
 	far = planet_radius * 2.0 + 500.0
@@ -243,8 +283,13 @@ func look(relative: Vector2) -> void:
 	if photo_mode:
 		# Lente: mais devagar com zoom, e o vertical olha para cima e para baixo.
 		s *= photo_fov / 60.0
+		if photo_selfie:
+			# Selfie: o mouse leva a câmera em volta do personagem (ele acompanha com o olhar).
+			_turn(relative.x * s)
+			photo_pitch = clampf(photo_pitch + dy * s * 60.0, -10.0, 50.0)
+			return
 		_turn(-relative.x * s)
-		photo_pitch = clampf(photo_pitch - dy * s * 60.0, -35.0, 45.0)
+		photo_pitch = clampf(photo_pitch - dy * s * 60.0, -45.0, 60.0)
 		return
 	_turn(-relative.x * s)
 	pitch_degrees = clampf(pitch_degrees + dy * s * 60.0, MIN_PITCH, MAX_PITCH)

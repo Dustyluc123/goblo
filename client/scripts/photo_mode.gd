@@ -1,10 +1,12 @@
 class_name PhotoMode
 extends CanvasLayer
-## Câmera fotográfica (fase 2.5): com a câmera na mão, o botão direito entra no modo foto
-## (visão por cima do ombro, moldura, roda do mouse dá zoom, o cursor continua preso). O
-## clique tira a foto: salva em user://fotos/ (com miniatura) e registra na Goblopédia o
-## que estiver enquadrado (perto do centro e visível): animais, a flor azul rara e árvores
-## de outono ou com neve. Botão direito ou Esc saem.
+## Câmera fotográfica (fases 2.5 e 2.6): com a câmera na mão, o botão direito entra no modo
+## foto, em primeira pessoa (a câmera vai para os olhos e o corpo some; moldura, roda do
+## mouse dá zoom, o cursor continua preso). F troca para o selfie (câmera na frente do
+## personagem, que faz pose; o cenário fica atrás) e volta. O clique tira a foto: salva em
+## user://fotos/ (com miniatura) e registra na Goblopédia o que estiver enquadrado (perto
+## do centro e visível), nos dois modos: animais, a flor azul rara e árvores de outono ou
+## com neve. Botão direito ou Esc saem.
 
 ## Área do centro da tela em que a coisa precisa estar (fração da tela).
 const CENTER_W := 0.32
@@ -42,7 +44,7 @@ func _ready() -> void:
 	_frame.draw.connect(_draw_frame)
 	_frame.visible = false
 	add_child(_frame)
-	_hint = UiStyle.label("clique: tirar foto  ·  roda: zoom  ·  botão direito ou Esc: sair", 17, Color.WHITE)
+	_hint = UiStyle.label("", 17, Color.WHITE)
 	_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.5))
 	_hint.add_theme_constant_override("outline_size", 5)
 	_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -85,7 +87,28 @@ func _process(_delta: float) -> void:
 	if active and (session.equipped != "camera" or ui.menu_open() or game.building() or not player.visible):
 		exit()
 	if active:
+		# O personagem olha para onde a câmera olha (primeira pessoa) ou para ela (selfie).
+		player.face(player.global_position + camera.photo_heading())
 		_frame.queue_redraw()
+
+
+## Selfie ligado (câmera na frente do personagem)?
+func selfie() -> bool:
+	return active and camera.photo_selfie
+
+
+## Troca entre primeira pessoa e selfie.
+func set_selfie(on: bool) -> void:
+	if not active:
+		return
+	camera.set_selfie(on)
+	player.set_body_visible(on)
+	player.set_pose(on)
+	_update_hint()
+
+
+func _update_hint() -> void:
+	_hint.text = "clique: tirar foto  ·  roda: zoom  ·  F: %s  ·  botão direito ou Esc: sair" % ("primeira pessoa" if selfie() else "selfie")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -100,6 +123,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		exit()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and (event as InputEventKey).pressed and not event.is_echo() \
+			and (event as InputEventKey).keycode == KEY_F:
+		set_selfie(not selfie())
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
@@ -119,7 +147,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func enter() -> void:
 	active = true
 	camera.set_photo_mode(true)
+	player.set_body_visible(false)  # primeira pessoa: o corpo sai da frente
+	player.set_pose(false)
 	_frame.visible = true
+	_update_hint()
 	ui.show_prompt("")
 
 
@@ -128,6 +159,8 @@ func exit() -> void:
 		return
 	active = false
 	camera.set_photo_mode(false)
+	player.set_body_visible(true)
+	player.set_pose(false)
 	_frame.visible = false
 
 
