@@ -1,0 +1,38 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/kenney/fantasy-town-kit/wall-wood-door.glb" id="1_p1wtv"]
+[ext_resource type="PackedScene" path="res://assets/kenney/fantasy-town-kit/wall-wood.glb" id="2_hnma8"]
+[ext_resource type="PackedScene" path="res://assets/kenney/fantasy-town-kit/wall-wood-window-small.glb" id="3_uts1v"]
+[ext_resource type="PackedScene" path="res://assets/kenney/fantasy-town-kit/roof-gable.glb" id="4_mxnxq"]
+
+[node name="HouseLevel1" type="Node3D" unique_id=1319072207]
+
+[node name="Pieces" type="Node3D" parent="." unique_id=2007627675]
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
+
+[node name="00_wall-wood-door" type="Node3D" parent="Pieces" unique_id=1808354395 instance=ExtResource("1_p1wtv")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, -0.5, 0, 0.5)
+
+[node name="01_wall-wood" type="Node3D" parent="Pieces" unique_id=1280997580 instance=ExtResource("2_hnma8")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -0.5, 0, -0.5)
+
+[node name="02_wall-wood" type="Node3D" parent="Pieces" unique_id=1119085038 instance=ExtResource("2_hnma8")]
+transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 0.5, 0, 0.5)
+
+[node name="03_wall-wood" type="Node3D" parent="Pieces" unique_id=704535138 instance=ExtResource("2_hnma8")]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0.5, 0, -0.5)
+
+[node name="04_wall-wood" type="Node3D" parent="Pieces" unique_id=720083597 instance=ExtResource("2_hnma8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.5)
+
+[node name="05_wall-wood-window-small" type="Node3D" parent="Pieces" unique_id=95808174 instance=ExtResource("3_uts1v")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.5, 0, -0.5)
+
+[node name="06_wall-wood-window-small" type="Node3D" parent="Pieces" unique_id=1212076991 instance=ExtResource("3_uts1v")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0.5)
+
+[node name="07_wall-wood" type="Node3D" parent="Pieces" unique_id=1574310207 instance=ExtResource("2_hnma8")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.5, 0, 0.5)
+
+[node name="08_roof-gable" type="Node3D" parent="Pieces" unique_id=1513877190 instance=ExtResource("4_mxnxq")]
+transform = Transform3D(-8.742278e-08, 0, 1.9, 0, 1.25, 0, -2, 0, -8.305164e-08, 0, 1, 0)
