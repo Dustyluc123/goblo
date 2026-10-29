@@ -1,9 +1,11 @@
 class_name DevPanel
 extends PanelContainer
 ## Painel do modo desenvolvedor (F1). Só abre se o servidor estiver com GOBLO_DEV=1.
-## Itens: dar qualquer item (lista pesquisável). Mundo: teleporte para país ou lat/lon,
-## voar (noclip) e tempo. Jogador: obra na hora, dia seguinte, trocar país, resets e
-## vizinhos falsos.
+## Itens: dar qualquer item (lista pesquisável) e moedas. Mundo: teleporte para país ou
+## lat/lon, voar (noclip) e tempo. Viagem: passaportes, barreira da fronteira, voo de graça,
+## linhas e polígonos das fronteiras. Natureza: forçar a estação, criar e listar animais,
+## completar ou zerar a Goblopédia e o passaporte. Jogador: obra na hora, dia seguinte,
+## trocar país, resets e vizinhos falsos.
 
 var game: GameMain
 var session: Session
@@ -18,11 +20,13 @@ var _lon: LineEdit
 var _noclip: CheckButton
 var _status: Label
 var _countries: Array = []
+var _coins: SpinBox
+var _species: OptionButton
 
 
 func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.panel(22, Color("fdf6ff")))
-	custom_minimum_size = Vector2(620, 540)
+	custom_minimum_size = Vector2(680, 580)
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
 	offset_left = 16
 	offset_top = -210
@@ -37,6 +41,8 @@ func _ready() -> void:
 	box.add_child(tabs)
 	tabs.add_child(_items_tab())
 	tabs.add_child(_world_tab())
+	tabs.add_child(_travel_tab())
+	tabs.add_child(_nature_tab())
 	tabs.add_child(_player_tab())
 	_status = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -54,6 +60,12 @@ func setup(g: GameMain, s: Session, i: ItemIcons, countries: Dictionary) -> void
 	_countries.sort_custom(func(a: Array, b: Array) -> bool: return str(a[1]).naturalnocasecmp_to(b[1]) < 0)
 	_fill_items()
 	_fill_countries()
+	_species.clear()
+	var ids: Array = s.animal_species.keys()
+	ids.sort_custom(func(a: String, b: String) -> bool: return str(s.animal_species[a]["name"]) < str(s.animal_species[b]["name"]))
+	for id: String in ids:
+		_species.add_item(str(s.animal_species[id]["name"]))
+		_species.set_item_metadata(_species.item_count - 1, id)
 
 
 func toggle() -> void:
@@ -100,6 +112,127 @@ func _items_tab() -> Control:
 	kit.pressed.connect(func() -> void: game.dev_starter_kit())
 	row.add_child(kit)
 	box.add_child(row)
+	var money := HBoxContainer.new()
+	money.add_theme_constant_override("separation", 8)
+	var coin := CoinIcon.new()
+	coin.diameter = 22.0
+	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	money.add_child(coin)
+	money.add_child(UiStyle.label("Moedas", 17))
+	_coins = SpinBox.new()
+	_coins.min_value = 1
+	_coins.max_value = 100000
+	_coins.value = 500
+	UiStyle.spin_box(_coins)
+	money.add_child(_coins)
+	var give_coins := UiStyle.button("Dar moedas")
+	give_coins.pressed.connect(func() -> void: game.dev_coins(int(_coins.value)))
+	money.add_child(give_coins)
+	var take_coins := UiStyle.button("Tirar", false)
+	take_coins.pressed.connect(func() -> void: game.dev_coins(-int(_coins.value)))
+	money.add_child(take_coins)
+	box.add_child(money)
+	return box
+
+
+func _travel_tab() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Viagem"
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(UiStyle.label("País: o selecionado na aba Mundo.", 15, UiStyle.INK_SOFT))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var give := UiStyle.button("Dar passaporte")
+	give.pressed.connect(func() -> void:
+		var code := _selected_country()
+		if not code.is_empty():
+			game.dev_passport("give", code))
+	row.add_child(give)
+	var remove := UiStyle.button("Tirar passaporte", false)
+	remove.pressed.connect(func() -> void:
+		var code := _selected_country()
+		if not code.is_empty():
+			game.dev_passport("remove", code))
+	row.add_child(remove)
+	var fly := UiStyle.button("Voar de graça para lá")
+	fly.tooltip_text = "Vai ao aeroporto do país selecionado sem pagar nem precisar de passaporte"
+	fly.pressed.connect(func() -> void:
+		var code := _selected_country()
+		if not code.is_empty():
+			visible = false
+			game.dev_travel(code))
+	row.add_child(fly)
+	box.add_child(row)
+	var barrier := CheckButton.new()
+	barrier.text = "Barreira da fronteira (passaporte) ligada"
+	barrier.button_pressed = true
+	barrier.focus_mode = Control.FOCUS_NONE
+	barrier.add_theme_color_override("font_color", UiStyle.INK)
+	barrier.toggled.connect(func(on: bool) -> void: game.set_barrier(on))
+	box.add_child(barrier)
+	var lines := CheckButton.new()
+	lines.text = "Linhas de fronteira no chão"
+	lines.button_pressed = true
+	lines.focus_mode = Control.FOCUS_NONE
+	lines.add_theme_color_override("font_color", UiStyle.INK)
+	var debug := CheckButton.new()
+	debug.text = "Polígonos de debug (costa e cores por país)"
+	debug.focus_mode = Control.FOCUS_NONE
+	debug.add_theme_color_override("font_color", UiStyle.INK)
+	lines.toggled.connect(func(on: bool) -> void: game.set_border_lines(on, debug.button_pressed))
+	debug.toggled.connect(func(on: bool) -> void: game.set_border_lines(lines.button_pressed, on))
+	box.add_child(lines)
+	box.add_child(debug)
+	var book := HBoxContainer.new()
+	book.add_theme_constant_override("separation", 6)
+	var complete := UiStyle.button("Completar o passaporte", false)
+	complete.tooltip_text = "Todos os passaportes e um carimbo de cada país com aeroporto (sem moedas)"
+	complete.pressed.connect(func() -> void: game.dev_passport("complete", ""))
+	book.add_child(complete)
+	var reset := UiStyle.button("Zerar passaportes e carimbos", false)
+	reset.pressed.connect(func() -> void: game.dev_passport("reset", ""))
+	book.add_child(reset)
+	box.add_child(book)
+	return box
+
+
+func _nature_tab() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Natureza"
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(UiStyle.label("Forçar a estação (no hemisfério norte; o sul fica com a oposta):", 15, UiStyle.INK_SOFT))
+	var seasons := HBoxContainer.new()
+	seasons.add_theme_constant_override("separation", 6)
+	for pair: Array in [["spring", "Primavera"], ["summer", "Verão"], ["autumn", "Outono"], ["winter", "Inverno"], ["real", "Data real"]]:
+		var b := UiStyle.button(pair[1], pair[0] == "real")
+		var key: String = pair[0]
+		b.pressed.connect(func() -> void: game.dev_force_season(key))
+		seasons.add_child(b)
+	box.add_child(seasons)
+	var animals := HBoxContainer.new()
+	animals.add_theme_constant_override("separation", 6)
+	_species = OptionButton.new()
+	_species.focus_mode = Control.FOCUS_NONE
+	_species.add_theme_font_size_override("font_size", 17)
+	animals.add_child(_species)
+	var spawn := UiStyle.button("Criar perto de mim")
+	spawn.pressed.connect(func() -> void:
+		if _species.item_count > 0:
+			game.dev_spawn_animal(str(_species.get_item_metadata(_species.selected))))
+	animals.add_child(spawn)
+	var list := UiStyle.button("Listar carregados", false)
+	list.pressed.connect(func() -> void: game.dev_list_animals())
+	animals.add_child(list)
+	box.add_child(animals)
+	var pedia := HBoxContainer.new()
+	pedia.add_theme_constant_override("separation", 6)
+	var complete := UiStyle.button("Completar a Goblopédia", false)
+	complete.pressed.connect(func() -> void: game.dev_pedia("complete"))
+	pedia.add_child(complete)
+	var reset := UiStyle.button("Zerar a Goblopédia", false)
+	reset.pressed.connect(func() -> void: game.dev_pedia("reset"))
+	pedia.add_child(reset)
+	box.add_child(pedia)
 	return box
 
 

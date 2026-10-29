@@ -44,6 +44,8 @@ extends Node3D
 ##                       nome no HUD, os dois hemisférios, os trópicos e a foto de outono
 ##   --travel-test       barreira da fronteira sem passaporte, carimbo ao entrar com ele,
 ##                       balcão do aeroporto, viagem de avião e livro do passaporte
+##   --dev-test          aperta os botões novos do painel dev (moedas, passaportes, barreira,
+##                       linhas de fronteira, animais, Goblopédia, voo de graça)
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
 ##                       que o que fica no caminho está transparente (servidor dev)
@@ -1110,6 +1112,64 @@ func dev_starter_kit() -> void:
 			await _dev("/dev/give", {"item": pair[0], "count": pair[1]}, "Kit inicial entregue.")
 
 
+func dev_coins(amount: int) -> void:
+	await _dev("/dev/coins", {"amount": amount}, "Saldo: %s." % _session.coins_text(_session.coins + amount))
+	_ui.dev.status("Saldo: %s." % _session.coins_text(_session.coins))
+
+
+func dev_passport(action: String, code: String) -> void:
+	var r := await _api.request("POST", "/dev/passport", {"action": action, "country": code})
+	if not r["ok"]:
+		_ui.dev.status("Erro: %s" % r["message"])
+		return
+	_session.set_passport_book(r["data"])
+	var done := {"give": "Passaporte de %s entregue." % country_name(code), "remove": "Passaporte de %s retirado." % country_name(code),
+		"complete": "Passaporte completo: %d passaportes, %d carimbos." % [(r["data"]["passports"] as Array).size(), (r["data"]["stamps"] as Array).size()],
+		"reset": "Passaportes e carimbos zerados (fica o do seu país)."}
+	_ui.dev.status(str(done.get(action, "Pronto.")))
+
+
+## Voo de graça para o aeroporto do país (modo dev), sem passaporte.
+func dev_travel(code: String) -> void:
+	var here := WorldData.vec_to_lat_lon(_player.global_position)
+	var r := await _api.request("POST", "/dev/travel", {"from": _tracker.current, "to": code})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return
+	await _arrive({"lat": here.x, "lon": here.y}, r["data"])
+
+
+func set_barrier(on: bool) -> void:
+	barrier_on = on
+	_ui.dev.status("Barreira da fronteira %s." % ("ligada" if on else "desligada"))
+
+
+func set_border_lines(lines: bool, debug: bool) -> void:
+	_border_lines.set_mode(lines, debug)
+	_ui.dev.status("Linhas de fronteira %s%s." % ["ligadas" if lines else "desligadas", ", com os polígonos de debug" if debug else ""])
+
+
+func dev_spawn_animal(species: String) -> void:
+	var fwd := -_player.global_basis.z
+	var ok := _animals.spawn_debug(species, _player.global_position + fwd * 3.0)
+	_ui.dev.status("%s criado aqui perto (só neste computador)." % _session.animal_species[species]["name"] if ok else "Não coube aqui (lote ou borda do hexágono).")
+
+
+func dev_list_animals() -> void:
+	_ui.dev.status(_animals.describe())
+
+
+func dev_pedia(action: String) -> void:
+	var r := await _api.request("POST", "/dev/pedia", {"action": action})
+	if not r["ok"]:
+		_ui.dev.status("Erro: %s" % r["message"])
+		return
+	if action == "reset":
+		PediaPhotos.clear(_session.profile)
+	_ui.pedia.set_entries(r["data"]["entries"])
+	_ui.dev.status("Goblopédia completa." if action == "complete" else "Goblopédia zerada (as fotos continuam em user://fotos/).")
+
+
 func dev_finish_house() -> void:
 	await _dev("/dev/finish-house", {}, "Obra concluída!")
 
@@ -1154,7 +1214,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1190,6 +1250,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("travel-test"):
 		await _travel_test()
+		return
+	if _args.has("dev-test"):
+		await _dev_test()
 		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
@@ -1777,6 +1840,54 @@ func _travel_test() -> void:
 	check.call(_ui.passport._grid.get_child_count() >= 2, "livro do passaporte com %d carimbos" % _ui.passport._grid.get_child_count())
 	_ui.close_windows()
 	print("Goblo: travel-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
+	get_tree().quit(1 if not fails.is_empty() else 0)
+
+
+## Botões novos do painel dev (fase 2.5).
+func _dev_test() -> void:
+	var fails: Array = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: dev-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	var c0 := _session.coins
+	await dev_coins(250)
+	check.call(_session.coins == c0 + 250, "dar moedas (%d → %d)" % [c0, _session.coins])
+	await dev_coins(-100)
+	check.call(_session.coins == c0 + 150, "tirar moedas (%d)" % _session.coins)
+	await dev_passport("give", "LUX")
+	check.call(_session.has_passport("LUX"), "dar o passaporte de Luxemburgo")
+	await dev_passport("remove", "LUX")
+	check.call(not _session.has_passport("LUX"), "tirar o passaporte")
+	await dev_passport("complete", "")
+	check.call(_session.passports().size() > 200 and _session.stamped("JPN"), "completar o passaporte (%d)" % _session.passports().size())
+	await dev_passport("reset", "")
+	check.call(_session.passports().size() == 1 and not _session.stamped("JPN"), "zerar o passaporte")
+	set_barrier(false)
+	check.call(not barrier_on and _border_guard(Vector3.ONE, Vector3.ONE) == Vector3.ZERO, "desligar a barreira")
+	set_barrier(true)
+	await teleport_exact(-25.50, -54.35)
+	await get_tree().create_timer(0.6).timeout
+	set_border_lines(false, false)
+	check.call(_border_lines._chunks.is_empty(), "esconder as linhas de fronteira")
+	set_border_lines(true, true)
+	check.call(not _border_lines._chunks.is_empty(), "linhas com os polígonos de debug (%d pedaços)" % _border_lines._chunks.size())
+	set_border_lines(true, false)
+	dev_spawn_animal("shiba")
+	await get_tree().create_timer(1.0).timeout
+	dev_list_animals()
+	check.call(_ui.dev._status.text.contains("Shiba"), "criar e listar animais: %s" % _ui.dev._status.text.split("\n")[0])
+	await dev_pedia("complete")
+	var r := await _api.request("GET", "/pedia")
+	var all_found: bool = r["ok"] and (r["data"]["entries"] as Array).all(func(e: Dictionary) -> bool: return bool(e["discovered"]))
+	check.call(all_found, "completar a Goblopédia")
+	await dev_pedia("reset")
+	r = await _api.request("GET", "/pedia")
+	check.call(r["ok"] and (r["data"]["entries"] as Array).all(func(e: Dictionary) -> bool: return not bool(e["discovered"])), "zerar a Goblopédia")
+	await dev_travel("JPN")
+	await get_tree().create_timer(1.0).timeout
+	check.call(_tracker.current == "JPN" and not _flying, "voar de graça para o Japão (%s)" % _tracker.current)
+	print("Goblo: dev-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
 	get_tree().quit(1 if not fails.is_empty() else 0)
 
 
