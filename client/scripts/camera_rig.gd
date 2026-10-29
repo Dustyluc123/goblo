@@ -8,6 +8,11 @@ extends Camera3D
 ##
 ## As distâncias acompanham o raio do planeta (GameConfig), e near/far mudam com o zoom
 ## para manter a precisão de profundidade de 3 unidades a 1.650.
+##
+## A câmera não atravessa nada: uma esfera é lançada da cabeça do personagem até onde a
+## câmera quer ficar (ignorando o próprio personagem). Se bater em casa, tronco, pedra ou
+## morro, a câmera se aproxima rápido e volta devagar quando o caminho fica livre. Grama e
+## flores não têm colisão, então não puxam a câmera.
 
 @export var min_distance := GameConfig.CAMERA_MIN_DISTANCE
 @export var max_distance := 1650.0
@@ -37,6 +42,18 @@ var _heading := Vector3.FORWARD  # para onde a câmera olha, no plano tangente
 var _spin := 0.0
 var _dragging := false
 var _cam_cell := -1
+## Distância livre atual (suavizada) até a câmera; INF = sem obstáculo.
+var _free_distance := INF
+## Raio da esfera lançada e folga até o obstáculo.
+const PROBE_RADIUS := 0.25
+const PROBE_MARGIN := 0.15
+const MIN_FREE_DISTANCE := 0.15
+## Com menos espaço que isso atrás do personagem, a câmera sobe (inclina para cima).
+const COMFORT_DISTANCE := 1.6
+const MAX_PITCH_BOOST := 55.0
+## Inclinação extra atual (graus), quando o espaço atrás está apertado.
+var _pitch_boost := 0.0
+var _probe: PhysicsShapeQueryParameters3D
 
 
 func _ready() -> void:
@@ -108,10 +125,20 @@ func _process(delta: float) -> void:
 	far_amount = t
 	distance = dist
 
-	# Perto: atrás e acima do personagem.
-	var pitch := deg_to_rad(pitch_degrees)
+	# Perto: atrás e acima do personagem, mais perto se algo estiver no caminho.
 	var head := player_pos + up * 0.6
-	var near_pos := head + (-_heading * cos(pitch) + up * sin(pitch)) * dist
+	var pitch := deg_to_rad(minf(pitch_degrees + _pitch_boost, 85.0))
+	var back := -_heading * cos(pitch) + up * sin(pitch)
+	var free := dist
+	if t < 0.5:
+		free = _free_distance_to(head, back, dist, delta)
+		# Apertado (parede logo atrás): a câmera sobe por cima do personagem; com espaço,
+		# volta devagar para a inclinação normal.
+		var boost_goal := MAX_PITCH_BOOST if free < minf(COMFORT_DISTANCE, dist) else 0.0
+		_pitch_boost = move_toward(_pitch_boost, boost_goal, (240.0 if boost_goal > _pitch_boost else 40.0) * delta)
+	else:
+		_pitch_boost = 0.0
+	var near_pos := head + back * minf(dist, free)
 	# Longe: em cima do personagem, olhando para o centro do planeta.
 	var far_pos := up * (planet_radius + dist)
 	var pos := near_pos.lerp(far_pos, t)
@@ -145,6 +172,39 @@ func _process(delta: float) -> void:
 	look_at_from_position(pos, look, cam_up)
 	near = clampf(dist * 0.01, 0.05, 5.0)
 	far = planet_radius * 2.0 + dist * 2.0 + 500.0
+
+
+## Distância livre da cabeça até a câmera na direção `dir` (suavizada: aproxima rápido,
+## volta devagar). Lança uma esfera e ignora o personagem.
+func _free_distance_to(head: Vector3, dir: Vector3, wanted: float, delta: float) -> float:
+	var space := get_world_3d().direct_space_state
+	var target := wanted
+	if space and target_body_rid().is_valid():
+		if _probe == null:
+			var sphere := SphereShape3D.new()
+			sphere.radius = PROBE_RADIUS
+			_probe = PhysicsShapeQueryParameters3D.new()
+			_probe.shape = sphere
+		_probe.exclude = [target_body_rid()]
+		_probe.transform = Transform3D(Basis(), head)
+		_probe.motion = dir * wanted
+		var hit := space.cast_motion(_probe)
+		if hit.size() == 2 and hit[0] < 1.0:
+			target = maxf(MIN_FREE_DISTANCE, wanted * hit[0] - PROBE_MARGIN)
+	if _free_distance == INF or _free_distance > wanted:
+		_free_distance = wanted
+	# Aproximar é na hora (a câmera nunca fica dentro do obstáculo, nem por um quadro);
+	# voltar para a distância normal é suave.
+	if target < _free_distance:
+		_free_distance = target
+	else:
+		_free_distance = lerpf(_free_distance, target, 1.0 - exp(-3.0 * delta))
+	return _free_distance
+
+
+## RID do corpo do personagem (para o raio da câmera ignorá-lo).
+func target_body_rid() -> RID:
+	return (target as CollisionObject3D).get_rid() if target is CollisionObject3D else RID()
 
 
 func _turn(angle: float) -> void:

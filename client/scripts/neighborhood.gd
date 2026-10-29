@@ -180,8 +180,13 @@ func _build_house(root: Node3D, body: StaticBody3D, f: Dictionary, l: Dictionary
 	if level > 0:
 		var h := session.house_level(level)
 		var fp := Vector2i(int(h["footprint"][0]), int(h["footprint"][1]))
-		_add_model(root, f, l, tile, str(h["scene"]), fp, x, y, rot, 1.0)
-		_add_box(body, f, l, tile, fp, x, y, rot, 2.6)
+		var house_mi := _add_model(root, f, l, tile, str(h["scene"]), fp, x, y, rot, 1.0)
+		var height := 2.6
+		if house_mi:
+			house_mi.set_meta("house", true)
+			# Caixa da altura da casa com o telhado, para a câmera não entrar nele.
+			height = maxf(height, house_mi.mesh.get_aabb().size.y)
+		_add_box(body, f, l, tile, fp, x, y, rot, height)
 	if pending > 0:
 		# A obra pode ficar num lugar diferente da casa atual (a melhoria cresce).
 		x = int(house.get("pending_x", x))

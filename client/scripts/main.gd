@@ -29,6 +29,8 @@ extends Node3D
 ##   --ui-scale=1.25     tamanho da interface só nesta execução
 ##   --window-size=WxH   abre em janela desse tamanho (em vez de maximizada)
 ##   --no-focus          janela de teste que não pega o foco (tools/sem_foco.sh usa)
+##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que ela
+##                       nunca entra em nada (servidor com GOBLO_DEV=1)
 
 const DEFAULT_SERVER := "http://127.0.0.1:8080"
 const RETRY_SECONDS := 3.0
@@ -58,6 +60,7 @@ var _icons: ItemIcons
 var _ui: GameUi
 var _build: BuildMode
 var _interaction: Interaction
+var _occlusion: CameraOcclusion
 
 @onready var _terrain: Terrain = $Terrain
 @onready var _vegetation: Vegetation = $Vegetation
@@ -128,6 +131,8 @@ func _ready() -> void:
 	add_child(_build)
 	_interaction = Interaction.new()
 	add_child(_interaction)
+	_occlusion = CameraOcclusion.new()
+	add_child(_occlusion)
 	_session.equipped_changed.connect(_on_equipped)
 
 	_http = HTTPRequest.new()
@@ -330,6 +335,11 @@ func _setup_game() -> void:
 	_build.camera = _camera
 	_build.player = _player
 	_ui.on_build_close = _build.exit
+	_occlusion.camera = _camera
+	_occlusion.player = _player
+	_occlusion.data = _data
+	_occlusion.vegetation = _vegetation
+	_occlusion.neighborhood = _neighborhood
 	_interaction.game = self
 	_interaction.player = _player
 	_interaction.data = _data
@@ -723,7 +733,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -741,6 +751,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("play-test"):
 		await _play_test()
+		return
+	if _args.has("camera-test"):
+		await _camera_test()
 		return
 	if not (_args.has("smoke-test") or _args.has("screenshot")):
 		return
@@ -911,6 +924,81 @@ func _play_test() -> void:
 		await get_tree().create_timer(1.0).timeout
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(str(_args["screenshot"]))
+	get_tree().quit(0 if fails.is_empty() else 1)
+
+
+## A câmera nunca pode ficar dentro de nada: encosta o personagem em casas (vizinhos
+## falsos) e em árvores da floresta, gira a câmera 360° e confere, a cada passo, que a
+## posição da câmera não está dentro de nenhuma colisão nem abaixo do chão.
+func _camera_test() -> void:
+	var fails: Array[String] = []
+	var space := get_world_3d().direct_space_state
+	var probe := PhysicsPointQueryParameters3D.new()
+	probe.exclude = [_player.get_rid()]
+	var spin_and_check := func(label: String) -> void:
+		var bad := 0
+		for step in 24:
+			_camera._turn(TAU / 24.0)
+			for i in 6:
+				await get_tree().process_frame
+			probe.position = _camera.global_position
+			var inside := space.intersect_point(probe, 4)
+			var cell := world.find_cell(_camera.global_position)
+			var below := _camera.global_position.length() < world.surface_radius(cell) + 0.05
+			if not inside.is_empty() or below:
+				bad += 1
+				var what := "abaixo do chão" if below else str(instance_from_id(inside[0]["collider_id"]))
+				print("Goblo: camera-test   câmera dentro de %s a %.2f do personagem" % [what, _camera.global_position.distance_to(_player.global_position)])
+		print("Goblo: camera-test %s %s (%d de 24 posições ruins, %d objetos desbotados no fim)" % [
+			"ok   " if bad == 0 else "FALHOU", label, bad, _occlusion.faded_count()])
+		if bad > 0:
+			fails.append(label)
+	_camera.set_zoom_now(0.22)
+	# 1) Casas: cria vizinhos e encosta o personagem do lado de fora de uma parede.
+	await dev_fake_neighbors(12)
+	await get_tree().create_timer(1.0).timeout
+	var walls := 0
+	for lot: Dictionary in _data.all_lots():
+		var h: Variant = lot.get("house")
+		if not (h is Dictionary) or int(h["level"]) == 0 or walls >= 3:
+			continue
+		var hl := _session.house_level(int(h["level"]))
+		var fp := LotGeom.rotated(Vector2i(int(hl["footprint"][0]), int(hl["footprint"][1])), int(h["rot"]))
+		var f := _data.frame(int(lot["cell"]))
+		var pos := LotGeom.point(f, lot, _session.tile_size, int(h["x"]) + fp.x * 0.5, int(h["y"]) - 0.6, 0.2)
+		await _teleport(pos)
+		_player.face(LotGeom.point(f, lot, _session.tile_size, int(h["x"]) + fp.x * 0.5, int(h["y"]) - 5.0))
+		_camera.snap_behind_target()  # personagem de costas para a casa: câmera do lado dela
+		await get_tree().create_timer(0.6).timeout
+		await spin_and_check.call("encostado na casa de %s" % lot.get("owner", "?"))
+		walls += 1
+	if walls == 0:
+		fails.append("nenhuma casa por perto")
+	# 2) Floresta tropical densa: encosta numa árvore e gira.
+	await _teleport(world.centers[world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(-3.0, -60.0)))] * world.surface_radius(world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(-3.0, -60.0)))))
+	await get_tree().create_timer(0.5).timeout
+	for o: Dictionary in _data.objects_near(_player.global_position, 30.0):
+		if o["kind"] == "tree":
+			var up: Vector3 = o["up"]
+			var side := up.cross(Vector3.UP if absf(up.y) < 0.9 else Vector3.RIGHT).normalized()
+			await _teleport((o["pos"] as Vector3) + side * 0.6 + up * 0.2)
+			break
+	await get_tree().create_timer(0.6).timeout
+	await spin_and_check.call("na floresta tropical, colado numa árvore")
+	if _args.has("screenshot"):
+		# Foto de baixo, com copas entre a câmera e o personagem (ficam transparentes).
+		_camera.pitch_degrees = 12.0
+		_camera.set_zoom_now(0.32)
+		for i in 24:
+			_camera._turn(TAU / 24.0)
+			await get_tree().create_timer(0.15).timeout
+			if _occlusion.faded_count() > 0:
+				break
+		await get_tree().create_timer(0.3).timeout
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(str(_args["screenshot"]))
+		print("Goblo: camera-test foto com %d objetos desbotados" % _occlusion.faded_count())
+	print("Goblo: camera-test %s (%d falhas)" % ["OK" if fails.is_empty() else "FALHOU", fails.size()])
 	get_tree().quit(0 if fails.is_empty() else 1)
 
 
