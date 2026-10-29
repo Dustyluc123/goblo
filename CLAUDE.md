@@ -49,6 +49,7 @@ godot --headless --fixed-fps 60 --path . -- --route=4.5,-61.1 --spawn=-23.55,-46
 godot --path . -- --perf-test=20 --spawn=-3,-60 --quality=medium      # fps e GPU (janela NA FRENTE, avise antes)
 tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930 --profile=perf   # o que pesa na GPU
 godot --headless --path . -- --camera-test --profile=t3                # câmera não entra em nada (servidor dev)
+godot --headless --path . -s tests/test_minimapa.gd                    # seta do mini mapa (N, S, L, O); sem servidor
 godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, build, first)
 godot --path . -s tools/montar_casas.gd -- --fotos=/tmp/casas          # regera as casas e fotografa (sobrescreve as cenas!)
 ```

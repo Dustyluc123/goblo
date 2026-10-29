@@ -130,14 +130,20 @@ func set_home(dir: Vector3) -> void:
 	_overlay.queue_redraw()
 
 
+## Ângulo da setinha: radianos a partir do norte, no sentido horário (leste = +90°),
+## para quem está em `up` olhando para `facing`.
+static func heading(up: Vector3, facing: Vector3) -> float:
+	var n := Vector3.UP - up * up.y
+	n = n.normalized() if n.length() > 0.01 else Vector3.FORWARD
+	var e := n.cross(up)  # leste (norte × cima)
+	return atan2(facing.dot(e), facing.dot(n))
+
+
 ## Gira o globinho para o ponto `up` (direção do jogador) ficar de frente, com o norte para
 ## cima; `facing` é para onde o jogador olha (vira a setinha).
 func update_view(up: Vector3, sun_dir: Vector3, facing := Vector3.ZERO) -> void:
 	if facing != Vector3.ZERO:
-		var n := Vector3.UP - up * up.y
-		n = n.normalized() if n.length() > 0.01 else Vector3.FORWARD
-		var e := n.cross(up)
-		var h := atan2(facing.dot(-e), facing.dot(n))
+		var h := heading(up, facing)
 		if absf(angle_difference(h, _heading)) > 0.02:
 			_heading = h
 			_overlay.queue_redraw()
