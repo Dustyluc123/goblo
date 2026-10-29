@@ -34,6 +34,7 @@ func (s shape) contains(p orb.Point) bool {
 // Country é um país do Natural Earth.
 type Country struct {
 	Code string // ISO A3 (veja countryCode)
+	A2   string // ISO A2 (ex.: "BR"), para ligar com bases de IP e o idioma do sistema
 	Name string // nome em português
 	shape
 }
@@ -76,7 +77,7 @@ func LoadGeography(fsys fs.FS) (*Geography, error) {
 		if name == "" {
 			name = f.Properties.MustString("NAME", code)
 		}
-		g.Countries = append(g.Countries, Country{Code: code, Name: name, shape: s})
+		g.Countries = append(g.Countries, Country{Code: code, A2: countryA2(f.Properties), Name: name, shape: s})
 	}
 	if g.regions, err = loadRegions(fsys); err != nil {
 		return nil, err
@@ -91,6 +92,16 @@ func LoadGeography(fsys fs.FS) (*Geography, error) {
 // (França e Noruega, por exemplo); nesse caso tenta ISO_A3_EH e depois ADM0_A3.
 func countryCode(p geojson.Properties) string {
 	for _, k := range []string{"ISO_A3", "ISO_A3_EH", "ADM0_A3"} {
+		if v := p.MustString(k, ""); v != "" && v != "-99" {
+			return v
+		}
+	}
+	return ""
+}
+
+// countryA2 escolhe o código ISO A2, com a mesma regra do "-99" de countryCode.
+func countryA2(p geojson.Properties) string {
+	for _, k := range []string{"ISO_A2", "ISO_A2_EH", "WB_A2"} {
 		if v := p.MustString(k, ""); v != "" && v != "-99" {
 			return v
 		}

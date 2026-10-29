@@ -1,0 +1,8 @@
+{
+  "_doc": "Níveis da casa. cost: materiais (\"#flower\" = qualquer flor). footprint: [largura, profundidade] em quadradinhos do lote, a partir do canto escolhido. A obra fica pronta na próxima virada do dia (5h no horário local do jogador). scene é só para o cliente.",
+  "levels": [
+    {"level": 1, "name": "Barraca", "cost": {"wood": 10}, "footprint": [6, 6], "scene": "res://scenes/houses/house_level_1.tscn"},
+    {"level": 2, "name": "Casinha", "cost": {"wood": 30, "stone": 20}, "footprint": [9, 7], "scene": "res://scenes/houses/house_level_2.tscn"},
+    {"level": 3, "name": "Casa grande", "cost": {"wood": 60, "stone": 50, "#flower": 10}, "footprint": [10, 10], "scene": "res://scenes/houses/house_level_3.tscn"}
+  ]
+}

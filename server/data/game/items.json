@@ -1,0 +1,38 @@
+{
+  "_doc": "Itens do jogo. category: material, tool ou placeable. stack: quantos cabem num espaço do inventário. tags: grupos usados nas receitas (\"#flower\" = qualquer flor). footprint: [largura, profundidade] em quadradinhos do lote (0,5 unidade cada). model e scale são só para o cliente (caminho no projeto Godot e escala do modelo). height: altura da colisão no cliente (0 = sem colisão). light: acende à noite.",
+  "items": [
+    {"id": "branch", "name": "Galho", "category": "material", "stack": 99, "model": "res://assets/quaternius/ultimate-nature/WoodLog.fbx", "scale": 0.22},
+    {"id": "wood", "name": "Madeira", "category": "material", "stack": 99, "model": "res://assets/quaternius/ultimate-nature/WoodLog_Moss.fbx", "scale": 0.35},
+    {"id": "stone", "name": "Pedra", "category": "material", "stack": 99, "model": "res://assets/quaternius/ultimate-nature/Rock_2.fbx", "scale": 0.5},
+    {"id": "flower_red", "name": "Flor vermelha", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:red", "scale": 0.8},
+    {"id": "flower_yellow", "name": "Flor amarela", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:yellow", "scale": 0.8},
+    {"id": "flower_white", "name": "Flor branca", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:white", "scale": 0.8},
+    {"id": "flower_purple", "name": "Flor roxa", "category": "material", "stack": 99, "tags": ["flower"], "model": "flower:purple", "scale": 0.8},
+    {"id": "berries", "name": "Frutinhas", "category": "material", "stack": 99, "model": "res://assets/quaternius/ultimate-nature/BushBerries_2.fbx", "scale": 0.3},
+    {"id": "coconut", "name": "Coco", "category": "material", "stack": 99, "model": "primitive:coconut", "scale": 1.0},
+
+    {"id": "axe", "name": "Machado", "category": "tool", "stack": 1, "model": "primitive:axe", "scale": 1.0},
+    {"id": "pickaxe", "name": "Picareta", "category": "tool", "stack": 1, "model": "primitive:pickaxe", "scale": 1.0},
+
+    {"id": "workbench", "name": "Bancada", "category": "placeable", "stack": 1, "footprint": [2, 2], "model": "primitive:workbench", "scale": 1.0, "height": 0.9},
+    {"id": "fence", "name": "Cerca de madeira", "category": "placeable", "stack": 99, "footprint": [1, 3], "model": "res://assets/kenney/fantasy-town-kit/fence.glb", "scale": 1.5, "height": 0.6},
+    {"id": "fence_curved", "name": "Cerca curva", "category": "placeable", "stack": 99, "footprint": [3, 3], "model": "res://assets/kenney/fantasy-town-kit/fence-curved.glb", "scale": 1.5, "height": 0.6},
+    {"id": "fence_gate", "name": "Portão", "category": "placeable", "stack": 99, "footprint": [1, 3], "model": "res://assets/kenney/fantasy-town-kit/fence-gate.glb", "scale": 1.5, "height": 0},
+    {"id": "hedge", "name": "Cerca viva", "category": "placeable", "stack": 99, "footprint": [1, 3], "model": "res://assets/kenney/fantasy-town-kit/hedge.glb", "scale": 1.5, "height": 0.4},
+    {"id": "hedge_curved", "name": "Cerca viva curva", "category": "placeable", "stack": 99, "footprint": [3, 3], "model": "res://assets/kenney/fantasy-town-kit/hedge-curved.glb", "scale": 1.5, "height": 0.4},
+    {"id": "hedge_gate", "name": "Portão de cerca viva", "category": "placeable", "stack": 99, "footprint": [1, 3], "model": "res://assets/kenney/fantasy-town-kit/hedge-gate.glb", "scale": 1.5, "height": 0},
+    {"id": "lantern", "name": "Lampião", "category": "placeable", "stack": 99, "footprint": [1, 1], "model": "res://assets/kenney/fantasy-town-kit/lantern.glb", "scale": 1.2, "height": 1.8, "light": true},
+    {"id": "bench", "name": "Banco", "category": "placeable", "stack": 99, "footprint": [1, 3], "model": "res://assets/kenney/fantasy-town-kit/stall-bench.glb", "scale": 1.6, "height": 0.4},
+    {"id": "stool", "name": "Banquinho", "category": "placeable", "stack": 99, "footprint": [1, 1], "model": "res://assets/kenney/fantasy-town-kit/stall-stool.glb", "scale": 1.6, "height": 0.4},
+    {"id": "path", "name": "Caminho de pedra", "category": "placeable", "stack": 99, "footprint": [2, 2], "model": "res://assets/kenney/fantasy-town-kit/road.glb", "scale": 1.0, "height": 0},
+    {"id": "flowerbed", "name": "Canteiro de flores", "category": "placeable", "stack": 99, "footprint": [2, 2], "model": "res://assets/quaternius/ultimate-nature/Flowers.fbx", "scale": 1.4, "height": 0},
+    {"id": "stall", "name": "Barraquinha", "category": "placeable", "stack": 99, "footprint": [2, 3], "model": "res://assets/kenney/fantasy-town-kit/stall.glb", "scale": 1.5, "height": 1.2},
+    {"id": "stall_red", "name": "Barraquinha vermelha", "category": "placeable", "stack": 99, "footprint": [2, 3], "model": "res://assets/kenney/fantasy-town-kit/stall-red.glb", "scale": 1.5, "height": 1.2},
+    {"id": "stall_green", "name": "Barraquinha verde", "category": "placeable", "stack": 99, "footprint": [2, 3], "model": "res://assets/kenney/fantasy-town-kit/stall-green.glb", "scale": 1.5, "height": 1.2},
+    {"id": "cart", "name": "Carrinho", "category": "placeable", "stack": 99, "footprint": [3, 4], "model": "res://assets/kenney/fantasy-town-kit/cart.glb", "scale": 1.4, "height": 0.8},
+    {"id": "fountain", "name": "Fonte", "category": "placeable", "stack": 99, "footprint": [6, 6], "model": "res://assets/kenney/fantasy-town-kit/fountain-round.glb", "scale": 1.45, "height": 0.4},
+    {"id": "rock_large", "name": "Pedra decorativa grande", "category": "placeable", "stack": 99, "footprint": [2, 2], "model": "res://assets/kenney/fantasy-town-kit/rock-large.glb", "scale": 0.6, "height": 0.7},
+    {"id": "rock_small", "name": "Pedra decorativa pequena", "category": "placeable", "stack": 99, "footprint": [2, 2], "model": "res://assets/kenney/fantasy-town-kit/rock-small.glb", "scale": 0.55, "height": 0.5},
+    {"id": "berry_bush", "name": "Arbusto de frutinhas", "category": "placeable", "stack": 99, "footprint": [2, 2], "model": "res://assets/quaternius/ultimate-nature/BushBerries_1.fbx", "scale": 0.6, "height": 0.7}
+  ]
+}

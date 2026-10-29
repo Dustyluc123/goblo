@@ -1,0 +1,26 @@
+{
+  "_doc": "Receitas da bancada. ingredients: item → quantidade; \"#flower\" aceita qualquer item com a tag flower. count: quantos itens a receita dá.",
+  "recipes": [
+    {"id": "axe", "result": "axe", "count": 1, "ingredients": {"branch": 5, "stone": 1}},
+    {"id": "pickaxe", "result": "pickaxe", "count": 1, "ingredients": {"branch": 5, "stone": 2}},
+    {"id": "fence", "result": "fence", "count": 2, "ingredients": {"wood": 2}},
+    {"id": "fence_curved", "result": "fence_curved", "count": 1, "ingredients": {"wood": 2}},
+    {"id": "fence_gate", "result": "fence_gate", "count": 1, "ingredients": {"wood": 2}},
+    {"id": "hedge", "result": "hedge", "count": 1, "ingredients": {"branch": 3, "#flower": 2}},
+    {"id": "hedge_curved", "result": "hedge_curved", "count": 1, "ingredients": {"branch": 3, "#flower": 2}},
+    {"id": "hedge_gate", "result": "hedge_gate", "count": 1, "ingredients": {"branch": 3, "#flower": 2}},
+    {"id": "lantern", "result": "lantern", "count": 1, "ingredients": {"wood": 2, "stone": 2}},
+    {"id": "bench", "result": "bench", "count": 1, "ingredients": {"wood": 4}},
+    {"id": "stool", "result": "stool", "count": 1, "ingredients": {"wood": 2}},
+    {"id": "path", "result": "path", "count": 2, "ingredients": {"stone": 1}},
+    {"id": "flowerbed", "result": "flowerbed", "count": 1, "ingredients": {"#flower": 3}},
+    {"id": "stall", "result": "stall", "count": 1, "ingredients": {"wood": 10}},
+    {"id": "stall_red", "result": "stall_red", "count": 1, "ingredients": {"wood": 10, "flower_red": 1}},
+    {"id": "stall_green", "result": "stall_green", "count": 1, "ingredients": {"wood": 10, "berries": 1}},
+    {"id": "cart", "result": "cart", "count": 1, "ingredients": {"wood": 8}},
+    {"id": "fountain", "result": "fountain", "count": 1, "ingredients": {"stone": 30}},
+    {"id": "rock_large", "result": "rock_large", "count": 1, "ingredients": {"stone": 3}},
+    {"id": "rock_small", "result": "rock_small", "count": 1, "ingredients": {"stone": 2}},
+    {"id": "berry_bush", "result": "berry_bush", "count": 1, "ingredients": {"berries": 5}}
+  ]
+}

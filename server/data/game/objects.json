@@ -1,0 +1,831 @@
+{
+ "_doc": "Objetos que o servidor gera em cada célula de terra (determinístico pelo id da célula). kind: tree (sacudir; com machado, cortar), rock (picareta), flower (colher), pebble e branch (pegar), bush (colher frutinhas), decor (só enfeite, sem interação). models: nomes dos modelos do Ultimate Nature Pack (client/assets/quaternius/ultimate-nature). autumn: versões de outono, reservadas para as estações da fase 2.5 (ainda não usadas). per_cell: média por célula (~500 unidades²). scale: escala mín/máx do modelo. spacing: distância mínima até o vizinho. drop: o que a árvore dá ao sacudir (branch, coconut ou none). chop: se o machado tira madeira. near_water: só em células que encostam no oceano. colors: cores das flores (viram itens flower_<cor>). solid: o enfeite tem colisão.",
+ "biomes": {
+  "tropical_forest": [
+   {
+    "kind": "tree",
+    "models": [
+     "CommonTree_1",
+     "CommonTree_2",
+     "CommonTree_3",
+     "CommonTree_4",
+     "CommonTree_5"
+    ],
+    "per_cell": 10,
+    "scale": [
+     1.3,
+     1.7
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true,
+    "autumn": [
+     "CommonTree_Autumn_1",
+     "CommonTree_Autumn_2",
+     "CommonTree_Autumn_3",
+     "CommonTree_Autumn_4",
+     "CommonTree_Autumn_5"
+    ]
+   },
+   {
+    "kind": "tree",
+    "models": [
+     "PalmTree_1",
+     "PalmTree_2",
+     "PalmTree_3",
+     "PalmTree_4"
+    ],
+    "per_cell": 3,
+    "scale": [
+     0.9,
+     1.15
+    ],
+    "spacing": 2.2,
+    "drop": "coconut",
+    "chop": true
+   },
+   {
+    "kind": "tree",
+    "models": [
+     "Willow_1",
+     "Willow_2",
+     "Willow_3",
+     "Willow_4",
+     "Willow_5"
+    ],
+    "per_cell": 2,
+    "scale": [
+     1.1,
+     1.4
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true,
+    "autumn": [
+     "Willow_Autumn_1",
+     "Willow_Autumn_2",
+     "Willow_Autumn_3",
+     "Willow_Autumn_4",
+     "Willow_Autumn_5"
+    ],
+    "near_water": true
+   },
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_Moss_1",
+     "Rock_Moss_2",
+     "Rock_Moss_3",
+     "Rock_Moss_4",
+     "Rock_Moss_5",
+     "Rock_Moss_6",
+     "Rock_Moss_7"
+    ],
+    "per_cell": 1.2,
+    "scale": [
+     2.0,
+     2.8
+    ],
+    "spacing": 1.6
+   },
+   {
+    "kind": "bush",
+    "models": [
+     "BushBerries_1",
+     "BushBerries_2"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     0.7,
+     0.9
+    ],
+    "spacing": 1.3
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "Bush_1",
+     "Bush_2"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     0.7,
+     1.0
+    ],
+    "spacing": 1.3
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "Flowers"
+    ],
+    "per_cell": 3,
+    "scale": [
+     0.55,
+     0.75
+    ],
+    "spacing": 0.7,
+    "colors": [
+     "red",
+     "yellow",
+     "white",
+     "purple"
+    ]
+   },
+   {
+    "kind": "pebble",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4"
+    ],
+    "per_cell": 2,
+    "scale": [
+     0.22,
+     0.3
+    ],
+    "spacing": 0.6
+   },
+   {
+    "kind": "branch",
+    "models": [
+     "WoodLog"
+    ],
+    "per_cell": 2,
+    "scale": [
+     0.2,
+     0.26
+    ],
+    "spacing": 0.7
+   }
+  ],
+  "forest": [
+   {
+    "kind": "tree",
+    "models": [
+     "CommonTree_1",
+     "CommonTree_2",
+     "CommonTree_3",
+     "CommonTree_4",
+     "CommonTree_5"
+    ],
+    "per_cell": 6,
+    "scale": [
+     1.2,
+     1.5
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true,
+    "autumn": [
+     "CommonTree_Autumn_1",
+     "CommonTree_Autumn_2",
+     "CommonTree_Autumn_3",
+     "CommonTree_Autumn_4",
+     "CommonTree_Autumn_5"
+    ]
+   },
+   {
+    "kind": "tree",
+    "models": [
+     "BirchTree_1",
+     "BirchTree_2",
+     "BirchTree_3",
+     "BirchTree_4",
+     "BirchTree_5"
+    ],
+    "per_cell": 4,
+    "scale": [
+     1.0,
+     1.3
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true,
+    "autumn": [
+     "BirchTree_Autumn_1",
+     "BirchTree_Autumn_2",
+     "BirchTree_Autumn_3",
+     "BirchTree_Autumn_4",
+     "BirchTree_Autumn_5"
+    ]
+   },
+   {
+    "kind": "tree",
+    "models": [
+     "Willow_1",
+     "Willow_2",
+     "Willow_3",
+     "Willow_4",
+     "Willow_5"
+    ],
+    "per_cell": 1,
+    "scale": [
+     1.1,
+     1.4
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true,
+    "autumn": [
+     "Willow_Autumn_1",
+     "Willow_Autumn_2",
+     "Willow_Autumn_3",
+     "Willow_Autumn_4",
+     "Willow_Autumn_5"
+    ],
+    "near_water": true
+   },
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_Moss_1",
+     "Rock_Moss_2",
+     "Rock_Moss_3",
+     "Rock_Moss_4",
+     "Rock_Moss_5",
+     "Rock_Moss_6",
+     "Rock_Moss_7"
+    ],
+    "per_cell": 1.2,
+    "scale": [
+     2.0,
+     2.8
+    ],
+    "spacing": 1.6
+   },
+   {
+    "kind": "bush",
+    "models": [
+     "BushBerries_1",
+     "BushBerries_2"
+    ],
+    "per_cell": 1.0,
+    "scale": [
+     0.7,
+     0.9
+    ],
+    "spacing": 1.3
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "TreeStump_Moss"
+    ],
+    "per_cell": 0.5,
+    "scale": [
+     0.8,
+     1.0
+    ],
+    "spacing": 1.3,
+    "solid": true
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "WoodLog_Moss"
+    ],
+    "per_cell": 0.4,
+    "scale": [
+     0.6,
+     0.8
+    ],
+    "spacing": 1.8,
+    "solid": true
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "Bush_1",
+     "Bush_2"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     0.7,
+     1.0
+    ],
+    "spacing": 1.3
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "Flowers"
+    ],
+    "per_cell": 4,
+    "scale": [
+     0.55,
+     0.75
+    ],
+    "spacing": 0.7,
+    "colors": [
+     "red",
+     "yellow",
+     "white",
+     "purple"
+    ]
+   },
+   {
+    "kind": "pebble",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4"
+    ],
+    "per_cell": 2,
+    "scale": [
+     0.22,
+     0.3
+    ],
+    "spacing": 0.6
+   },
+   {
+    "kind": "branch",
+    "models": [
+     "WoodLog"
+    ],
+    "per_cell": 3,
+    "scale": [
+     0.2,
+     0.26
+    ],
+    "spacing": 0.7
+   }
+  ],
+  "grassland": [
+   {
+    "kind": "tree",
+    "models": [
+     "CommonTree_1",
+     "CommonTree_2",
+     "CommonTree_3",
+     "CommonTree_4",
+     "CommonTree_5"
+    ],
+    "per_cell": 1.2,
+    "scale": [
+     1.1,
+     1.4
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true,
+    "autumn": [
+     "CommonTree_Autumn_1",
+     "CommonTree_Autumn_2",
+     "CommonTree_Autumn_3",
+     "CommonTree_Autumn_4",
+     "CommonTree_Autumn_5"
+    ]
+   },
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4",
+     "Rock_5",
+     "Rock_6",
+     "Rock_7"
+    ],
+    "per_cell": 1.0,
+    "scale": [
+     1.6,
+     2.2
+    ],
+    "spacing": 1.6
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "Bush_1",
+     "Bush_2"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     0.6,
+     0.9
+    ],
+    "spacing": 1.3
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "Wheat"
+    ],
+    "per_cell": 2.0,
+    "scale": [
+     0.8,
+     1.0
+    ],
+    "spacing": 0.8
+   },
+   {
+    "kind": "bush",
+    "models": [
+     "BushBerries_1"
+    ],
+    "per_cell": 0.4,
+    "scale": [
+     0.7,
+     0.9
+    ],
+    "spacing": 1.3
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "Flowers"
+    ],
+    "per_cell": 5,
+    "scale": [
+     0.55,
+     0.75
+    ],
+    "spacing": 0.7,
+    "colors": [
+     "red",
+     "yellow",
+     "white",
+     "purple"
+    ]
+   },
+   {
+    "kind": "pebble",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4"
+    ],
+    "per_cell": 2,
+    "scale": [
+     0.22,
+     0.3
+    ],
+    "spacing": 0.6
+   },
+   {
+    "kind": "branch",
+    "models": [
+     "WoodLog"
+    ],
+    "per_cell": 1,
+    "scale": [
+     0.2,
+     0.26
+    ],
+    "spacing": 0.7
+   }
+  ],
+  "beach": [
+   {
+    "kind": "tree",
+    "models": [
+     "PalmTree_1",
+     "PalmTree_2",
+     "PalmTree_3",
+     "PalmTree_4"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "spacing": 2.2,
+    "drop": "coconut",
+    "chop": true
+   },
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4",
+     "Rock_5",
+     "Rock_6",
+     "Rock_7"
+    ],
+    "per_cell": 0.8,
+    "scale": [
+     1.0,
+     1.4
+    ],
+    "spacing": 1.6
+   },
+   {
+    "kind": "pebble",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4"
+    ],
+    "per_cell": 2,
+    "scale": [
+     0.22,
+     0.3
+    ],
+    "spacing": 0.6
+   }
+  ],
+  "desert": [
+   {
+    "kind": "tree",
+    "models": [
+     "Cactus_1",
+     "Cactus_2",
+     "Cactus_3",
+     "Cactus_4",
+     "Cactus_5"
+    ],
+    "per_cell": 2.0,
+    "scale": [
+     1.0,
+     1.6
+    ],
+    "spacing": 1.4,
+    "drop": "none",
+    "chop": false
+   },
+   {
+    "kind": "tree",
+    "models": [
+     "CactusFlower_1",
+     "CactusFlowers_2",
+     "CactusFlowers_3",
+     "CactusFlowers_4",
+     "CactusFlowers_5"
+    ],
+    "per_cell": 0.8,
+    "scale": [
+     0.7,
+     0.9
+    ],
+    "spacing": 1.4,
+    "drop": "none",
+    "chop": false
+   },
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4",
+     "Rock_5",
+     "Rock_6",
+     "Rock_7"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     1.6,
+     2.4
+    ],
+    "spacing": 1.6
+   },
+   {
+    "kind": "pebble",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4"
+    ],
+    "per_cell": 2,
+    "scale": [
+     0.22,
+     0.3
+    ],
+    "spacing": 0.6
+   }
+  ],
+  "mountain": [
+   {
+    "kind": "tree",
+    "models": [
+     "PineTree_1",
+     "PineTree_2",
+     "PineTree_3",
+     "PineTree_4",
+     "PineTree_5"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     1.2,
+     1.6
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true,
+    "autumn": [
+     "PineTree_Autumn_1",
+     "PineTree_Autumn_2",
+     "PineTree_Autumn_3",
+     "PineTree_Autumn_4",
+     "PineTree_Autumn_5"
+    ]
+   },
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4",
+     "Rock_5",
+     "Rock_6",
+     "Rock_7"
+    ],
+    "per_cell": 3.0,
+    "scale": [
+     1.8,
+     2.8
+    ],
+    "spacing": 1.8
+   },
+   {
+    "kind": "pebble",
+    "models": [
+     "Rock_1",
+     "Rock_2",
+     "Rock_3",
+     "Rock_4"
+    ],
+    "per_cell": 3,
+    "scale": [
+     0.22,
+     0.3
+    ],
+    "spacing": 0.6
+   },
+   {
+    "kind": "branch",
+    "models": [
+     "WoodLog"
+    ],
+    "per_cell": 0.5,
+    "scale": [
+     0.2,
+     0.26
+    ],
+    "spacing": 0.7
+   }
+  ],
+  "tundra": [
+   {
+    "kind": "tree",
+    "models": [
+     "PineTree_Snow_1",
+     "PineTree_Snow_2",
+     "PineTree_Snow_3",
+     "PineTree_Snow_4",
+     "PineTree_Snow_5"
+    ],
+    "per_cell": 1.5,
+    "scale": [
+     1.2,
+     1.6
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true
+   },
+   {
+    "kind": "tree",
+    "models": [
+     "BirchTree_Snow_1",
+     "BirchTree_Snow_2",
+     "BirchTree_Snow_3",
+     "BirchTree_Snow_4",
+     "BirchTree_Snow_5"
+    ],
+    "per_cell": 0.8,
+    "scale": [
+     1.0,
+     1.3
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true
+   },
+   {
+    "kind": "tree",
+    "models": [
+     "CommonTree_Dead_Snow_1",
+     "CommonTree_Dead_Snow_2",
+     "CommonTree_Dead_Snow_3",
+     "CommonTree_Dead_Snow_4",
+     "CommonTree_Dead_Snow_5",
+     "BirchTree_Dead_Snow_1",
+     "BirchTree_Dead_Snow_2",
+     "BirchTree_Dead_Snow_3",
+     "BirchTree_Dead_Snow_4",
+     "BirchTree_Dead_Snow_5"
+    ],
+    "per_cell": 0.5,
+    "scale": [
+     1.0,
+     1.3
+    ],
+    "spacing": 2.2,
+    "drop": "branch",
+    "chop": true
+   },
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_Snow_1",
+     "Rock_Snow_2",
+     "Rock_Snow_3",
+     "Rock_Snow_4",
+     "Rock_Snow_5",
+     "Rock_Snow_6",
+     "Rock_Snow_7"
+    ],
+    "per_cell": 1.0,
+    "scale": [
+     1.8,
+     2.6
+    ],
+    "spacing": 1.6
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "Bush_Snow_1",
+     "Bush_Snow_2"
+    ],
+    "per_cell": 1.0,
+    "scale": [
+     0.7,
+     0.9
+    ],
+    "spacing": 1.3
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "WoodLog_Snow"
+    ],
+    "per_cell": 0.4,
+    "scale": [
+     0.6,
+     0.8
+    ],
+    "spacing": 1.8,
+    "solid": true
+   },
+   {
+    "kind": "decor",
+    "models": [
+     "TreeStump_Snow"
+    ],
+    "per_cell": 0.4,
+    "scale": [
+     0.8,
+     1.0
+    ],
+    "spacing": 1.3,
+    "solid": true
+   },
+   {
+    "kind": "pebble",
+    "models": [
+     "Rock_Snow_1",
+     "Rock_Snow_2",
+     "Rock_Snow_3"
+    ],
+    "per_cell": 1,
+    "scale": [
+     0.22,
+     0.3
+    ],
+    "spacing": 0.6
+   }
+  ],
+  "ice": [
+   {
+    "kind": "rock",
+    "models": [
+     "Rock_Snow_1",
+     "Rock_Snow_2",
+     "Rock_Snow_3",
+     "Rock_Snow_4",
+     "Rock_Snow_5",
+     "Rock_Snow_6",
+     "Rock_Snow_7"
+    ],
+    "per_cell": 0.3,
+    "scale": [
+     1.8,
+     2.6
+    ],
+    "spacing": 1.6
+   }
+  ]
+ }
+}
