@@ -29,6 +29,7 @@
 - [Telas](#telas)
 - [Como testar com o modo dev](#como-testar-com-o-modo-dev)
 - [Como testar a fase 2.5](#como-testar-a-fase-25)
+- [Como testar a fase 2.6](#como-testar-a-fase-26)
 - [Medições](#medições)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
@@ -99,6 +100,13 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 - [x] **Aeroportos e passaportes:** um aeroporto perto da capital de cada país, montado com o Fantasy Town Kit (terminal, pista, biruta); no balcão (E), destinos com preço pela distância e passaportes. A viagem afasta até o globo e desenha um arco até o destino. **Para entrar num país (a pé ou de avião) você precisa do passaporte dele**; o do seu país é grátis. **Livro de passaporte (P)** com um carimbo único por país visitado ([ADR 0035](docs/decisoes/0035-aeroportos-viagem-e-passaportes.md))
 - [x] **Modo dev (F1)** com moedas, passaportes, barreira, linhas e polígonos de fronteira, estação forçada, animais, Goblopédia e voo de graça
 
+**Fase 2.6: ajustes da 2.5** ✅
+
+- [x] **Modo foto em primeira pessoa:** a câmera vai para os olhos do personagem e o corpo some; **F** troca para o **selfie** (câmera na frente, personagem fazendo pose com o cenário atrás) e volta. A Goblopédia registra o que está enquadrado nos dois modos
+- [x] **Cursor depois da viagem:** no fim do voo (e depois de casa, teleporte, menus, aviso da fronteira e plaquinha) o mouse volta a girar a câmera na hora, sem clique; tudo passa pelo gerenciador de interface (`--cursor-test`)
+- [x] **Travadas:** registro em `user://travadas.log` de todo quadro acima de 25 ms, com o que estava acontecendo, e as últimas no F2. Com ele: linhas de fronteira (até 320 ms por pedaço) e leitura dos pedaços do servidor em threads, aeroportos, colisão do chão e lotes espalhados entre quadros, shaders pré-aquecidos na tela de carregamento e **limite de fps** no F6 (30, 60 ou sem limite; V-Sync sempre ligado) ([ADR 0036](docs/decisoes/0036-travadas-e-limite-de-fps.md))
+- [x] **Nunca no oceano:** andar, teleporte, chegada de voo, nascimento e H sempre terminam em terra
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -155,6 +163,14 @@ Com o servidor em modo dev (`GOBLO_DEV=1`) e o jogo aberto, aperte **F1**:
 5. **Estações:** aba **Natureza**, clique **Inverno**, **Outono**, **Primavera** e **Verão** (vale para o hemisfério norte; o sul fica com a oposta) e afaste a câmera (roda) para ver os dois hemisférios. **Data real** volta ao normal. Fotografe uma árvore de outono para a Goblopédia.
 6. **Aeroporto e viagem:** aba **Viagem**: selecione um país na aba Mundo e clique **Voar de graça para lá** para conhecer um aeroporto. No balcão (**E**), escolha um destino (dê moedas antes) e clique **Comprar passaporte e viajar**: a tela escurece, a câmera vai até o globo, o arco liga os aeroportos e você chega no destino com carimbo novo. **H** sempre volta para casa.
 
+## Como testar a fase 2.6
+
+1. **Modo foto:** F1 → aba Itens → dê a **Câmera fotográfica** e segure (1–5). **Botão direito**: a visão vai para os olhos do personagem (o corpo some). Mexa o mouse e a roda. Aperte **F**: selfie, com o personagem fazendo pose e o cenário atrás; o mouse gira a câmera em volta dele. **F** de novo volta. Fotografe um animal nos dois modos (pampa: aba Mundo, **-34,6** e **-60,5**) e confira na Goblopédia (**G**).
+2. **Cursor depois do voo:** num aeroporto (aba Viagem → **Voar de graça para lá**), use o balcão (**E**), escolha um destino com clique duplo e viaje. Quando a tela clarear, mexa o mouse **sem clicar**: a câmera tem que girar. Repita com **H**, com o teleporte da aba Mundo, depois de fechar o bolso (Tab) e ao cruzar uma fronteira.
+3. **Travadas:** jogue normalmente por 10 minutos (ande, corra, voe, afaste a câmera, entre em florestas e bairros). **F2** mostra as últimas travadas na tela. No fim, mande o arquivo `~/Library/Application Support/Godot/app_userdata/Goblo/travadas.log`. Cada linha é uma travada: hora, duração, onde você estava e, depois do `|`, o que aconteceu naquele quadro (por exemplo "shaders compilados: 3 na hora de desenhar", "pedaço 468 carregado", "animal criado: fox", "janela sem foco"). Cada sessão começa com uma linha `== sessão` com a qualidade, a janela, o limite de fps e o V-Sync.
+4. **Limite de fps:** **F6** → Limite de fps: 30, 60 (padrão) ou sem limite. O V-Sync fica sempre ligado. Com 30, a placa esquenta menos.
+5. **Oceano:** `godot --headless --path . -- --smoke-test --spawn=48.5,2.0` termina em terra (antes terminava no mar da Normandia).
+
 ## Medições
 
 Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M, tela Retina), Godot 4.7.2 com o renderizador Mobile.
@@ -192,6 +208,8 @@ Números do autor antes da fase (janela grande): alta no bairro 28 fps (872 draw
 - **MultiMesh por modelo e pedaço**, com o buffer montado de uma vez. Objetos colhidos ficam escondidos (escala zero) sem refazer o pedaço.
 - **Só o que está perto:** objetos e lotes são pedidos por pedaço em volta do personagem e soltos quando ele se afasta; colisão das árvores só a até 40 unidades, direto no `PhysicsServer3D`; só os 6 lampiões mais próximos ganham luz de verdade.
 - Da fase 1.5: renderizador Mobile, malha do globo em 96 grupos, grama sorteada em threads, HUD leve.
+
+**Fase 2.6: travadas** (`--hitch-test`, sem janela, só CPU, qualidade alta): de 28 para 11 quadros acima de 25 ms no mesmo passeio. Pior caso antes: 320 ms (linhas de fronteira de um pedaço), 200 ms (uma dúzia de aeroportos no mesmo quadro), 46 ms (JSON de um pedaço). Os que sobram são de teleporte e da estação forçada pelo modo dev. A compilação de shaders só aparece com janela: veja o registro (`travadas.log`) depois de jogar.
 
 **Fase 2.5: custo do que entrou** (sem janela, só CPU; os fps com janela ficam para `client/tools/medir_fps.sh`): os animais custam ~0,9 ms por quadro com 12 animais carregados (o máximo; os mais longe são atualizados menos vezes por segundo). As partículas das estações são 160 (média) ou 320 (alta), nenhuma na baixa. O chão calcula a estação no próprio shader, sem malha nova; árvores de outono e com neve só trocam o modelo do MultiMesh.
 
@@ -348,16 +366,16 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | **H** | voltar para casa (de qualquer lugar) |
 | **G** | Goblopédia (álbum de fotos) |
 | **P** | livro de passaporte |
-| Botão direito (câmera na mão) | modo foto: mirar por cima do ombro; **roda** dá zoom, **clique** fotografa, botão direito ou Esc sai |
+| Botão direito (câmera na mão) | modo foto em primeira pessoa; **F** alterna com o selfie; **roda** dá zoom, **clique** fotografa, botão direito ou Esc sai |
 | Mover o mouse | girar a câmera (o cursor fica capturado e escondido durante o jogo) |
 | **Alt** (Option) segurado | soltar o cursor enquanto segura |
 | Esc ou o **X** no canto | fechar janelas, sair do modo construção; sem nada aberto, solta o cursor (clique na janela para voltar) |
 | Botão direito + arrastar | girar a câmera com o cursor solto (modo construção, Alt, depois do Esc) |
 | Roda do mouse / dois dedos no trackpad | zoom, do personagem até o planeta inteiro |
 | **F1** | painel do modo dev (servidor com `GOBLO_DEV=1`) |
-| F2 | painel de desempenho |
+| F2 | painel de desempenho, com as últimas travadas |
 | F3 / F4 | acelerar o tempo do céu / voltar ao horário real |
-| F6 | configurações: qualidade (baixa, média, alta), tamanho da interface, sensibilidade do mouse, inverter eixo vertical, tela cheia |
+| F6 | configurações: qualidade (baixa, média, alta), limite de fps (30, 60, sem limite), tamanho da interface, sensibilidade do mouse, inverter eixo vertical, tela cheia |
 | F11 | tela cheia |
 
 ## Testes
@@ -407,6 +425,8 @@ godot --headless --path . -- --photo-test --profile=teste6                # câm
 godot --headless --path . -- --season-test --profile=teste7               # estações nos dois hemisférios e nos trópicos
 godot --headless --path . -- --travel-test --profile=teste8               # barreira, passaporte, carimbo, aeroporto e voo
 godot --headless --path . -- --dev-test --profile=teste9                  # botões novos do painel dev
+godot --headless --path . -- --cursor-test --profile=teste10              # cursor volta depois do voo, H, teleporte, menus
+godot --headless --path . -- --hitch-test --profile=teste11               # passeio com o registro de travadas (travadas.log)
 godot --headless --path . -s tests/test_animais.gd                        # trajeto dos animais igual ao do servidor
 godot --headless --path . -s tests/test_estacoes.gd                       # estações iguais às do servidor
 godot --path . -- --perf-test=20 --spawn=-3,-60                           # fps na floresta tropical (janela na frente)
@@ -442,7 +462,7 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 1. **Fase 1: o globo.** Globo, personagem andando e servidor do mundo. ✅
 2. **Fase 1.5: um mundo de verdade.** Escala, pulo, biomas, vegetação, dia e noite, oceano, nuvens e navegação. ✅
 3. **Fase 2: coletar e construir.** Jogador e país, lotes, coleta, inventário, bancada, decoração, casa em níveis, bairro, banco de dados e modo dev. ✅
-4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, moedas e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅
+4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, moedas e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
 5. **Fase 3: multiplayer em tempo real.** Ver os outros jogadores andando, com o servidor validando a posição (avaliar o Nakama, [ADR 0005](docs/decisoes/0005-nakama-na-fase-multiplayer.md)).
 6. **Fase 4: economia.** Loja de itens e troca entre jogadores (as moedas e os passaportes já existem desde a fase 2.5).
 

@@ -18,3 +18,7 @@ A fase 2.5 pede um álbum (Goblopédia, tecla G) que vai se completando com foto
 
 - O servidor confia no cliente sobre o que estava na foto (como na coleta, ADR 0021). Na fase 3, com a posição do jogador no servidor, dá para conferir a distância até o animal.
 - Trocar de computador mantém o progresso, mas não as fotos (a página avisa).
+
+## Atualização (fase 2.6)
+
+O modo foto passou a ser em **primeira pessoa**: a câmera fica nos olhos do personagem (`CameraRig.EYE_HEIGHT`) e o corpo some (a colisão continua). A tecla **F** alterna com o **selfie**: a câmera fica a `SELFIE_DISTANCE` na frente do personagem, olhando para ele, e o mouse a leva em volta dele. Ele vira para a câmera, faz a pose `holding-right` (braço esticado) e fica parado. A detecção do que está enquadrado não mudou: usa a câmera, então vale nos dois modos (o raio de visibilidade ignora o corpo do personagem).
