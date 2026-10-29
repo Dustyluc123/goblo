@@ -102,9 +102,19 @@ static func _floor(w: int, d: int, floor: int) -> Array:
 ## Telhado de duas águas inteiro numa peça só, esticada no comprimento (cumeeira de leste
 ## a oeste, de largura `w` peças). Peças lado a lado se sobrepunham (cada uma tem 1,1 de
 ## largura) e as águas piscavam; o kit usa uma paleta de cores (colormap), então esticar
-## não deforma nada. A sobra de 0,05 de cada lado (beiral) é mantida.
+## não deforma nada.
+##
+## A peça tem o triângulo do oitão nas duas pontas, recuado em x = ±GABLE_X (dentro da
+## espessura da parede de uma peça). O esticão é escolhido para o oitão cair no meio da
+## parede leste/oeste (face de fora em w/2, espessura 0,1): se ficasse por dentro, sobrava
+## uma fresta entre o topo da parede e o oitão, e dava para ver o lado de dentro. O beiral
+## das pontas fica um pouco maior que o do kit (0,18 em vez de 0,05).
+const GABLE_X := 0.475
+
+
 static func _roof(piece: String, w: int, floor: int, z: float, depth_scale: float, height_scale: float) -> Array:
-	return [piece, (w - 1) * 0.5, floor, z, 0, Vector3((w + 0.1) / 1.1, height_scale, depth_scale)]
+	var sx := (w * 0.5 - WALL_DEPTH_DEFAULT * 0.5) / GABLE_X
+	return [piece, (w - 1) * 0.5, floor, z, 0, Vector3(sx, height_scale, depth_scale)]
 
 
 ## Barraca: 2 × 2 peças de madeira, porta na frente, janela de lado e telhado baixo.
@@ -176,6 +186,10 @@ func _build(level: int, house: Dictionary) -> Node3D:
 
 func _take_photos(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
+	if "--no-focus" in OS.get_cmdline_user_args():
+		# Pelo tools/sem_foco.sh: janela que não pega o foco de quem está usando o Mac.
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_NO_FOCUS, true)
+		DisplayServer.window_set_size(Vector2i(1280, 800))
 	var world := Node3D.new()
 	root.add_child(world)
 	var env := WorldEnvironment.new()
@@ -216,6 +230,14 @@ func _take_photos(dir: String) -> void:
 		views.append(["canto_frente", Vector3(hw + 1.6, 1.2, hd + 1.4), Vector3(hw, 1.0, hd)])
 		views.append(["canto_tras", Vector3(-hw - 1.5, 1.6, -hd - 1.2), Vector3(-hw, 1.2, -hd)])
 		views.append(["telhado", Vector3(hw * 0.4, 5.5, hd + 2.5), Vector3(0, 2.5, 0)])
+		# Encontros do telhado com as paredes: oitões de perto (leste e oeste, um pouco de
+		# cima) e de cima em diagonal pelos quatro lados (equivale às quatro rotações).
+		var top := 1.5 * KIT_SCALE if level < 3 else 2.5 * KIT_SCALE
+		views.append(["oitao_leste", Vector3(hw + 2.2, top + 1.2, 0.6), Vector3(hw, top - 0.3, 0)])
+		views.append(["oitao_oeste", Vector3(-hw - 2.2, top + 1.2, -0.6), Vector3(-hw, top - 0.3, 0)])
+		for k in 4:
+			var a := PI * 0.25 + k * PI * 0.5
+			views.append(["cima_%d" % k, Vector3(cos(a) * 4.5, top + 3.0, sin(a) * 4.5), Vector3(0, top - 0.5, 0)])
 		for view in views:
 			cam.look_at_from_position(view[1], view[2])
 			for f in 4:

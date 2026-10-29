@@ -51,7 +51,8 @@ tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930 --pr
 godot --headless --path . -- --camera-test --profile=t3                # distância não muda sozinha, nada na frente sem transparência (servidor dev)
 godot --headless --path . -s tests/test_minimapa.gd                    # seta do mini mapa (N, S, L, O); sem servidor
 godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, build, first)
-godot --path . -s tools/montar_casas.gd -- --fotos=/tmp/casas          # regera as casas e fotografa (sobrescreve as cenas!)
+godot --headless --path . -s tools/montar_casas.gd                     # regera as cenas das casas (sobrescreve!)
+tools/sem_foco.sh -s tools/montar_casas.gd -- --fotos=/tmp/casas --so-fotos   # fotos das casas (oitões, 4 lados), sem foco
 ```
 
 Argumentos do cliente (depois de `--`): `--server=URL`, `--profile=NOME`, `--nickname=X` (+ `--country=BRA`), `--quality=…`, `--spawn=LAT,LON`, `--zoom=0..1`, `--utc=HORA`, `--no-cache`, `--equip=ITEM`, `--walk=SEG`, `--dir=…`, `--run`, `--moving`, `--jump`, `--smoke-test`, `--play-test`, `--screenshot=ARQ`, `--ui=…`, `--route=LAT,LON`, `--perf-test=SEG`, `--tour`, `--window-size=WxH`, `--ui-scale=X`, `--fullscreen-test`, `--no-focus`. Lista completa no topo de `client/scripts/main.gd`.
