@@ -86,6 +86,17 @@ func (s *Service) DevNextDay(ctx context.Context, p *Player) (*MeView, error) {
 	return s.Me(ctx, p)
 }
 
+// DevRealTime desfaz os adiantamentos do relógio (volta para a hora real), sem reiniciar
+// o servidor. Obras que já ficaram prontas continuam prontas.
+func (s *Service) DevRealTime(ctx context.Context, p *Player) (*MeView, error) {
+	oc, ok := s.clock.(*OffsetClock)
+	if !ok {
+		return nil, ErrDevOnly.with("O relógio do servidor não pode ser ajustado.")
+	}
+	oc.Reset()
+	return s.Me(ctx, p)
+}
+
 // DevSetCountry troca o país do jogador e muda o lote dele para um lote livre no país novo
 // (o lote antigo, com casa e decoração, é liberado).
 func (s *Service) DevSetCountry(ctx context.Context, p *Player, country string) (*MeView, error) {

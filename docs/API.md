@@ -232,6 +232,7 @@ Sem `GOBLO_DEV=1`, **toda** rota `/dev/…` responde `403 {"error":"dev_only"}` 
 | `POST /dev/give` | `{"item": "wood", "count": 99}` | dá (ou tira, com número negativo) qualquer item |
 | `POST /dev/finish-house` | — | conclui a obra na hora |
 | `POST /dev/next-day` | — | adianta o relógio do servidor até logo depois da próxima virada do dia do jogador (limites zerados, obras prontas) |
+| `POST /dev/real-time` | — | desfaz os adiantamentos: o relógio do servidor volta para a hora real, sem reiniciar (obras prontas continuam prontas) |
 | `POST /dev/country` | `{"country": "JPN"}` | troca o país e muda o lote para um lote livre no país novo |
 | `POST /dev/reset` | `{"what": "lot"}` | `lot` (casa e decoração; volta a bancada), `inventory`, `collections` (limites de hoje) ou `player` (apaga tudo) |
 | `POST /dev/fake-neighbors` | `{"cell": 21424, "count": 20}` | cria jogadores falsos com casas prontas e decoração sorteada nos lotes livres mais perto da célula |

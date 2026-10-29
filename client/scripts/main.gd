@@ -736,6 +736,12 @@ func dev_next_day() -> void:
 		_data.refresh_all()
 
 
+func dev_real_time() -> void:
+	var r := await _dev("/dev/real-time", {}, "O relógio do servidor voltou para a hora real.")
+	if r["ok"]:
+		_data.refresh_all()
+
+
 func dev_fake_neighbors(count: int) -> void:
 	var r := await _dev("/dev/fake-neighbors", {"cell": _player.cell_id, "count": count}, "")
 	if r["ok"]:

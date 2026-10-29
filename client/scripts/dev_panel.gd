@@ -212,6 +212,7 @@ func _player_tab() -> Control:
 	var actions := [
 		["Concluir a obra agora", func() -> void: game.dev_finish_house(), true],
 		["Avançar para o dia seguinte (limites e obra)", func() -> void: game.dev_next_day(), true],
+		["Voltar o relógio do servidor para a hora real", func() -> void: game.dev_real_time(), false],
 		["Criar 20 vizinhos falsos aqui perto", func() -> void: game.dev_fake_neighbors(20), true],
 		["Trocar meu país para o selecionado na aba Mundo", func() -> void:
 			var code := _selected_country()

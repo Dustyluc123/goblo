@@ -19,6 +19,7 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dev/give", s.auth(s.devGive))
 	mux.HandleFunc("POST /dev/finish-house", s.auth(s.devMe(s.Game.DevFinishHouse)))
 	mux.HandleFunc("POST /dev/next-day", s.auth(s.devMe(s.Game.DevNextDay)))
+	mux.HandleFunc("POST /dev/real-time", s.auth(s.devMe(s.Game.DevRealTime)))
 	mux.HandleFunc("POST /dev/country", s.auth(s.devCountry))
 	mux.HandleFunc("POST /dev/reset", s.auth(s.devReset))
 	mux.HandleFunc("POST /dev/fake-neighbors", s.auth(s.devFakeNeighbors))

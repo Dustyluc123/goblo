@@ -45,6 +45,20 @@ func (c *OffsetClock) Advance(d time.Duration) {
 	c.offset += d
 }
 
+// Reset volta para a hora da base (desfaz os adiantamentos).
+func (c *OffsetClock) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.offset = 0
+}
+
+// Offset é quanto o relógio está adiantado.
+func (c *OffsetClock) Offset() time.Duration {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.offset
+}
+
 // FixedClock sempre devolve a mesma hora (testes).
 type FixedClock struct{ T time.Time }
 

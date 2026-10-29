@@ -91,3 +91,21 @@ func TestUpgradeBlockedByDecorationListsObjects(t *testing.T) {
 		t.Fatalf("depois de guardar: %v", err)
 	}
 }
+
+func TestDevRealTimeUndoesNextDay(t *testing.T) {
+	f := newFixture(t)
+	p, _ := f.player(t, "Relojoeira", "BRA")
+	before := f.clock.Now()
+	if _, err := f.svc.DevNextDay(f.ctx, p); err != nil {
+		t.Fatal(err)
+	}
+	if !f.clock.Now().After(before) {
+		t.Fatal("o dia seguinte deveria adiantar o relógio")
+	}
+	if _, err := f.svc.DevRealTime(f.ctx, p); err != nil {
+		t.Fatal(err)
+	}
+	if f.clock.Offset() != 0 {
+		t.Fatalf("depois de voltar para a hora real, o relógio ainda está adiantado %v", f.clock.Offset())
+	}
+}
