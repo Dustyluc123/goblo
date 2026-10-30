@@ -12,6 +12,9 @@ extends Node3D
 ##   PhysicsServer3D (sem um nó por árvore).
 ## Árvores interativas e decorativas não se sobrepõem porque todas as árvores vêm do
 ## servidor (ADR 0020). No zoom afastado, nada aparece.
+##
+## Os MultiMesh da camada "big" entram aos poucos (fase 2.6): até BIG_BUDGET_MS por quadro,
+## um modelo de cada vez (com janela, montar um pedaço inteiro levava ~16 ms num quadro).
 
 const DECOR_FILE := "res://data/decoracao.json"
 const INSET := 0.8  # grama só no topo plano da célula, longe da borda
@@ -20,6 +23,7 @@ const HIDE_ABOVE_ZOOM := 0.25
 const MAX_TASKS := 3
 const MAX_BUILDS_PER_FRAME := 1
 const LOT_MARGIN := 0.3
+const BIG_BUDGET_MS := 3.0
 
 var world: WorldData
 var data: ChunkData
@@ -42,6 +46,8 @@ var _generation := 0
 var season_north := -1.0
 ## Hexágonos sem grama (aeroportos: pista e terminal).
 var bare_cells := {}
+## Modelos da camada "big" esperando a vez: {"key", "node", "models": [[modelo, objetos]]}.
+var _big_jobs: Array = []
 
 
 func setup(w: WorldData, d: ChunkData) -> void:
@@ -98,6 +104,7 @@ func clear() -> void:
 		_free_chunk(key)
 	_chunks.clear()
 	_queue.clear()
+	_big_jobs.clear()
 	_instances.clear()
 	instance_count = 0
 	_timer = 0.0
@@ -110,6 +117,7 @@ func load_now(point: Vector3) -> void:
 	for item: Array in _queue:
 		_build_layer(item[0], item[1], true)
 	_queue.clear()
+	_run_big_jobs(-1.0)
 
 
 ## Chamado a cada quadro com a posição do personagem e o zoom da câmera.
@@ -130,6 +138,29 @@ func update_focus(point: Vector3, far_amount: float, delta: float) -> void:
 		var item: Array = _queue.pop_front()
 		if _build_layer(item[0], item[1], false):
 			built += 1
+	_run_big_jobs(BIG_BUDGET_MS)
+
+
+## Monta os MultiMesh que estão na fila, até `budget_ms` (negativo: tudo).
+func _run_big_jobs(budget_ms: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	while not _big_jobs.is_empty():
+		var job: Dictionary = _big_jobs[0]
+		var node: Variant = job["node"]
+		if not is_instance_valid(node) or (node as Node).is_queued_for_deletion():
+			_big_jobs.pop_front()
+			continue
+		var models: Array = job["models"]
+		if models.is_empty():
+			_big_jobs.pop_front()
+			continue
+		var pair: Array = models.pop_front()
+		if job.get("small", false):
+			_build_small_model(node, pair[0], pair[1], pair[2])
+		else:
+			_build_model(node, pair[0], pair[1])
+		if budget_ms >= 0.0 and (Time.get_ticks_usec() - t0) / 1000.0 >= budget_ms:
+			return
 
 
 func _radii() -> Dictionary:
@@ -216,6 +247,7 @@ func _collect_finished() -> void:
 func _build_objects(key: int) -> Node3D:
 	var node := Node3D.new()
 	node.set_meta("layer", "big")
+	node.set_meta("count", 0)
 	add_child(node)
 	var by_model := {}  # modelo → Array de objetos
 	for o: Dictionary in data.chunk(key).get("objects", []):
@@ -231,44 +263,48 @@ func _build_objects(key: int) -> Node3D:
 		if not by_model.has(model):
 			by_model[model] = []
 		(by_model[model] as Array).append(o)
-	var shadows: bool = Quality.current()["big_shadows"]
-	var count := 0
+	var models: Array = []
 	for model: String in by_model:
-		var lib := ModelLibrary.get_model(model)
-		if lib.is_empty():
-			continue
-		var list: Array = by_model[model]
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = true
-		mm.mesh = lib["mesh"]
-		mm.instance_count = list.size()
-		var buf := PackedFloat32Array()
-		buf.resize(list.size() * 16)
-		for i in list.size():
-			var o: Dictionary = list[i]
-			var t := Transform3D(o["basis"], o["pos"])
-			_instances[o["id"]] = [mm, i, t]
-			if o["hidden"]:
-				t = _hidden_transform(t)
-			var c: Color = _object_tint.get(int(world.biomes[o["cell"]]), Color.WHITE)
-			var b := t.basis
-			var k := i * 16
-			buf[k] = b.x.x; buf[k + 1] = b.y.x; buf[k + 2] = b.z.x; buf[k + 3] = t.origin.x
-			buf[k + 4] = b.x.y; buf[k + 5] = b.y.y; buf[k + 6] = b.z.y; buf[k + 7] = t.origin.y
-			buf[k + 8] = b.x.z; buf[k + 9] = b.y.z; buf[k + 10] = b.z.z; buf[k + 11] = t.origin.z
-			buf[k + 12] = c.r; buf[k + 13] = c.g; buf[k + 14] = c.b; buf[k + 15] = c.a
-		mm.buffer = buf
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		if ModelLibrary.is_baked(lib):
-			mmi.material_override = ModelLibrary.foliage_material(_wind_kind(list[0]))
-		node.add_child(mmi)
-		count += list.size()
-	node.set_meta("count", count)
-	instance_count += count
+		models.append([model, by_model[model]])
+	_big_jobs.append({"key": key, "node": node, "models": models})
 	return node
+
+
+## Um MultiMesh (um modelo) da camada "big" de um pedaço.
+func _build_model(node: Node3D, model: String, list: Array) -> void:
+	var lib := ModelLibrary.get_model(model)
+	if lib.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = lib["mesh"]
+	mm.instance_count = list.size()
+	var buf := PackedFloat32Array()
+	buf.resize(list.size() * 16)
+	for i in list.size():
+		var o: Dictionary = list[i]
+		var t := Transform3D(o["basis"], o["pos"])
+		_instances[o["id"]] = [mm, i, t]
+		if o["hidden"]:
+			t = _hidden_transform(t)
+		var c: Color = _object_tint.get(int(world.biomes[o["cell"]]), Color.WHITE)
+		var b := t.basis
+		var k := i * 16
+		buf[k] = b.x.x; buf[k + 1] = b.y.x; buf[k + 2] = b.z.x; buf[k + 3] = t.origin.x
+		buf[k + 4] = b.x.y; buf[k + 5] = b.y.y; buf[k + 6] = b.z.y; buf[k + 7] = t.origin.y
+		buf[k + 8] = b.x.z; buf[k + 9] = b.y.z; buf[k + 10] = b.z.z; buf[k + 11] = t.origin.z
+		buf[k + 12] = c.r; buf[k + 13] = c.g; buf[k + 14] = c.b; buf[k + 15] = c.a
+	mm.buffer = buf
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	var shadows: bool = Quality.current()["big_shadows"]
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if ModelLibrary.is_baked(lib):
+		mmi.material_override = ModelLibrary.foliage_material(_wind_kind(list[0]))
+	node.add_child(mmi)
+	node.set_meta("count", int(node.get_meta("count")) + list.size())
+	instance_count += list.size()
 
 
 ## Tipo de vento de um objeto do servidor: árvores balançam a copa, flores e arbustos um
@@ -447,28 +483,35 @@ func _apply_small(key: int, result: Dictionary) -> void:
 		return
 	var node := Node3D.new()
 	node.set_meta("layer", "small")
+	node.set_meta("count", 0)
 	add_child(node)
-	var count := 0
+	var models: Array = []
 	for name: String in result["buffers"]:
-		var lib := ModelLibrary.get_model(name)
-		if lib.is_empty():
-			continue
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = true
-		mm.mesh = lib["mesh"]
-		mm.instance_count = result["counts"][name]
-		mm.buffer = result["buffers"][name]
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		if ModelLibrary.is_baked(lib):
-			mmi.material_override = ModelLibrary.foliage_material("grass")
-		node.add_child(mmi)
-		count += int(result["counts"][name])
-	node.set_meta("count", count)
-	instance_count += count
+		models.append([name, int(result["counts"][name]), result["buffers"][name]])
+	# Como as árvores: um MultiMesh por vez, dentro do limite de tempo do quadro.
+	_big_jobs.append({"key": key, "node": node, "models": models, "small": true})
 	_chunks[key]["small"] = node
+
+
+## Um MultiMesh de grama (buffer já pronto na thread).
+func _build_small_model(node: Node3D, name: String, count: int, buffer: PackedFloat32Array) -> void:
+	var lib := ModelLibrary.get_model(name)
+	if lib.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = lib["mesh"]
+	mm.instance_count = count
+	mm.buffer = buffer
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if ModelLibrary.is_baked(lib):
+		mmi.material_override = ModelLibrary.foliage_material("grass")
+	node.add_child(mmi)
+	node.set_meta("count", int(node.get_meta("count")) + count)
+	instance_count += count
 
 
 # --- Colisão ------------------------------------------------------------------------------

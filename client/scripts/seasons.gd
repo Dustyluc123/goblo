@@ -74,8 +74,20 @@ static func cell_has_seasons(world: WorldData, cell: int) -> bool:
 	return seasonal_biome(world.biomes[cell]) and absf(world.lats[cell]) >= TROPIC
 
 
+## Respostas de variant_model já calculadas (a expressão regular rodava por objeto, a cada
+## pedaço montado).
+static var _variant_cache := {}
+
+
 ## Versão do modelo na estação: "autumn" ou "snow" ("" = não existe, fica o normal).
 static func variant_model(model: String, variant: String) -> String:
+	var key := model + "|" + variant
+	if not _variant_cache.has(key):
+		_variant_cache[key] = _variant_model(model, variant)
+	return _variant_cache[key]
+
+
+static func _variant_model(model: String, variant: String) -> String:
 	var m := _tree_re.search(model)
 	if m:
 		return "%s_%s_%s" % [m.get_string(1), "Autumn" if variant == "autumn" else "Snow", m.get_string(2)]
