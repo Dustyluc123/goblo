@@ -148,8 +148,8 @@ func placeholders(n int) string {
 // --- Jogadores ----------------------------------------------------------------------------
 
 func (s *Store) CreatePlayer(ctx context.Context, p *game.Player) error {
-	res, err := s.q.ExecContext(ctx, `INSERT INTO players (nickname, country, token_hash, created_at, fake) VALUES (?, ?, ?, ?, ?)`,
-		p.Nickname, p.Country, p.TokenHash, p.CreatedAt.Unix(), p.Fake)
+	res, err := s.q.ExecContext(ctx, `INSERT INTO players (nickname, country, token_hash, created_at, fake, character) VALUES (?, ?, ?, ?, ?, ?)`,
+		p.Nickname, p.Country, p.TokenHash, p.CreatedAt.Unix(), p.Fake, p.Character)
 	if isUnique(err, "players.nickname") {
 		return game.ErrNicknameTaken
 	}
@@ -160,12 +160,12 @@ func (s *Store) CreatePlayer(ctx context.Context, p *game.Player) error {
 	return err
 }
 
-const playerCols = `id, nickname, country, token_hash, created_at, fake`
+const playerCols = `id, nickname, country, token_hash, created_at, fake, character`
 
 func scanPlayer(row interface{ Scan(...any) error }) (*game.Player, error) {
 	var p game.Player
 	var created int64
-	if err := row.Scan(&p.ID, &p.Nickname, &p.Country, &p.TokenHash, &created, &p.Fake); err != nil {
+	if err := row.Scan(&p.ID, &p.Nickname, &p.Country, &p.TokenHash, &created, &p.Fake, &p.Character); err != nil {
 		return nil, notFound(err)
 	}
 	p.CreatedAt = time.Unix(created, 0).UTC()
@@ -202,6 +202,43 @@ func (s *Store) PlayersByIDs(ctx context.Context, ids []int64) (map[int64]*game.
 		out[p.ID] = p
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) UpdatePlayerCharacter(ctx context.Context, id int64, character string) error {
+	_, err := s.q.ExecContext(ctx, `UPDATE players SET character = ? WHERE id = ?`, character, id)
+	return err
+}
+
+// --- Bloqueios ------------------------------------------------------------------------------
+
+func (s *Store) SetBlock(ctx context.Context, player, other int64, on bool, at time.Time) error {
+	if on {
+		_, err := s.q.ExecContext(ctx, `INSERT OR IGNORE INTO blocks (player_id, blocked_id, created_at) VALUES (?, ?, ?)`, player, other, at.Unix())
+		return err
+	}
+	_, err := s.q.ExecContext(ctx, `DELETE FROM blocks WHERE player_id = ? AND blocked_id = ?`, player, other)
+	return err
+}
+
+// Blocks devolve quem o jogador bloqueou e quem bloqueou o jogador.
+func (s *Store) Blocks(ctx context.Context, player int64) (blocked, blockedBy []int64, err error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT player_id, blocked_id FROM blocks WHERE player_id = ? OR blocked_id = ?`, player, player)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a, b int64
+		if err := rows.Scan(&a, &b); err != nil {
+			return nil, nil, err
+		}
+		if a == player {
+			blocked = append(blocked, b)
+		} else {
+			blockedBy = append(blockedBy, a)
+		}
+	}
+	return blocked, blockedBy, rows.Err()
 }
 
 func (s *Store) UpdatePlayerCountry(ctx context.Context, id int64, country string) error {

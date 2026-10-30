@@ -13,7 +13,8 @@ type Player struct {
 	Country   string // ISO A3
 	TokenHash string
 	CreatedAt time.Time
-	Fake      bool // criado pelo modo dev ("vizinhos falsos")
+	Fake      bool   // criado pelo modo dev ("vizinhos falsos")
+	Character string // um dos personagens de rules.json ("" = o padrão do cliente)
 }
 
 // Lot é um lote ocupado e a casa dele.
@@ -62,6 +63,11 @@ type PlayerRepository interface {
 	PlayerByID(ctx context.Context, id int64) (*Player, error)
 	PlayersByIDs(ctx context.Context, ids []int64) (map[int64]*Player, error)
 	UpdatePlayerCountry(ctx context.Context, id int64, country string) error
+	UpdatePlayerCharacter(ctx context.Context, id int64, character string) error
+	// SetBlock bloqueia (on) ou desbloqueia outro jogador.
+	SetBlock(ctx context.Context, player, other int64, on bool, at time.Time) error
+	// Blocks: quem o jogador bloqueou e quem bloqueou o jogador.
+	Blocks(ctx context.Context, player int64) (blocked, blockedBy []int64, err error)
 	DeletePlayer(ctx context.Context, id int64) error // apaga também lote, inventário, coletas e objetos
 }
 
