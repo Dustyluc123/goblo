@@ -29,10 +29,11 @@ type Hub struct {
 	dev   bool
 	start time.Time
 
-	mu      sync.Mutex
-	clients map[int64]*client   // por jogador (bots do modo dev têm id negativo)
-	last    map[int64]lastKnown // última posição de quem saiu (reconexão)
-	nextBot int64
+	mu        sync.Mutex
+	clients   map[int64]*client   // por jogador (bots do modo dev têm id negativo)
+	last      map[int64]lastKnown // última posição de quem saiu (reconexão)
+	nextBot   int64
+	nextTrade int64
 
 	// Estatísticas (painel dev e teste de carga).
 	bytesIn, bytesOut, msgsIn, msgsOut atomic.Int64
@@ -159,6 +160,7 @@ func (h *Hub) unregister(c *client) {
 		return // já foi trocada por uma conexão nova
 	}
 	delete(h.clients, c.id)
+	h.dropTrade(c)
 	if c.spawned {
 		h.last[c.id] = lastKnown{pos: c.pos, cell: c.cell, at: time.Now()}
 	} else if c.lastKnown != nil {

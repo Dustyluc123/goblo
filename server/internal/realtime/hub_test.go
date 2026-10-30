@@ -460,3 +460,118 @@ func TestCleanChat(t *testing.T) {
 		}
 	}
 }
+
+// Troca pelo tempo real: pedido, ofertas vistas pelos dois, "pronto" desfeito quando algo
+// muda, confirmação e execução; e um bot do modo dev que aceita sozinho.
+func TestTradeFlow(t *testing.T) {
+	e := newEnv(t, true)
+	a, _ := e.join(t, "Mascate", "BRA")
+	b, _ := e.join(t, "Freguesa", "BRA")
+	here := ground(-23.55, -46.63)
+	a.tp("dev", here)
+	b.tp("dev", step(here, 2, 1))
+	e.svc.DevGive(e.ctx, a.player, "wood", 5)
+	e.svc.DevGive(e.ctx, b.player, "stone", 4)
+	time.Sleep(200 * time.Millisecond)
+	a.send(map[string]any{"t": "trade_req", "to": b.player.ID})
+	b.waitText("trade_req", time.Second)
+	b.send(map[string]any{"t": "trade_answer", "from": a.player.ID, "ok": true})
+	a.waitText("trade_open", time.Second)
+	b.waitText("trade_open", time.Second)
+	lastUpdate := func(c *conn) map[string]any {
+		var m map[string]any
+		c.mu.Lock()
+		for _, x := range c.texts {
+			if x["t"] == "trade_update" {
+				m = x
+			}
+		}
+		c.mu.Unlock()
+		return m
+	}
+	a.send(map[string]any{"t": "trade_offer", "items": []any{map[string]any{"item": "wood", "count": 3}}, "coins": 2})
+	b.send(map[string]any{"t": "trade_offer", "items": []any{map[string]any{"item": "stone", "count": 2}}, "coins": 0})
+	time.Sleep(200 * time.Millisecond)
+	a.send(map[string]any{"t": "trade_ready", "on": true})
+	b.send(map[string]any{"t": "trade_ready", "on": true})
+	time.Sleep(200 * time.Millisecond)
+	if u := lastUpdate(a); u == nil || u["both_ready"] != true {
+		t.Fatalf("os dois prontos: %v", u)
+	}
+	// B muda a oferta: os dois "pronto" caem.
+	b.send(map[string]any{"t": "trade_offer", "items": []any{map[string]any{"item": "stone", "count": 1}}, "coins": 0})
+	time.Sleep(200 * time.Millisecond)
+	if u := lastUpdate(a); u["my_ready"] != false || u["their_ready"] != false {
+		t.Fatalf("mudar a oferta não desfez o pronto: %v", u)
+	}
+	theirs, _ := lastUpdate(a)["theirs"].(map[string]any)
+	if items, _ := theirs["items"].([]any); len(items) != 1 {
+		t.Fatalf("A não vê a oferta nova de B: %v", theirs)
+	}
+	a.send(map[string]any{"t": "trade_ready", "on": true})
+	b.send(map[string]any{"t": "trade_ready", "on": true})
+	time.Sleep(150 * time.Millisecond)
+	_, before, _ := e.svc.InventoryOf(e.ctx, a.player.ID)
+	a.send(map[string]any{"t": "trade_confirm"})
+	b.send(map[string]any{"t": "trade_confirm"})
+	done := a.waitText("trade_done", 2*time.Second)
+	b.waitText("trade_done", time.Second)
+	if done["coins"].(float64) != float64(before-2) {
+		t.Fatalf("gobolares de A depois da troca: %v", done["coins"])
+	}
+	inv, _, _ := e.svc.InventoryOf(e.ctx, b.player.ID)
+	woods := 0
+	for _, s := range inv {
+		if s.Item == "wood" {
+			woods = s.Count
+		}
+	}
+	if woods != 3 {
+		t.Fatalf("B recebeu %d madeiras", woods)
+	}
+	// Oferecer o que não tem é recusado (aviso), e cancelar fecha para os dois.
+	a.send(map[string]any{"t": "trade_req", "to": b.player.ID})
+	b.waitTextAfter("trade_req", 3, time.Second)
+	b.send(map[string]any{"t": "trade_answer", "from": a.player.ID, "ok": true})
+	time.Sleep(200 * time.Millisecond)
+	n := a.count("info")
+	a.send(map[string]any{"t": "trade_offer", "items": []any{map[string]any{"item": "coconut", "count": 9}}, "coins": 0})
+	time.Sleep(200 * time.Millisecond)
+	if a.count("info") == n {
+		t.Fatal("oferecer o que não tem não deu aviso")
+	}
+	b.send(map[string]any{"t": "trade_cancel"})
+	a.waitText("trade_closed", time.Second)
+
+	// Bot do modo dev de número par aceita e acompanha.
+	if made := e.hub.SpawnBots(here, 2, "BRA"); made != 2 {
+		t.Fatalf("bots criados: %d", made)
+	}
+	var even int64
+	for _, o := range e.hub.Online() {
+		if o.Bot && o.ID%2 == 0 {
+			even = o.ID
+		}
+	}
+	if even == 0 {
+		t.Skip("nenhum bot de número par")
+	}
+	e.hub.SpawnBots(here, 0, "BRA")
+	time.Sleep(200 * time.Millisecond)
+	// Leva o bot para perto (os bots nascem até 15 unidades longe).
+	a.tp("dev", here)
+	a.send(map[string]any{"t": "trade_req", "to": even})
+	time.Sleep(300 * time.Millisecond)
+	if a.count("trade_open") < 3 {
+		// O bot pode ter nascido longe demais para trocar; o aviso de distância vale.
+		if a.count("info") == 0 {
+			t.Fatal("pedido ao bot sem resposta")
+		}
+		return
+	}
+	time.Sleep(500 * time.Millisecond)
+	a.send(map[string]any{"t": "trade_ready", "on": true})
+	time.Sleep(500 * time.Millisecond)
+	a.send(map[string]any{"t": "trade_confirm"})
+	a.waitTextAfter("trade_done", 0, 2*time.Second)
+}

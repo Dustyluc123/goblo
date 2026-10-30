@@ -54,6 +54,11 @@ type client struct {
 	actAt       time.Time
 
 	bot *botState
+
+	// Troca (fase 3.5): a troca aberta, os pedidos recebidos e se aceita pedidos.
+	trade     *trade
+	tradeReqs map[int64]time.Time
+	noTrades  bool
 }
 
 type outMsg struct {
@@ -64,7 +69,7 @@ type outMsg struct {
 func newClient(h *Hub, conn *websocket.Conn, p *game.Player, st *game.MovementState) *client {
 	return &client{hub: h, conn: conn, id: p.ID, player: p, state: st, send: make(chan outMsg, 256),
 		done: make(chan struct{}), cell: -1, visible: map[int64]bool{}, blocked: map[int64]bool{},
-		blockedBy: map[int64]bool{}, chatTokens: float64(h.rules.Chat.Burst), emoteTokens: 2, actTokens: 4,
+		blockedBy: map[int64]bool{}, tradeReqs: map[int64]time.Time{}, chatTokens: float64(h.rules.Chat.Burst), emoteTokens: 2, actTokens: 4,
 		chatAt: time.Now(), emoteAt: time.Now(), actAt: time.Now()}
 }
 
@@ -345,6 +350,10 @@ func bucket(tokens *float64, at *time.Time, now time.Time, perSec, burst float64
 
 func (c *client) onText(ctx context.Context, m map[string]any, now time.Time) {
 	h := c.hub
+	if k := str(m, "t"); len(k) > 6 && k[:6] == "trade_" {
+		c.onTrade(ctx, k, m, now)
+		return
+	}
 	switch str(m, "t") {
 	case "ping":
 		h.mu.Lock()

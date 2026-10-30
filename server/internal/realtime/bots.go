@@ -1,12 +1,12 @@
 package realtime
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/rand/v2"
 	"time"
 
-	"github.com/Dustyluc123/goblo/server/internal/game"
 	"github.com/Dustyluc123/goblo/server/internal/world"
 )
 
@@ -25,46 +25,60 @@ var botPhrases = []string{"Oi!", "Que lugar bonito!", "Alguém viu uma vaca por 
 
 var botEmotes = []string{"wave", "yes", "cheer", "sit"}
 
-// SpawnBots cria n bots perto de pos (modo dev). Devolve quantos foram criados.
+// SpawnBots cria n bots perto de pos (modo dev). Cada bot é um jogador falso no banco,
+// sem lote, com alguns itens e gobolares, para dar para trocar de verdade (ADR 0044): os
+// de número par aceitam pedidos de troca sozinhos. Devolve quantos foram criados.
 func (h *Hub) SpawnBots(pos world.Vec3, n int, country string) int {
 	if !h.dev || n <= 0 {
 		return 0
 	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	made := 0
 	for i := 0; i < n && i < 200; i++ {
-		h.nextBot--
-		id := h.nextBot
-		rng := rand.New(rand.NewPCG(uint64(-id), 7))
-		start, ok := h.landNear(pos, 3+rng.Float64()*12, rng)
-		if !ok {
+		h.mu.Lock()
+		h.nextBot++
+		k := h.nextBot
+		h.mu.Unlock()
+		rng := rand.New(rand.NewPCG(uint64(k), 7))
+		chars := h.rules.Characters
+		p, err := h.svc.DevCreateBot(context.Background(), fmt.Sprintf("Bot %d", k), country, chars[rng.IntN(len(chars))])
+		if err != nil {
+			h.log.Warn("bot do modo dev", "erro", err)
 			continue
 		}
-		chars := h.rules.Characters
-		p := &game.Player{ID: id, Nickname: fmt.Sprintf("Bot %d", -id), Country: country, Character: chars[rng.IntN(len(chars))]}
-		c := &client{hub: h, id: id, player: p, spawned: true, pos: start, cell: h.world.FindCell(start, -1),
-			visible: map[int64]bool{}, blocked: map[int64]bool{}, blockedBy: map[int64]bool{}, done: make(chan struct{}),
-			bot: &botState{center: pos, target: start, rng: rng}}
-		h.clients[id] = c
-		made++
+		h.mu.Lock()
+		start, ok := h.landNear(pos, 3+rng.Float64()*12, rng)
+		if ok {
+			c := &client{hub: h, id: p.ID, player: p, spawned: true, pos: start, cell: h.world.FindCell(start, -1),
+				visible: map[int64]bool{}, blocked: map[int64]bool{}, blockedBy: map[int64]bool{}, done: make(chan struct{}),
+				tradeReqs: map[int64]time.Time{}, bot: &botState{center: pos, target: start, rng: rng}}
+			h.clients[p.ID] = c
+			made++
+		}
+		h.mu.Unlock()
+		if !ok {
+			h.svc.DevDeleteBot(context.Background(), p.ID)
+		}
 	}
 	return made
 }
 
-// RemoveBots tira todos os bots do modo dev.
+// RemoveBots tira todos os bots do modo dev (e apaga os jogadores falsos deles).
 func (h *Hub) RemoveBots() int {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-	n := 0
+	var ids []int64
 	for id, c := range h.clients {
 		if c.bot != nil {
+			h.dropTrade(c)
 			h.dropVisibility(c)
 			delete(h.clients, id)
-			n++
+			ids = append(ids, id)
 		}
 	}
-	return n
+	h.mu.Unlock()
+	for _, id := range ids {
+		h.svc.DevDeleteBot(context.Background(), id)
+	}
+	return len(ids)
 }
 
 // landNear sorteia um ponto em terra a até r unidades de pos.
