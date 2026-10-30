@@ -10,7 +10,7 @@ import (
 
 // Goblopédia (fase 2.5): um álbum com uma página por espécie de animal e por coisa rara
 // (flor azul, árvore de outono, árvore com neve). O progresso fica no servidor; as fotos,
-// só no computador do jogador. O primeiro registro de cada coisa dá moedas uma vez só.
+// só no computador do jogador. O primeiro registro de cada coisa dá gobolares uma vez só.
 
 // PediaEntry é uma página da Goblopédia.
 type PediaEntry struct {
@@ -149,7 +149,7 @@ func (s *Service) RegisterPedia(ctx context.Context, p *Player, entry, country, 
 		} else {
 			res.Message = fmt.Sprintf("%s de novo na Goblopédia.", e.Name)
 		}
-		if res.Coins, err = s.grant(ctx, tx, p, res.Reward, "pedia", entry); err != nil {
+		if res.Coins, err = s.grant(ctx, tx, p, res.Reward, "pedia", entry, country); err != nil {
 			return err
 		}
 		recs, err := tx.Pedia(ctx, p.ID)
@@ -177,7 +177,7 @@ func (s *Service) markFriend(ctx context.Context, tx Store, p *Player, species s
 	return tx.PediaFriend(ctx, p.ID, species)
 }
 
-// DevPedia completa ("complete": todas as páginas descobertas e amigos, sem moedas) ou
+// DevPedia completa ("complete": todas as páginas descobertas e amigos, sem gobolares) ou
 // zera ("reset") a Goblopédia do jogador.
 func (s *Service) DevPedia(ctx context.Context, p *Player, action string) ([]PediaView, error) {
 	s.mu.Lock()

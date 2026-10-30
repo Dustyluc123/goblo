@@ -49,11 +49,8 @@ func TestSellRejectsWhatYouDontHave(t *testing.T) {
 	if _, err := f.svc.Sell(f.ctx, p, []game.StackView{{Item: "wood", Count: 1}}); !errors.Is(err, game.ErrMissingMaterials) {
 		t.Fatalf("vender o que não tem: %v", err)
 	}
-	if _, err := f.svc.DevGive(f.ctx, p, "axe", 1); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.svc.Sell(f.ctx, p, []game.StackView{{Item: "axe", Count: 1}}); !errors.Is(err, game.ErrNotForSale) {
-		t.Fatalf("vender o machado: %v", err)
+	if _, err := f.svc.Sell(f.ctx, p, []game.StackView{{Item: "dragao", Count: 1}}); !errors.Is(err, game.ErrNotForSale) {
+		t.Fatalf("vender um item que não existe: %v", err)
 	}
 	if _, err := f.svc.Sell(f.ctx, p, []game.StackView{{Item: "wood", Count: -2}}); !errors.Is(err, game.ErrInvalid) {
 		t.Fatalf("quantidade negativa: %v", err)

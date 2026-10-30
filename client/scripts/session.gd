@@ -7,7 +7,7 @@ extends Node
 signal inventory_changed
 signal me_changed
 signal equipped_changed
-## O saldo de moedas mudou (delta = quanto mudou).
+## O saldo de gobolares mudou (delta = quanto mudou).
 signal coins_changed(delta: int)
 ## Os passaportes mudaram (comprou, ganhou no modo dev, zerou).
 signal passports_changed
@@ -32,10 +32,10 @@ var lot_tiles := 14
 var dev := false
 ## Item de ferramenta na mão ("" = mão vazia).
 var equipped := ""
-## Saldo de moedas (o servidor é a fonte da verdade).
+## Saldo de gobolares (o servidor é a fonte da verdade).
 var coins := 0
-## Nome da moeda (economy.json): {"singular", "plural"}.
-var currency := {"singular": "moeda", "plural": "moedas"}
+## Nome do gobolar (economy.json): {"singular", "plural"}.
+var currency := {"singular": "gobolar", "plural": "gobolares", "symbol": "G$", "slang": "goblinhos"}
 ## Quanto a caixa de vendas paga por unidade de cada item.
 var sell_prices := {}
 ## Espécies de animais (animals.json): id → {name, model, height, shy, walk, run, roam, leg, jump}.
@@ -144,7 +144,12 @@ func stamped(code: String) -> bool:
 	return false
 
 
-## "1 moeda", "12 moedas".
+## "1 gobolar", "12 gobolares".
+## Preço curto para lojas e listas: "G$ 30".
+func price_text(n: int) -> String:
+	return "%s %d" % [currency.get("symbol", "G$"), n]
+
+
 func coins_text(n: int) -> String:
 	return "%d %s" % [n, currency["singular"] if absi(n) == 1 else currency["plural"]]
 

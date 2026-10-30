@@ -33,6 +33,9 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /lot/remove", s.auth(s.remove))
 	mux.HandleFunc("POST /lot/house", s.auth(s.house))
 	mux.HandleFunc("POST /sell", s.auth(s.sell))
+	mux.HandleFunc("GET /shop", s.auth(s.shop))
+	mux.HandleFunc("POST /shop/buy", s.auth(s.shopBuy))
+	mux.HandleFunc("POST /shop/sell", s.auth(s.shopSell))
 	mux.HandleFunc("POST /animal/feed", s.auth(s.feed))
 	mux.HandleFunc("GET /pedia", s.auth(s.pedia))
 	mux.HandleFunc("GET /airports", s.airports)
@@ -131,6 +134,7 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"dev":             s.Dev,
 		"currency":        c.Economy.Currency,
 		"sell_prices":     c.Economy.SellPrices,
+		"shop_buy_bonus":  c.Economy.ShopBuyBonus,
 		"animals":         c.Animals.Species,
 		"pedia":           c.PediaEntries(),
 		"rules":           c.Rules,
@@ -367,6 +371,55 @@ func (s *Server) sell(w http.ResponseWriter, r *http.Request, p *game.Player) {
 		return
 	}
 	res, err := s.Game.Sell(r.Context(), p, body.Items)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+// shop: a loja da praça de um país hoje (?country=BRA; sem país, o do jogador).
+func (s *Server) shop(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	country := r.URL.Query().Get("country")
+	if country == "" {
+		country = p.Country
+	}
+	v, err := s.Game.Shop(country)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
+}
+
+func (s *Server) shopBuy(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Country string `json:"country"`
+		Item    string `json:"item"`
+		Count   int    `json:"count"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	res, err := s.Game.ShopBuy(r.Context(), p, body.Country, body.Item, body.Count)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+func (s *Server) shopSell(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Country string           `json:"country"`
+		Items   []game.StackView `json:"items"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	res, err := s.Game.ShopSell(r.Context(), p, body.Country, body.Items)
 	if err != nil {
 		writeError(w, s, err)
 		return

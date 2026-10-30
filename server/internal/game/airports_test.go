@@ -72,14 +72,14 @@ func TestPassportRequiredAndCoinsChecked(t *testing.T) {
 	}
 	// Não dá para gastar o que não tem: nada muda.
 	if _, err := f.svc.Travel(f.ctx, p, "BRA", "ARG", true, false); !errors.Is(err, game.ErrNoCoins) {
-		t.Fatalf("sem moedas: %v", err)
+		t.Fatalf("sem gobolares: %v", err)
 	}
 	if _, err := f.svc.BuyPassport(f.ctx, p, "ARG"); !errors.Is(err, game.ErrNoCoins) {
-		t.Fatalf("passaporte sem moedas: %v", err)
+		t.Fatalf("passaporte sem gobolares: %v", err)
 	}
 	after, _ := f.svc.Me(f.ctx, p)
 	if after.Coins != me.Coins || len(after.Passports) != 1 || after.Passports[0] != "BRA" {
-		t.Fatalf("depois das recusas: %d moedas, passaportes %v", after.Coins, after.Passports)
+		t.Fatalf("depois das recusas: %d gobolares, passaportes %v", after.Coins, after.Passports)
 	}
 	if _, err := f.svc.DevCoins(f.ctx, p, 1000); err != nil {
 		t.Fatal(err)

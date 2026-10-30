@@ -15,7 +15,7 @@ import (
 // Onde fica a caixa de vendas num lote novo (ao lado da bancada).
 const sellBoxX, sellBoxY = 8, 1
 
-// CoinsText escreve "1 moeda" ou "12 moedas" com o nome de economy.json.
+// CoinsText escreve "1 gobolar" ou "12 gobolares" com o nome de economy.json.
 func (s *Service) CoinsText(n int64) string {
 	e := s.content.Economy.Currency
 	if n == 1 || n == -1 {
@@ -24,17 +24,10 @@ func (s *Service) CoinsText(n int64) string {
 	return fmt.Sprintf("%d %s", n, e.Plural)
 }
 
-// grant credita (ou debita, com amount negativo) moedas dentro de uma transação.
-func (s *Service) grant(ctx context.Context, tx Store, p *Player, amount int64, reason, ref string) (int64, error) {
-	if amount == 0 {
-		return tx.Coins(ctx, p.ID)
-	}
-	bal, err := tx.AddCoins(ctx, p.ID, amount, reason, ref, s.clock.Now())
-	if err != nil && ErrNoCoins.Is(err) {
-		have, _ := tx.Coins(ctx, p.ID)
-		return 0, ErrNoCoins.with("Faltam %s (você tem %s).", s.CoinsText(-amount-have), s.CoinsText(have))
-	}
-	return bal, err
+// grant credita (ou debita, com amount negativo) gobolares dentro de uma transação, no país
+// dado ("" = o país do jogador), sem imposto (recompensas).
+func (s *Service) grant(ctx context.Context, tx Store, p *Player, amount int64, reason, ref, country string) (int64, error) {
+	return s.pay(ctx, tx, p, amount, reason, ref, Quote{Country: country})
 }
 
 // SellResult é a resposta da caixa de vendas.
@@ -59,7 +52,7 @@ func (s *Service) Sell(ctx context.Context, p *Player, items []StackView) (*Sell
 		if it.Count <= 0 || it.Count > 9999 {
 			return nil, ErrInvalid
 		}
-		if s.content.SellPrice(it.Item) <= 0 {
+		if s.Price(PriceSellBox, it.Item, p.Country).Base <= 0 {
 			return nil, ErrNotForSale.with("A caixa de vendas não aceita %s.", s.itemName(it.Item))
 		}
 		want[it.Item] += it.Count
@@ -86,19 +79,23 @@ func (s *Service) Sell(ctx context.Context, p *Player, items []StackView) (*Sell
 		}
 		sold := make([]StackView, 0, len(ids))
 		var earned int64
+		total := Quote{Context: PriceSellBox, Country: p.Country}
 		var refs []string
 		for _, id := range ids {
 			if have[id] < want[id] {
 				return ErrMissingMaterials.with("Você não tem %d× %s.", want[id], s.itemName(id))
 			}
 			sold = append(sold, StackView{Item: id, Count: want[id]})
-			earned += s.content.SellPrice(id) * int64(want[id])
+			q := s.Price(PriceSellBox, id, p.Country)
+			earned += q.Total * int64(want[id])
+			total.Base += q.Base * int64(want[id])
+			total.Tax += q.Tax * int64(want[id])
 			refs = append(refs, fmt.Sprintf("%s×%d", id, want[id]))
 		}
 		if err := consume(ctx, tx, p.ID, sold); err != nil {
 			return err
 		}
-		bal, err := s.grant(ctx, tx, p, earned, "sell", strings.Join(refs, ","))
+		bal, err := s.pay(ctx, tx, p, earned, "sell", strings.Join(refs, ","), total)
 		if err != nil {
 			return err
 		}
@@ -130,7 +127,7 @@ func (s *Service) Transactions(ctx context.Context, p *Player, limit int) ([]Tra
 	return out, err
 }
 
-// DevCoins dá (ou tira, com amount negativo) moedas. O saldo nunca fica negativo.
+// DevCoins dá (ou tira, com amount negativo) gobolares. O saldo nunca fica negativo.
 func (s *Service) DevCoins(ctx context.Context, p *Player, amount int64) (*MeView, error) {
 	if amount == 0 || amount > 1_000_000 || amount < -1_000_000 {
 		return nil, ErrInvalid
@@ -147,7 +144,7 @@ func (s *Service) DevCoins(ctx context.Context, p *Player, amount int64) (*MeVie
 			amount = -min(have, -amount)
 		}
 		if amount != 0 {
-			if _, err := tx.AddCoins(ctx, p.ID, amount, "dev", "", s.clock.Now()); err != nil {
+			if _, err := s.grant(ctx, tx, p, amount, "dev", "", ""); err != nil {
 				return err
 			}
 		}

@@ -79,7 +79,7 @@ func TestCoinsNeverNegative(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	p := &game.Player{Nickname: "Moedas", Country: "BRA", TokenHash: "h", CreatedAt: time.Now()}
+	p := &game.Player{Nickname: "Gobolares", Country: "BRA", TokenHash: "h", CreatedAt: time.Now()}
 	if err := s.CreatePlayer(ctx, p); err != nil {
 		t.Fatal(err)
 	}

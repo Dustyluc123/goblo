@@ -510,7 +510,7 @@ func (s *Store) DeleteLotPlacements(ctx context.Context, lot int64) error {
 	return err
 }
 
-// --- Moedas ---------------------------------------------------------------------------------
+// --- Gobolares ---------------------------------------------------------------------------------
 
 func (s *Store) Coins(ctx context.Context, player int64) (int64, error) {
 	var c int64
@@ -519,6 +519,18 @@ func (s *Store) Coins(ctx context.Context, player int64) (int64, error) {
 }
 
 func (s *Store) AddCoins(ctx context.Context, player, delta int64, reason, ref string, at time.Time) (int64, error) {
+	return s.AddLedger(ctx, player, game.LedgerEntry{Delta: delta, Reason: reason, Ref: ref, Price: abs(delta)}, at)
+}
+
+func abs(x int64) int64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func (s *Store) AddLedger(ctx context.Context, player int64, e game.LedgerEntry, at time.Time) (int64, error) {
+	delta := e.Delta
 	res, err := s.q.ExecContext(ctx, `UPDATE players SET coins = coins + ? WHERE id = ? AND coins + ? >= 0`, delta, player, delta)
 	if err != nil {
 		return 0, err
@@ -533,13 +545,51 @@ func (s *Store) AddCoins(ctx context.Context, player, delta int64, reason, ref s
 	if err != nil {
 		return 0, err
 	}
-	_, err = s.q.ExecContext(ctx, `INSERT INTO transactions (player_id, delta, balance, reason, ref, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		player, delta, bal, reason, ref, at.Unix())
+	_, err = s.q.ExecContext(ctx, `INSERT INTO transactions (player_id, delta, balance, reason, ref, country, price, tax, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		player, delta, bal, e.Reason, e.Ref, e.Country, e.Price, e.Tax, at.Unix())
 	return bal, err
 }
 
+// --- Cofre dos países -----------------------------------------------------------------------
+
+func (s *Store) AddTreasury(ctx context.Context, country string, amount int64, at time.Time) error {
+	_, err := s.q.ExecContext(ctx, `INSERT INTO treasuries (country, balance, updated_at) VALUES (?, ?, ?)
+		ON CONFLICT (country) DO UPDATE SET balance = balance + excluded.balance, updated_at = excluded.updated_at`,
+		country, amount, at.Unix())
+	return err
+}
+
+func (s *Store) Treasury(ctx context.Context, country string) (int64, error) {
+	var b int64
+	err := s.q.QueryRowContext(ctx, `SELECT balance FROM treasuries WHERE country = ?`, country).Scan(&b)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	return b, err
+}
+
+// --- Apresentação ---------------------------------------------------------------------------
+
+func (s *Store) Intro(ctx context.Context, id int64) (bool, []string, error) {
+	var done bool
+	var tasks string
+	if err := s.q.QueryRowContext(ctx, `SELECT intro_done, intro_tasks FROM players WHERE id = ?`, id).Scan(&done, &tasks); err != nil {
+		return false, nil, notFound(err)
+	}
+	var list []string
+	if tasks != "" {
+		list = strings.Split(tasks, ",")
+	}
+	return done, list, nil
+}
+
+func (s *Store) SetIntro(ctx context.Context, id int64, done bool, tasks []string) error {
+	_, err := s.q.ExecContext(ctx, `UPDATE players SET intro_done = ?, intro_tasks = ? WHERE id = ?`, done, strings.Join(tasks, ","), id)
+	return err
+}
+
 func (s *Store) Transactions(ctx context.Context, player int64, limit int) ([]game.Transaction, error) {
-	rows, err := s.q.QueryContext(ctx, `SELECT id, delta, balance, reason, ref, created_at FROM transactions
+	rows, err := s.q.QueryContext(ctx, `SELECT id, delta, balance, reason, ref, country, price, tax, created_at FROM transactions
 		WHERE player_id = ? ORDER BY id DESC LIMIT ?`, player, limit)
 	if err != nil {
 		return nil, err
@@ -549,7 +599,7 @@ func (s *Store) Transactions(ctx context.Context, player int64, limit int) ([]ga
 	for rows.Next() {
 		var t game.Transaction
 		var at int64
-		if err := rows.Scan(&t.ID, &t.Delta, &t.Balance, &t.Reason, &t.Ref, &at); err != nil {
+		if err := rows.Scan(&t.ID, &t.Delta, &t.Balance, &t.Reason, &t.Ref, &t.Country, &t.Price, &t.Tax, &at); err != nil {
 			return nil, err
 		}
 		t.CreatedAt = time.Unix(at, 0).UTC()

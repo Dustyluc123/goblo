@@ -29,6 +29,7 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dev/travel", s.auth(s.travel(true)))
 	mux.HandleFunc("GET /dev/border-lots", s.auth(s.devBorderLots))
 	mux.HandleFunc("GET /dev/online", s.auth(s.devOnline))
+	mux.HandleFunc("POST /dev/shop/restock", s.auth(s.devShopRestock))
 	mux.HandleFunc("POST /dev/bots", s.auth(s.devBots))
 	mux.HandleFunc("POST /dev/border-lots/move", s.auth(s.devMoveBorderLots))
 }
@@ -216,4 +217,24 @@ func (s *Server) devBots(w http.ResponseWriter, r *http.Request, p *game.Player)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"created": s.Realtime.SpawnBots(pos, body.Count, p.Country)})
+}
+
+// devShopRestock adianta o estoque da loja de um país (sem país, o do jogador).
+func (s *Server) devShopRestock(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Country string `json:"country"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	if body.Country == "" {
+		body.Country = p.Country
+	}
+	v, err := s.Game.DevShopRestock(body.Country)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
 }

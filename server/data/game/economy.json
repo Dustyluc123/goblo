@@ -1,6 +1,11 @@
 {
-  "_doc": "Economia da fase 2.5 (versão inicial; loja e troca entre jogadores ficam para a fase 4). currency: nome provisório da moeda (singular e plural), mostrado no HUD. starting_coins: saldo de quem começa agora. sell_prices: quanto a caixa de vendas paga por unidade de cada item (itens fora da lista não são vendidos). rewards: moedas pela primeira foto de cada espécie ou coisa da Goblopédia (pedia_first) e pelo primeiro carimbo de cada país no passaporte (stamp_first). travel: preço da passagem de avião = base + per_1000_km × distância entre os aeroportos (km), arredondado, com mínimo min. passport: preço de um passaporte (default) e exceções por país (countries, código ISO A3 → preço).",
-  "currency": {"singular": "moeda", "plural": "moedas"},
+  "_doc": "Economia (fases 2.5 e 3.5). currency: o dinheiro do Goblo, o gobolar (singular, plural, símbolo G$ e o apelido que os NPCs usam). starting_coins: saldo de quem começa. sell_prices: quanto a caixa de vendas paga por unidade de cada item; TODO item precisa ter preço (há teste). shop_buy_bonus: a loja da praça paga esse múltiplo do preço da caixa de vendas. rewards: gobolares pela primeira foto de cada coisa da Goblopédia (pedia_first), pelo primeiro carimbo de cada país (stamp_first) e pelas tarefas da apresentação (intro_task). travel: passagem = base + per_1000_km × distância (km), com mínimo min. passport: preço padrão e exceções por país. Os modificadores por país (impostos, preço de passaporte, margem da loja) ficam em countries.json; tudo passa por Service.Price (ADR 0041).",
+  "currency": {
+    "singular": "gobolar",
+    "plural": "gobolares",
+    "symbol": "G$",
+    "slang": "goblinhos"
+  },
   "starting_coins": 30,
   "sell_prices": {
     "branch": 1,
@@ -12,11 +17,52 @@
     "flower_purple": 2,
     "flower_blue": 6,
     "berries": 1,
-    "coconut": 4
+    "coconut": 4,
+    "axe": 12,
+    "pickaxe": 12,
+    "camera": 20,
+    "sell_box": 6,
+    "workbench": 8,
+    "fence": 3,
+    "fence_curved": 4,
+    "fence_gate": 4,
+    "hedge": 3,
+    "hedge_curved": 4,
+    "hedge_gate": 4,
+    "lantern": 6,
+    "bench": 5,
+    "stool": 3,
+    "path": 2,
+    "flowerbed": 6,
+    "stall": 10,
+    "stall_red": 10,
+    "stall_green": 10,
+    "cart": 14,
+    "fountain": 30,
+    "rock_large": 4,
+    "rock_small": 2,
+    "berry_bush": 5,
+    "seeds": 1,
+    "banner_red": 12,
+    "banner_green": 12,
+    "lightpost": 16,
+    "lantern_glass": 18,
+    "garden_bench": 14,
+    "hay_bale": 10,
+    "wagon_wheel": 10,
+    "pillar_stone": 16,
+    "fountain_square": 45,
+    "windmill": 60,
+    "hedge_large": 8,
+    "flower_pot_yellow": 6,
+    "flower_pot_white": 6,
+    "flower_pot_purple": 6,
+    "traffic_cone": 3
   },
   "rewards": {
     "pedia_first": 25,
-    "stamp_first": 10
+    "stamp_first": 10,
+    "intro_task": 15
   },
   "travel": {
     "base": 20,
@@ -26,5 +72,6 @@
   "passport": {
     "default": 60,
     "countries": {}
-  }
+  },
+  "shop_buy_bonus": 1.25
 }

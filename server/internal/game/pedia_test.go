@@ -93,7 +93,7 @@ func TestDevPediaCompleteAndReset(t *testing.T) {
 	}
 	after, _ := f.svc.Me(f.ctx, p)
 	if after.Coins != me.Coins {
-		t.Fatalf("completar pelo modo dev não paga moedas: %d → %d", me.Coins, after.Coins)
+		t.Fatalf("completar pelo modo dev não paga gobolares: %d → %d", me.Coins, after.Coins)
 	}
 	list, _ = f.svc.DevPedia(f.ctx, p, "reset")
 	for _, e := range list {

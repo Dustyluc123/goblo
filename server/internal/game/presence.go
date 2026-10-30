@@ -352,3 +352,18 @@ func (s *Service) cellsAround(cell, rings int) []int {
 	}
 	return out
 }
+
+// hereCountry é o país onde o jogador está agora (pela presença) ou, sem ela, o dele.
+func (s *Service) hereCountry(p *Player) string {
+	if s.presence != nil {
+		if pos, cell, _, ok := s.presence.Where(p.ID); ok {
+			if cell < 0 || cell >= len(s.world.Cells) {
+				cell = s.world.FindCell(pos, -1)
+			}
+			if c := s.CountryAtPointIn(pos, cell); c != "" {
+				return c
+			}
+		}
+	}
+	return p.Country
+}

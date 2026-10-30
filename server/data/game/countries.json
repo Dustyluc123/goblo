@@ -1,0 +1,11 @@
+{
+  "_doc": "Economia por país (fase 3.5, ADR 0041). Hoje todos os países usam os valores de default; no futuro, o governo eleito de cada país poderá mudar os seus. Todo preço do jogo passa por Service.Price, que aplica estes modificadores. goods_tax: imposto (fração, 0 a 1) sobre compra e venda de itens (loja e caixa de vendas); passport_tax e travel_tax: imposto sobre passaporte e passagem; passport_price: preço do passaporte do país (0 = o de economy.json); shop_markup: multiplica o preço de compra na loja do país. O imposto vai para o cofre do país (tabela treasuries).",
+  "default": {
+    "goods_tax": 0,
+    "passport_tax": 0,
+    "travel_tax": 0,
+    "passport_price": 0,
+    "shop_markup": 1.0
+  },
+  "countries": {}
+}

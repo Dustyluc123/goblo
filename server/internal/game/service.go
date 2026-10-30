@@ -55,6 +55,9 @@ type Service struct {
 	// Voos pagos esperando a chegada (ConsumeArrival).
 	arrivalMu sync.Mutex
 	arrivals  map[int64]arrival
+	// Estoque da loja adiantado pelo modo dev (país → dias).
+	shopMu     sync.Mutex
+	shopOffset map[string]int64
 }
 
 // NewService monta as regras. clock nil = relógio real.
@@ -141,7 +144,7 @@ func (s *Service) CreatePlayer(ctx context.Context, nickname, country string) (*
 		if err := tx.CreatePlayer(ctx, p); err != nil {
 			return err
 		}
-		if _, err := s.grant(ctx, tx, p, s.content.Economy.StartingCoins, "start", ""); err != nil {
+		if _, err := s.grant(ctx, tx, p, s.content.Economy.StartingCoins, "start", "", country); err != nil {
 			return err
 		}
 		_, err := s.assignLot(ctx, tx, p, country)

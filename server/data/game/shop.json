@@ -1,0 +1,107 @@
+{
+  "_doc": "Loja da praça central de cada país (fase 3.5). O estoque muda todo dia na virada das 5h do horário local do país (longitude do aeroporto) e é igual para todos os jogadores do país. fixed: sempre à venda. rotating: sorteio do dia (rotating_count itens, pela semente país + dia). regional: itens exclusivos de alguns países (aparecem todo dia lá). prices: preço de compra na loja (antes dos modificadores do país em countries.json). A loja também compra qualquer item, pagando economy.shop_buy_bonus vezes o preço da caixa de vendas.",
+  "fixed": [
+    "axe",
+    "pickaxe",
+    "camera",
+    "seeds"
+  ],
+  "rotating": [
+    "banner_red",
+    "banner_green",
+    "lightpost",
+    "garden_bench",
+    "wagon_wheel",
+    "hedge_large",
+    "flower_pot_yellow",
+    "flower_pot_white",
+    "flower_pot_purple",
+    "traffic_cone",
+    "lantern",
+    "bench",
+    "fountain"
+  ],
+  "rotating_count": 4,
+  "regional": [
+    {
+      "item": "windmill",
+      "countries": [
+        "NLD",
+        "BEL",
+        "DEU",
+        "DNK",
+        "FRA",
+        "POL"
+      ]
+    },
+    {
+      "item": "hay_bale",
+      "countries": [
+        "BRA",
+        "ARG",
+        "URY",
+        "PRY",
+        "USA",
+        "CAN",
+        "AUS",
+        "NZL"
+      ]
+    },
+    {
+      "item": "fountain_square",
+      "countries": [
+        "ITA",
+        "ESP",
+        "PRT",
+        "FRA",
+        "MAR",
+        "MEX"
+      ]
+    },
+    {
+      "item": "pillar_stone",
+      "countries": [
+        "GRC",
+        "TUR",
+        "ITA",
+        "EGY",
+        "PER"
+      ]
+    },
+    {
+      "item": "lantern_glass",
+      "countries": [
+        "JPN",
+        "CHN",
+        "KOR",
+        "VNM",
+        "THA",
+        "TWN"
+      ]
+    }
+  ],
+  "prices": {
+    "axe": 40,
+    "pickaxe": 40,
+    "camera": 60,
+    "seeds": 4,
+    "banner_red": 35,
+    "banner_green": 35,
+    "lightpost": 45,
+    "garden_bench": 40,
+    "wagon_wheel": 30,
+    "hedge_large": 25,
+    "flower_pot_yellow": 18,
+    "flower_pot_white": 18,
+    "flower_pot_purple": 18,
+    "traffic_cone": 10,
+    "lantern": 20,
+    "bench": 16,
+    "fountain": 90,
+    "windmill": 180,
+    "hay_bale": 30,
+    "fountain_square": 130,
+    "pillar_stone": 45,
+    "lantern_glass": 50
+  }
+}

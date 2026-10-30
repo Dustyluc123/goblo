@@ -235,7 +235,8 @@ type PassportResult struct {
 func (s *Service) validCountry(code string) bool { return s.CountryName(code) != "" }
 
 // buyPassport cobra e guarda o passaporte (dentro de uma transação).
-func (s *Service) buyPassport(ctx context.Context, tx Store, p *Player, country string) (int64, error) {
+// where é o país onde a compra acontece (o cofre que recebe o imposto).
+func (s *Service) buyPassport(ctx context.Context, tx Store, p *Player, country, where string) (int64, error) {
 	if country == p.Country {
 		return 0, ErrInvalid.with("O passaporte de %s você já tem: é o seu país.", s.CountryName(country))
 	}
@@ -245,8 +246,9 @@ func (s *Service) buyPassport(ctx context.Context, tx Store, p *Player, country 
 		}
 		return 0, err
 	}
-	price := s.content.PassportPrice(country)
-	if _, err := s.grant(ctx, tx, p, -price, "passport", country); err != nil {
+	q := s.Price(PricePassport, country, where)
+	price := q.Total
+	if _, err := s.pay(ctx, tx, p, -price, "passport", country, q); err != nil {
 		return 0, err
 	}
 	_, err := tx.AddPassport(ctx, p.ID, country, s.clock.Now())
@@ -260,7 +262,7 @@ func (s *Service) stamp(ctx context.Context, tx Store, p *Player, country string
 		return nil, 0, err
 	}
 	reward := s.content.Economy.Rewards.StampFirst
-	if _, err := s.grant(ctx, tx, p, reward, "stamp", country); err != nil {
+	if _, err := s.grant(ctx, tx, p, reward, "stamp", country, country); err != nil {
 		return nil, 0, err
 	}
 	return &StampView{Country: country, Name: s.CountryName(country), FirstAt: s.clock.Now().Unix()}, reward, nil
@@ -277,7 +279,7 @@ func (s *Service) BuyPassport(ctx context.Context, p *Player, country string) (*
 	defer s.mu.Unlock()
 	var res *PassportResult
 	err := s.store.InTx(ctx, func(tx Store) error {
-		price, err := s.buyPassport(ctx, tx, p, country)
+		price, err := s.buyPassport(ctx, tx, p, country, s.hereCountry(p))
 		if err != nil {
 			return err
 		}
@@ -362,15 +364,16 @@ func (s *Service) Travel(ctx context.Context, p *Player, from, to string, buyPas
 		res = &PassportResult{}
 		if !ok && !free {
 			if !buyPassport {
-				return ErrNoPassport.with("Para viajar para %s, você precisa do passaporte de lá (%s).", s.CountryName(to), s.CoinsText(s.content.PassportPrice(to)))
+				return ErrNoPassport.with("Para viajar para %s, você precisa do passaporte de lá (%s).", s.CountryName(to), s.CoinsText(s.Price(PricePassport, to, from).Total))
 			}
-			if res.Price, err = s.buyPassport(ctx, tx, p, to); err != nil {
+			if res.Price, err = s.buyPassport(ctx, tx, p, to, from); err != nil {
 				return err
 			}
 		}
 		if !free {
-			fare := s.TravelPrice(from, to)
-			if _, err := s.grant(ctx, tx, p, -fare, "travel", from+">"+to); err != nil {
+			fq := s.Price(PriceTravel, from+">"+to, from)
+			fare := fq.Total
+			if _, err := s.pay(ctx, tx, p, -fare, "travel", from+">"+to, fq); err != nil {
 				if res.Price > 0 {
 					have, _ := tx.Coins(ctx, p.ID)
 					return ErrNoCoins.with("A passagem e o passaporte custam %s; você tem %s.", s.CoinsText(fare+res.Price), s.CoinsText(have+res.Price))
@@ -422,8 +425,8 @@ func (s *Service) Quotes(ctx context.Context, p *Player, from string) ([]Airport
 		if a.Country == from {
 			continue
 		}
-		out = append(out, AirportQuote{Airport: a, Fare: s.TravelPrice(from, a.Country),
-			PassportPrice: s.content.PassportPrice(a.Country), HasPassport: owned[a.Country]})
+		out = append(out, AirportQuote{Airport: a, Fare: s.Price(PriceTravel, from+">"+a.Country, from).Total,
+			PassportPrice: s.Price(PricePassport, a.Country, from).Total, HasPassport: owned[a.Country]})
 	}
 	return out, nil
 }
@@ -435,14 +438,14 @@ func (s *Service) PassportPrices() []map[string]any {
 		return out
 	}
 	for _, c := range s.geo.Countries {
-		out = append(out, map[string]any{"country": c.Code, "name": c.Name, "price": s.content.PassportPrice(c.Code)})
+		out = append(out, map[string]any{"country": c.Code, "name": c.Name, "price": s.Price(PricePassport, c.Code, "").Total})
 	}
 	sort.Slice(out, func(a, b int) bool { return strings.Compare(out[a]["name"].(string), out[b]["name"].(string)) < 0 })
 	return out
 }
 
 // DevPassport: "give" ou "remove" um passaporte; "complete" (todos os passaportes e um
-// carimbo de cada país com aeroporto, sem moedas) ou "reset" (sem passaportes nem carimbos).
+// carimbo de cada país com aeroporto, sem gobolares) ou "reset" (sem passaportes nem carimbos).
 func (s *Service) DevPassport(ctx context.Context, p *Player, action, country string) (*PassportView, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

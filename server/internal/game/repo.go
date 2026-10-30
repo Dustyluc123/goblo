@@ -64,6 +64,9 @@ type PlayerRepository interface {
 	PlayersByIDs(ctx context.Context, ids []int64) (map[int64]*Player, error)
 	UpdatePlayerCountry(ctx context.Context, id int64, country string) error
 	UpdatePlayerCharacter(ctx context.Context, id int64, character string) error
+	// Apresentação do guia (fase 3.5): vista? e as tarefas já recompensadas.
+	Intro(ctx context.Context, id int64) (done bool, tasks []string, err error)
+	SetIntro(ctx context.Context, id int64, done bool, tasks []string) error
 	// SetBlock bloqueia (on) ou desbloqueia outro jogador.
 	SetBlock(ctx context.Context, player, other int64, on bool, at time.Time) error
 	// Blocks: quem o jogador bloqueou e quem bloqueou o jogador.
@@ -107,22 +110,40 @@ type PlacementRepository interface {
 	DeleteLotPlacements(ctx context.Context, lot int64) error
 }
 
-// Transaction é uma linha do histórico de moedas.
+// Transaction é uma linha do histórico de gobolares.
 type Transaction struct {
 	ID        int64     `json:"id"`
 	Delta     int64     `json:"delta"`
 	Balance   int64     `json:"balance"`
 	Reason    string    `json:"reason"`
 	Ref       string    `json:"ref"`
+	Country   string    `json:"country"` // onde aconteceu (ADR 0041)
+	Price     int64     `json:"price"`   // preço sem imposto
+	Tax       int64     `json:"tax"`     // imposto (vai para o cofre do país; hoje zero)
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// WalletRepository guarda o saldo de moedas e o histórico.
+// LedgerEntry é uma mudança de saldo com tudo o que o histórico guarda.
+type LedgerEntry struct {
+	Delta   int64
+	Reason  string
+	Ref     string
+	Country string
+	Price   int64
+	Tax     int64
+}
+
+// WalletRepository guarda o saldo de gobolares e o histórico.
 type WalletRepository interface {
 	Coins(ctx context.Context, player int64) (int64, error)
 	// AddCoins soma delta ao saldo e grava no histórico. ErrNoCoins se o saldo ficaria
 	// negativo (nada é gravado). Devolve o saldo novo.
 	AddCoins(ctx context.Context, player, delta int64, reason, ref string, at time.Time) (int64, error)
+	// AddLedger é AddCoins com o país, o preço e o imposto (ADR 0041).
+	AddLedger(ctx context.Context, player int64, e LedgerEntry, at time.Time) (int64, error)
+	// AddTreasury soma ao cofre do país (o imposto). Treasury devolve o saldo.
+	AddTreasury(ctx context.Context, country string, amount int64, at time.Time) error
+	Treasury(ctx context.Context, country string) (int64, error)
 	Transactions(ctx context.Context, player int64, limit int) ([]Transaction, error)
 }
 

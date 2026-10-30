@@ -78,12 +78,17 @@ type Economy struct {
 	Currency struct {
 		Singular string `json:"singular"`
 		Plural   string `json:"plural"`
+		Symbol   string `json:"symbol"` // "G$"
+		Slang    string `json:"slang"`  // como os NPCs chamam ("goblinhos")
 	} `json:"currency"`
 	StartingCoins int64            `json:"starting_coins"`
 	SellPrices    map[string]int64 `json:"sell_prices"`
-	Rewards       struct {
+	// A loja paga ShopBuyBonus vezes o que a caixa de vendas paga (para valer a viagem).
+	ShopBuyBonus float64 `json:"shop_buy_bonus"`
+	Rewards      struct {
 		PediaFirst int64 `json:"pedia_first"`
 		StampFirst int64 `json:"stamp_first"`
+		IntroTask  int64 `json:"intro_task"`
 	} `json:"rewards"`
 	Travel struct {
 		Base     float64 `json:"base"`
@@ -98,14 +103,16 @@ type Economy struct {
 
 // Content é todo o conteúdo balanceável do jogo, lido de server/data/game.
 type Content struct {
-	Items   []Item                  `json:"items"`
-	Recipes []Recipe                `json:"recipes"`
-	Houses  []HouseLevel            `json:"houses"`
-	Objects map[string][]ObjectRule `json:"-"`
-	Economy Economy                 `json:"-"`
-	Animals *AnimalContent          `json:"-"`
-	Rules   Rules                   `json:"-"`
-	Pedia   struct {
+	Items     []Item                  `json:"items"`
+	Recipes   []Recipe                `json:"recipes"`
+	Houses    []HouseLevel            `json:"houses"`
+	Objects   map[string][]ObjectRule `json:"-"`
+	Economy   Economy                 `json:"-"`
+	Animals   *AnimalContent          `json:"-"`
+	Rules     Rules                   `json:"-"`
+	Countries CountriesEconomy        `json:"-"`
+	Shop      *ShopContent            `json:"-"`
+	Pedia     struct {
 		Extras []PediaEntry `json:"extras"`
 	} `json:"-"`
 
@@ -149,6 +156,7 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 		{"game/houses.json", &houses}, {"game/objects.json", &objects},
 		{"game/economy.json", &c.Economy}, {"game/animals.json", &c.Animals},
 		{"game/goblopedia.json", &c.Pedia}, {"game/rules.json", &c.Rules},
+		{"game/countries.json", &c.Countries}, {"game/shop.json", &c.Shop},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -202,8 +210,26 @@ func (c *Content) index() error {
 	if err := c.Rules.check(); err != nil {
 		return err
 	}
+	if err := c.Countries.check(); err != nil {
+		return err
+	}
+	if c.Shop == nil {
+		return fmt.Errorf("shop.json faltando")
+	}
+	if err := c.Shop.check(c.items); err != nil {
+		return err
+	}
+	// Todo item tem preço de venda (fase 3.5): tudo pode ser vendido.
+	for _, it := range c.Items {
+		if c.Economy.SellPrices[it.ID] <= 0 {
+			return fmt.Errorf("economy.json: item %s sem preço de venda (sell_prices)", it.ID)
+		}
+	}
+	if c.Economy.ShopBuyBonus < 1 {
+		return fmt.Errorf("economy.json: shop_buy_bonus precisa ser >= 1")
+	}
 	if c.Economy.Currency.Plural == "" || c.Economy.Passport.Default <= 0 || c.Economy.Travel.Min <= 0 {
-		return fmt.Errorf("economy.json: moeda, passaporte e passagem mínima são obrigatórios")
+		return fmt.Errorf("economy.json: gobolar, passaporte e passagem mínima são obrigatórios")
 	}
 	for id, price := range c.Economy.SellPrices {
 		if c.items[id] == nil || price <= 0 {
