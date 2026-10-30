@@ -10,7 +10,69 @@ import (
 
 // Rules são as regras de fronteira e de multiplayer (rules.json).
 type Rules struct {
-	Borders BorderRules `json:"borders"`
+	Borders    BorderRules   `json:"borders"`
+	Movement   MovementRules `json:"movement"`
+	Network    NetworkRules  `json:"network"`
+	Chat       ChatRules     `json:"chat"`
+	Reach      ReachRules    `json:"reach"`
+	Characters []string      `json:"characters"`
+}
+
+// MovementRules: validação do movimento no servidor (ADR 0039).
+type MovementRules struct {
+	MaxSpeed     float64 `json:"max_speed"`
+	Burst        float64 `json:"burst"`
+	MaxAbove     float64 `json:"max_above"`
+	MaxBelow     float64 `json:"max_below"`
+	HomeRadius   float64 `json:"home_radius"`
+	TravelRadius float64 `json:"travel_radius"`
+}
+
+// NetworkRules: frequências, área de interesse e limites da conexão em tempo real.
+type NetworkRules struct {
+	SendHz          int     `json:"send_hz"`
+	SnapshotHz      int     `json:"snapshot_hz"`
+	InterestRadius  float64 `json:"interest_radius"`
+	MaxVisible      int     `json:"max_visible"`
+	InterpDelayMs   int     `json:"interp_delay_ms"`
+	MaxMessageBytes int     `json:"max_message_bytes"`
+	MaxMovesPerSec  int     `json:"max_moves_per_sec"`
+	AnimatedNear    int     `json:"animated_near"`
+	AnimLodDistance float64 `json:"anim_lod_distance"`
+}
+
+// ChatRules: tamanho e frequência do chat e dos emotes.
+type ChatRules struct {
+	MaxChars    int     `json:"max_chars"`
+	Burst       int     `json:"burst"`
+	PerSeconds  float64 `json:"per_seconds"`
+	Radius      float64 `json:"radius"`
+	EmotePerSec float64 `json:"emote_per_sec"`
+}
+
+// ReachRules: até onde o personagem alcança, conferido no servidor (ADR 0040).
+type ReachRules struct {
+	Object      float64 `json:"object"`
+	Animal      float64 `json:"animal"`
+	AnimalDrift float64 `json:"animal_drift"`
+	SellBox     float64 `json:"sell_box"`
+	Airport     float64 `json:"airport"`
+	PhotoAnimal float64 `json:"photo_animal"`
+	PhotoObject float64 `json:"photo_object"`
+	PhotoAngle  float64 `json:"photo_angle"`
+}
+
+// ValidCharacter diz se o personagem está na lista de rules.json ("" = o padrão).
+func (r *Rules) ValidCharacter(c string) bool {
+	if c == "" {
+		return true
+	}
+	for _, x := range r.Characters {
+		if x == c {
+			return true
+		}
+	}
+	return false
 }
 
 // BorderRules: lotes e fronteiras (fase 3, ADR 0037).
@@ -24,6 +86,11 @@ type BorderRules struct {
 func (r *Rules) check() error {
 	if r.Borders.LotMargin < 0 || r.Borders.SampleStep <= 0 {
 		return fmt.Errorf("rules.json: borders.lot_margin >= 0 e borders.sample_step > 0")
+	}
+	if r.Movement.MaxSpeed <= 0 || r.Network.SendHz <= 0 || r.Network.SnapshotHz <= 0 || r.Network.InterestRadius <= 0 ||
+		r.Network.MaxVisible <= 0 || r.Network.MaxMessageBytes <= 0 || r.Chat.MaxChars <= 0 || r.Chat.PerSeconds <= 0 ||
+		r.Reach.Object <= 0 || len(r.Characters) == 0 {
+		return fmt.Errorf("rules.json: movement, network, chat, reach e characters precisam de valores positivos")
 	}
 	return nil
 }
