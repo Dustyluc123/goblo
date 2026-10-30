@@ -124,6 +124,36 @@ func (w *World) CellAt(lat, lon float64) *Cell {
 	return &w.Cells[best]
 }
 
+// FindCell devolve o índice da célula do ponto p (qualquer comprimento), subindo pelos
+// vizinhos a partir de hint (a célula de antes): igual a WorldData.find_cell do cliente.
+// Sem pista (hint < 0), varre todas. Com pista perto, custa poucas comparações.
+func (w *World) FindCell(p Vec3, hint int) int {
+	d := p.Normalize()
+	if hint < 0 || hint >= len(w.Cells) {
+		best, bestDot := 0, math.Inf(-1)
+		for i := range w.Cells {
+			c := w.Cells[i].Center
+			if v := d.Dot(Vec3{c[0], c[1], c[2]}); v > bestDot {
+				best, bestDot = i, v
+			}
+		}
+		return best
+	}
+	cur := hint
+	c := w.Cells[cur].Center
+	curDot := d.Dot(Vec3{c[0], c[1], c[2]})
+	for moved := true; moved; {
+		moved = false
+		for _, nb := range w.Cells[cur].Neighbors {
+			c := w.Cells[nb].Center
+			if v := d.Dot(Vec3{c[0], c[1], c[2]}); v > curDot {
+				cur, curDot, moved = nb, v, true
+			}
+		}
+	}
+	return cur
+}
+
 // OceanRatio é a fração de células de oceano.
 func (w *World) OceanRatio() float64 {
 	ocean := 0
