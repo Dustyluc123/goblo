@@ -202,7 +202,7 @@ func (c *client) onMove(m Move, now time.Time) {
 
 // afterMove: carimbo a pé quando entra num país de que tem passaporte (ADR 0040).
 func (c *client) afterMove() {
-	country := c.hub.svc.CountryAtPoint(c.pos)
+	country := c.hub.svc.CountryAtPointIn(c.pos, c.cell)
 	if country == c.country {
 		return
 	}

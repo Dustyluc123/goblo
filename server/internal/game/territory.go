@@ -173,6 +173,19 @@ func (s *Service) lotTier(cell, slot int, country string) int {
 	return LotTierUnusable
 }
 
+// CountryAtPointIn é CountryAtPoint sabendo a célula do ponto: se a célula inteira é de
+// um país só (o caso comum, longe das fronteiras), nem consulta os polígonos. O movimento
+// em tempo real usa este, a cada passo de cada jogador.
+func (s *Service) CountryAtPointIn(p world.Vec3, cell int) string {
+	if s.geo == nil {
+		return s.world.Cells[cell].Country
+	}
+	if cb := s.geo.CellBorders(s.world, cell); len(cb.Segs) == 0 {
+		return cb.Country
+	}
+	return s.CountryAtPoint(p)
+}
+
 // LotFitsCountry diz se o lote fica inteiro no país, longe da fronteira (o nível normal).
 func (s *Service) LotFitsCountry(cell, slot int, country string) bool {
 	return s.LotTier(cell, slot, country) == LotTierClear
@@ -210,10 +223,14 @@ func (s *Service) InLotArea(l *Lot, p world.Vec3) bool {
 // dele e a margem em volta contam como o país dele (lotes antigos que cruzam fronteira);
 // fora disso, o país exato. lot pode ser nil.
 func (s *Service) PassageCountry(p *Player, lot *Lot, pos world.Vec3) string {
+	return s.passageCountryIn(p, lot, pos, s.world.FindCell(pos, -1))
+}
+
+func (s *Service) passageCountryIn(p *Player, lot *Lot, pos world.Vec3, cell int) string {
 	if lot != nil && s.InLotArea(lot, pos) {
 		return p.Country
 	}
-	return s.CountryAtPoint(pos)
+	return s.CountryAtPointIn(pos, cell)
 }
 
 // CanWalk diz se o jogador pode dar o passo de from para to pela regra do passaporte
@@ -221,14 +238,15 @@ func (s *Service) PassageCountry(p *Player, lot *Lot, pos world.Vec3) string {
 // passaporte (ou para fora de qualquer país) e dentro do país em que já está (chegou de
 // avião ou por teleporte). passports inclui o país do jogador.
 func (s *Service) CanWalk(p *Player, lot *Lot, passports map[string]bool, from, to world.Vec3, hint int) bool {
-	if lot != nil && s.world.FindCell(to, hint) == lot.Cell {
+	cell := s.world.FindCell(to, hint)
+	if lot != nil && cell == lot.Cell {
 		return true
 	}
-	target := s.PassageCountry(p, lot, to)
+	target := s.passageCountryIn(p, lot, to, cell)
 	if target == "" || passports[target] {
 		return true
 	}
-	return s.PassageCountry(p, lot, from) == target
+	return s.passageCountryIn(p, lot, from, s.world.FindCell(from, cell)) == target
 }
 
 // BorderLot é um lote antigo que cruza fronteira (ou fica perto demais dela).
