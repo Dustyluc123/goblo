@@ -56,7 +56,7 @@ flowchart LR
 | `internal/world/world.go` | junta tudo no tipo `World`; versão; snapshot JSON/binário com gzip |
 | `internal/world/borders.go` | países do 1:50m pela posição exata (ponto em polígono), índice de segmentos de fronteira por grau e fronteiras por célula para o cliente ([ADR 0031](decisoes/0031-fronteiras-pela-posicao-exata.md)) |
 | `internal/game/content.go` | lê e confere `data/game/*.json` (itens, receitas, casas, objetos, economia, animais, Goblopédia) |
-| `internal/game/money.go` | moedas: venda na caixa de vendas, recompensas, histórico, moedas do modo dev |
+| `internal/game/money.go` | gobolares: venda na caixa de vendas, recompensas, histórico, gobolares do modo dev |
 | `internal/game/animals.go` | animais por célula e o trajeto pelo horário (`AnimalAt`), frutinha ([ADR 0032](decisoes/0032-animais-deterministicos.md)) |
 | `internal/game/pedia.go` | Goblopédia: páginas, registro de fotos com recompensa única, amigos ([ADR 0033](decisoes/0033-goblopedia-e-camera.md)) |
 | `internal/game/season.go` | estações pela data e pelo hemisfério ([ADR 0034](decisoes/0034-estacoes-do-ano.md)) |

@@ -229,7 +229,7 @@ func set_season_phase(north: float) -> void:
 	_minimap.set_season(north)
 
 
-## Saldo de moedas. Com `delta` > 0, um "+N" sobe ao lado e some.
+## Saldo de gobolares. Com `delta` > 0, um "+N" sobe ao lado e some.
 func set_coins(text: String, delta := 0) -> void:
 	_coins_row.visible = true
 	_coins.text = text

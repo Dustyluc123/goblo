@@ -2,7 +2,7 @@
 
 ## Contexto
 
-A fase 2.5 dá motivos para rodar o globo: aeroportos perto das capitais, viagens pagas em moedas, passaporte obrigatório para entrar em cada país (a pé ou de avião) e um livro com um carimbo por país visitado. O servidor ainda não sabe a posição do jogador em tempo real (fase 3).
+A fase 2.5 dá motivos para rodar o globo: aeroportos perto das capitais, viagens pagas em gobolares, passaporte obrigatório para entrar em cada país (a pé ou de avião) e um livro com um carimbo por país visitado. O servidor ainda não sabe a posição do jogador em tempo real (fase 3).
 
 ## Decisão
 

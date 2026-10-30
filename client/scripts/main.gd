@@ -40,7 +40,7 @@ extends Node3D
 ##   --animal-test       acha animais, confere a posição contra o trajeto comum, faz
 ##                       carinho, dá frutinha, assusta um tímido correndo e mede o custo
 ##   --photo-test        câmera fotográfica: enquadra uma vaca, fotografa, confere o registro
-##                       na Goblopédia (moedas só na primeira foto) e abre o álbum
+##                       na Goblopédia (gobolares só na primeira foto) e abre o álbum
 ##   --season-test       força cada estação (modo dev) e confere árvores, grama, chão, o
 ##                       nome no HUD, os dois hemisférios, os trópicos e a foto de outono
 ##   --travel-test       barreira da fronteira sem passaporte, carimbo ao entrar com ele,
@@ -54,7 +54,7 @@ extends Node3D
 ##   --cursor-test       voo, casa (H), teleporte do modo dev, menus, aviso da fronteira e
 ##                       plaquinha: depois de cada um, o cursor volta a ser capturado e o
 ##                       mouse gira a câmera sem clique (finge a janela na frente)
-##   --dev-test          aperta os botões novos do painel dev (moedas, passaportes, barreira,
+##   --dev-test          aperta os botões novos do painel dev (gobolares, passaportes, barreira,
 ##                       linhas de fronteira, animais, Goblopédia, voo de graça)
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
@@ -807,7 +807,7 @@ func _on_cell_changed(id: int) -> void:
 
 
 ## Mudou o país embaixo do personagem (posição exata, ADR 0031). Com passaporte, a
-## primeira visita ganha carimbo (e moedas); andando, aparece a plaquinha de boas-vindas.
+## primeira visita ganha carimbo (e gobolares); andando, aparece a plaquinha de boas-vindas.
 func _on_country_changed(code: String, walked: bool) -> void:
 	_hud.set_country(code, _tracker.name_of(code))
 	var subtitle := ""
@@ -1946,7 +1946,7 @@ func _play_test() -> void:
 	var price := int(_session.sell_prices.get("wood", 0))
 	await sell([{"item": "wood", "count": 2}])
 	check.call(_session.coins == coins_before + 2 * price and _session.count("wood") == wood_before - 2,
-		"vender 2 madeiras: %d → %d moedas" % [coins_before, _session.coins])
+		"vender 2 madeiras: %d → %d gobolares" % [coins_before, _session.coins])
 	_ui.close_windows()
 	print("Goblo: play-test %s (%d falhas)" % ["OK" if fails.is_empty() else "FALHOU", fails.size()])
 	if _args.has("screenshot"):
@@ -2198,7 +2198,7 @@ func _photo_test() -> void:
 	var reg := await _photo.take_photo()
 	var first: Dictionary = reg[0] if not reg.is_empty() else {}
 	check.call(first.get("entry", "") == "cow" and bool(first.get("first", false)) and _session.coins == coins + int(first.get("reward", 0)) and int(first.get("reward", 0)) > 0,
-		"primeira foto da vaca registra e paga (%d → %d moedas)" % [coins, _session.coins])
+		"primeira foto da vaca registra e paga (%d → %d gobolares)" % [coins, _session.coins])
 	var reg2 := await _photo.take_photo()
 	check.call(not reg2.is_empty() and not bool(reg2[0]["first"]) and int(reg2[0]["reward"]) == 0, "segunda foto não paga de novo")
 	# Mirando para o outro lado, nada enquadrado.
@@ -2352,7 +2352,7 @@ func _travel_test() -> void:
 	var coins := _session.coins
 	await walk_west.call(4.0)
 	await get_tree().create_timer(1.0).timeout
-	check.call(_tracker.current == "PRY" and _session.stamped("PRY") and _session.coins > coins, "com passaporte, entra no Paraguai e ganha carimbo (%s, %d → %d moedas)" % [_tracker.current, coins, _session.coins])
+	check.call(_tracker.current == "PRY" and _session.stamped("PRY") and _session.coins > coins, "com passaporte, entra no Paraguai e ganha carimbo (%s, %d → %d gobolares)" % [_tracker.current, coins, _session.coins])
 	# Aeroporto do Brasil: o balcão abre as viagens.
 	var bra := _airports.of_country("BRA")
 	check.call(not bra.is_empty(), "aeroporto do Brasil (%s)" % bra.get("name", "?"))
@@ -2378,7 +2378,7 @@ func _travel_test() -> void:
 	var reward := coins - paid
 	check.call(not _flying and _player.is_physics_processing() and _tracker.current == "ARG", "viagem de avião até a Argentina (%s)" % _tracker.current)
 	check.call(_session.has_passport("ARG") and _session.stamped("ARG") and _session.coins > reward - 1 and _session.coins < coins,
-		"passaporte da Argentina comprado junto e carimbo na chegada (%d → %d moedas, passagem + passaporte %d)" % [coins, _session.coins, paid])
+		"passaporte da Argentina comprado junto e carimbo na chegada (%d → %d gobolares, passagem + passaporte %d)" % [coins, _session.coins, paid])
 	_ui.passport.toggle()
 	await get_tree().create_timer(0.8).timeout
 	check.call(_ui.passport._grid.get_child_count() >= 2, "livro do passaporte com %d carimbos" % _ui.passport._grid.get_child_count())
@@ -2647,9 +2647,9 @@ func _dev_test() -> void:
 	await get_tree().create_timer(1.5).timeout
 	var c0 := _session.coins
 	await dev_coins(250)
-	check.call(_session.coins == c0 + 250, "dar moedas (%d → %d)" % [c0, _session.coins])
+	check.call(_session.coins == c0 + 250, "dar gobolares (%d → %d)" % [c0, _session.coins])
 	await dev_coins(-100)
-	check.call(_session.coins == c0 + 150, "tirar moedas (%d)" % _session.coins)
+	check.call(_session.coins == c0 + 150, "tirar gobolares (%d)" % _session.coins)
 	await dev_passport("give", "LUX")
 	check.call(_session.has_passport("LUX"), "dar o passaporte de Luxemburgo")
 	await dev_passport("remove", "LUX")

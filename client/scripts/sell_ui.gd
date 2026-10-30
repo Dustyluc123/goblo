@@ -29,7 +29,7 @@ func _ready() -> void:
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rows.add_theme_constant_override("separation", 6)
 	scroll.add_child(_rows)
-	_empty = UiStyle.label("Nada para vender no bolso. Madeira, pedra, flores, frutinhas e cocos valem moedas!", 16, UiStyle.INK_SOFT)
+	_empty = UiStyle.label("Nada para vender no bolso. Madeira, pedra, flores, frutinhas e cocos valem gobolares!", 16, UiStyle.INK_SOFT)
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_empty)
 	var foot := HBoxContainer.new()

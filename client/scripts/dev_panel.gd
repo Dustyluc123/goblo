@@ -1,7 +1,7 @@
 class_name DevPanel
 extends PanelContainer
 ## Painel do modo desenvolvedor (F1). Só abre se o servidor estiver com GOBLO_DEV=1.
-## Itens: dar qualquer item (lista pesquisável) e moedas. Mundo: teleporte para país ou
+## Itens: dar qualquer item (lista pesquisável) e gobolares. Mundo: teleporte para país ou
 ## lat/lon, voar (noclip) e tempo. Viagem: passaportes, barreira da fronteira, voo de graça,
 ## linhas e polígonos das fronteiras. Natureza: forçar a estação, criar e listar animais,
 ## completar ou zerar a Goblopédia e o passaporte. Jogador: obra na hora, dia seguinte,
@@ -119,14 +119,14 @@ func _items_tab() -> Control:
 	coin.diameter = 22.0
 	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	money.add_child(coin)
-	money.add_child(UiStyle.label("Moedas", 17))
+	money.add_child(UiStyle.label("Gobolares", 17))
 	_coins = SpinBox.new()
 	_coins.min_value = 1
 	_coins.max_value = 100000
 	_coins.value = 500
 	UiStyle.spin_box(_coins)
 	money.add_child(_coins)
-	var give_coins := UiStyle.button("Dar moedas")
+	var give_coins := UiStyle.button("Dar gobolares")
 	give_coins.pressed.connect(func() -> void: game.dev_coins(int(_coins.value)))
 	money.add_child(give_coins)
 	var take_coins := UiStyle.button("Tirar", false)
@@ -205,7 +205,7 @@ func _travel_tab() -> Control:
 	var book := HBoxContainer.new()
 	book.add_theme_constant_override("separation", 6)
 	var complete := UiStyle.button("Completar o passaporte", false)
-	complete.tooltip_text = "Todos os passaportes e um carimbo de cada país com aeroporto (sem moedas)"
+	complete.tooltip_text = "Todos os passaportes e um carimbo de cada país com aeroporto (sem gobolares)"
 	complete.pressed.connect(func() -> void: game.dev_passport("complete", ""))
 	book.add_child(complete)
 	var reset := UiStyle.button("Zerar passaportes e carimbos", false)

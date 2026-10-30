@@ -12,7 +12,7 @@
 - **Banda:** ~12 KB/s por jogador com 40 outros por perto, e bem menos com poucos.
 - **HTTPS.** O jogo troca `https://` por `wss://` sozinho. Sem TLS (só `http://`) também funciona, mas a conexão fica aberta.
 
-Variáveis: `GOBLO_ADDR` (padrão `:8080`) e `GOBLO_DB` (padrão `goblo.db`). **Não** ligue `GOBLO_DEV=1` na internet: o modo dev deixa qualquer um dar itens, moedas e teleportes.
+Variáveis: `GOBLO_ADDR` (padrão `:8080`) e `GOBLO_DB` (padrão `goblo.db`). **Não** ligue `GOBLO_DEV=1` na internet: o modo dev deixa qualquer um dar itens, gobolares e teleportes.
 
 ## Imagem Docker
 

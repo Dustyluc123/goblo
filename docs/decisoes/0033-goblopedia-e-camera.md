@@ -2,7 +2,7 @@
 
 ## Contexto
 
-A fase 2.5 pede um álbum (Goblopédia, tecla G) que vai se completando com fotos de animais, flores raras e árvores em estação, com moedas no primeiro registro de cada coisa.
+A fase 2.5 pede um álbum (Goblopédia, tecla G) que vai se completando com fotos de animais, flores raras e árvores em estação, com gobolares no primeiro registro de cada coisa.
 
 ## Decisão
 

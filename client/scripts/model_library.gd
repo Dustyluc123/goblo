@@ -316,7 +316,7 @@ static func _primitive(kind: String) -> Dictionary:
 			parts.append([_box(Vector3(0.3, 0.04, 0.12)), Transform3D(Basis(Vector3.UP, 0.4), Vector3(-0.15, 0.69, 0.05)), metal])
 			parts.append([_box(Vector3(0.05, 0.25, 0.05)), Transform3D(Basis(Vector3.FORWARD, 1.3), Vector3(0.2, 0.7, -0.1)), wood])
 		"sell_box":
-			# Caixote de madeira com tampa, frestinha e uma moeda dourada na frente.
+			# Caixote de madeira com tampa, frestinha e um gobolar dourado na frente.
 			parts.append([_box(Vector3(0.78, 0.5, 0.62)), Transform3D(Basis(), Vector3(0, 0.25, 0)), wood])
 			for y in [0.1, 0.4]:
 				parts.append([_box(Vector3(0.8, 0.06, 0.64)), Transform3D(Basis(), Vector3(0, y, 0)), dark_wood])

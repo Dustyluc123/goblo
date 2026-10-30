@@ -44,7 +44,7 @@ Todo erro de regra responde com um status HTTP e o corpo:
 | `max_level` | 409 | a casa já está no nível máximo |
 | `not_for_sale` | 400 | a caixa de vendas não aceita o item |
 | `no_passport` | 403 | sem o passaporte do país (viagem ou carimbo) |
-| `no_coins` | 409 | moedas insuficientes (nada é cobrado) |
+| `no_coins` | 409 | gobolares insuficientes (nada é cobrado) |
 | `too_far` | 403 | o jogador está longe demais do que tentou usar (fase 3: o servidor sabe onde ele está) |
 | `offline` | 409 | ação que precisa da posição sem a conexão em tempo real (`GET /ws`) |
 | `internal` | 500 | erro inesperado (vai para o log do servidor) |
@@ -75,7 +75,7 @@ Tudo o que o cliente precisa saber do conteúdo do jogo, lido de `server/data/ga
   "object_models": ["BirchTree_1", …],
   "tile_size": 0.5, "lot_tiles": 14, "inventory_slots": 20, "rollover_hour": 5,
   "dev": false,
-  "currency": {"singular": "moeda", "plural": "moedas"},
+  "currency": {"singular": "gobolar", "plural": "gobolares"},
   "sell_prices": {"wood": 3, "stone": 2, …},
   "animals": {"cow": {"name": "Vaca", "model": "Cow", "height": 1.35, "shy": false, "walk": 0.8, "run": 4, "roam": 5.5, "leg": 16, "jump": "Jump_toIdle"}, …},
   "pedia": [{"id": "alpaca", "name": "Alpaca", "kind": "animal", "model": "Alpaca"}, …, {"id": "tree_snow", "name": "Árvore com neve", "kind": "tree", "season": "snow", "model": "PineTree_Snow_1"}]
@@ -141,7 +141,7 @@ Cria o jogador e escolhe um lote livre no país dele, com a bancada e a caixa de
 
 - `house` é `null` sem casa. `level` é o nível pronto, no canto (`x`, `y`); `pending_level > 0` indica uma obra que fica pronta em `ready_at` (unix), no canto (`pending_x`, `pending_y`) — na melhoria a casa cresce e pode se deslocar (ADR 0027).
 - `day.index` muda às **5h no horário local da casa do jogador** (pela longitude: 15° = 1 hora).
-- `coins`: saldo de moedas. `passports`: o do país de residência primeiro (grátis), depois os comprados.
+- `coins`: saldo de gobolares. `passports`: o do país de residência primeiro (grátis), depois os comprados.
 
 ## Objetos e coleta
 
@@ -242,12 +242,12 @@ Guarda o objeto de volta no inventário (precisa caber). Mesma resposta de `/lot
 
 Começa a obra do próximo nível. Na primeira casa, `x`, `y` e `rot` dizem onde ela fica; nas melhorias, são ignorados (a casa cresce no mesmo lugar e precisa caber). Desconta os materiais de `houses.json` e a obra fica pronta na **próxima virada do dia** (5h locais). Mesma resposta de `/lot/place`.
 
-## Moedas, animais e Goblopédia
+## Gobolares, animais e Goblopédia
 
 | Rota | Corpo | Faz |
 | --- | --- | --- |
 | 🔑 `POST /sell` | `{"items": [{"item": "wood", "count": 3}]}` | vende na caixa de vendas (preços em `economy.json`): `{"sold", "earned", "coins", "inventory", "slots_used", "message"}` |
-| 🔑 `GET /transactions?limit=50` | — | histórico de moedas, mais novas primeiro: `{"transactions": [{"id", "delta", "balance", "reason", "ref", "created_at"}]}`; `reason`: `start`, `sell`, `pedia`, `stamp`, `travel`, `passport`, `dev` |
+| 🔑 `GET /transactions?limit=50` | — | histórico de gobolares, mais novas primeiro: `{"transactions": [{"id", "delta", "balance", "reason", "ref", "created_at"}]}`; `reason`: `start`, `sell`, `pedia`, `stamp`, `travel`, `passport`, `dev` |
 | 🔑 `POST /animal/feed` | `{"animal": 123}` | gasta uma frutinha (o animal come e vira amigo; marca a espécie como amiga na Goblopédia) |
 | 🔑 `GET /pedia` | — | páginas da Goblopédia com o progresso: `{"entries": [{"id", "name", "kind", "model", "discovered", "first_at", "country", "country_name", "biome", "sightings", "friend"}]}` |
 | 🔑 `POST /pedia/register` | `{"entry": "cow", "country": "ARG", "biome": "grassland", "look": [x, y, z]}` | registra uma foto: `{"entry", "first", "reward", "coins", "sightings", "message"}`; só a primeira foto paga `rewards.pedia_first`. `look` é a direção da câmera: o servidor confere se o animal (na posição do trajeto comum), a flor azul ou a árvore da estação estava perto e na frente dela (`403 too_far` se não) |
@@ -257,7 +257,7 @@ Começa a obra do próximo nível. Na primeira casa, `x`, `y` e `rot` dizem onde
 | Rota | Corpo | Faz |
 | --- | --- | --- |
 | 🔑 `GET /travel/quotes?from=BRA` | — | destinos a partir do aeroporto `from`: `{"quotes": [{…aeroporto, "fare", "passport_price", "has_passport"}]}` |
-| 🔑 `POST /travel` | `{"from": "BRA", "to": "ARG", "buy_passport": true}` | compra a passagem (e o passaporte do destino junto, com `buy_passport`) e carimba a chegada. Sem o passaporte e sem `buy_passport`: `403 no_passport`; sem moedas: `409 no_coins`, nada é cobrado |
+| 🔑 `POST /travel` | `{"from": "BRA", "to": "ARG", "buy_passport": true}` | compra a passagem (e o passaporte do destino junto, com `buy_passport`) e carimba a chegada. Sem o passaporte e sem `buy_passport`: `403 no_passport`; sem gobolares: `409 no_coins`, nada é cobrado |
 | 🔑 `GET /passport` | — | livro de passaporte: `{"passports": [...], "stamps": [{"country", "name", "first_at"}], "coins"}` |
 | 🔑 `POST /passport/buy` | `{"country": "LUX"}` | compra o passaporte de qualquer país |
 | 🔑 `POST /passport/stamp` | `{"country": "PRY"}` | carimba a entrada a pé (precisa do passaporte); só a primeira visita dá carimbo e `rewards.stamp_first` |
@@ -292,9 +292,9 @@ Sem `GOBLO_DEV=1`, **toda** rota `/dev/…` responde `403 {"error":"dev_only"}` 
 | `POST /dev/country` | `{"country": "JPN"}` | troca o país e muda o lote para um lote livre no país novo |
 | `POST /dev/reset` | `{"what": "lot"}` | `lot` (casa e decoração; volta a bancada), `inventory`, `collections` (limites de hoje) ou `player` (apaga tudo) |
 | `POST /dev/fake-neighbors` | `{"cell": 21424, "count": 20}` | cria jogadores falsos com casas prontas e decoração sorteada nos lotes livres mais perto da célula |
-| `POST /dev/coins` | `{"amount": 500}` | dá (ou tira, com número negativo) moedas; o saldo nunca fica negativo |
-| `POST /dev/pedia` | `{"action": "complete"}` | `complete` (todas as páginas descobertas e amigos, sem moedas) ou `reset` |
-| `POST /dev/passport` | `{"action": "give", "country": "PRY"}` | `give` ou `remove` um passaporte; `complete` (todos os passaportes e um carimbo de cada país com aeroporto, sem moedas) ou `reset`. Responde o livro de passaporte |
+| `POST /dev/coins` | `{"amount": 500}` | dá (ou tira, com número negativo) gobolares; o saldo nunca fica negativo |
+| `POST /dev/pedia` | `{"action": "complete"}` | `complete` (todas as páginas descobertas e amigos, sem gobolares) ou `reset` |
+| `POST /dev/passport` | `{"action": "give", "country": "PRY"}` | `give` ou `remove` um passaporte; `complete` (todos os passaportes e um carimbo de cada país com aeroporto, sem gobolares) ou `reset`. Responde o livro de passaporte |
 | `POST /dev/travel` | `{"from": "BRA", "to": "JPN"}` | viagem de graça e sem passaporte; mesma resposta de `/travel` |
 | `GET /dev/border-lots` | — | lotes antigos que cruzam a fronteira ou ficam perto demais dela: `{"lots": [{"lot_id", "cell", "owner", "country", "fake", "crossing"}], "near", "crossing"}` (ADR 0037) |
 | `POST /dev/border-lots/move` | — | muda esses lotes para um lote livre longe da fronteira no país do dono, com casa e objetos: `{"moved", "left"}` |

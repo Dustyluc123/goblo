@@ -8,7 +8,7 @@ Tudo o que dá para ajustar sem mexer em código fica em arquivos JSON. Depois d
 | `server/data/game/recipes.json` | servidor | receitas da bancada |
 | `server/data/game/houses.json` | servidor | níveis da casa: custo, footprint e cena |
 | `server/data/game/objects.json` | servidor | árvores, pedras, flores, arbustos e enfeites de cada bioma (os que dão material), com a flor rara |
-| `server/data/game/economy.json` | servidor | nome da moeda, saldo inicial, preços da caixa de vendas, recompensas, preço da passagem e do passaporte |
+| `server/data/game/economy.json` | servidor | nome do gobolar, saldo inicial, preços da caixa de vendas, recompensas, preço da passagem e do passaporte |
 | `server/data/game/animals.json` | servidor | espécies de animais, quais vivem em cada bioma e os cachorros dos bairros |
 | `server/data/game/goblopedia.json` | servidor | páginas da Goblopédia além dos animais (flor rara, árvores em estação) |
 | `client/data/decoracao.json` | cliente | grama e plantinhas decorativas de cada bioma, e o tom dos objetos por bioma |
@@ -112,7 +112,7 @@ Grama e plantinhas, sem interação nem colisão, espalhadas pelo cliente com se
 
 ## Dinheiro (`economy.json`)
 
-A moeda tem **nome provisório "moedas"** (`currency`: singular e plural; troque à vontade). O saldo fica no servidor e cada mudança vai para o histórico (`GET /transactions`).
+A gobolar tem **nome provisório "gobolares"** (`currency`: singular e plural; troque à vontade). O saldo fica no servidor e cada mudança vai para o histórico (`GET /transactions`).
 
 | Campo | Valor atual | Para quê |
 | --- | --- | --- |

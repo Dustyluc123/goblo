@@ -94,12 +94,12 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 **Fase 2.5: explorar e colecionar** ✅
 
 - [x] **Fronteiras precisas:** o país vem da **posição exata** (Natural Earth 1:50m, ponto em polígono), não mais do hexágono de ~140 km. HUD com o país certo, **linha tracejada com marquinhos** no chão onde dois países se encontram e uma **plaquinha "Bem-vindo!"** ao cruzar. Países pequenos (Luxemburgo, Andorra, Mônaco…) passam a existir ([ADR 0031](docs/decisoes/0031-fronteiras-pela-posicao-exata.md))
-- [x] **Moedas:** saldo no servidor, mostrado no HUD; **caixa de vendas** no lote (E) paga na hora pela madeira, pedra, flores, frutinhas e cocos; recompensas pelo primeiro registro na Goblopédia e pelo primeiro carimbo de cada país; histórico de transações
+- [x] **Gobolares:** saldo no servidor, mostrado no HUD; **caixa de vendas** no lote (E) paga na hora pela madeira, pedra, flores, frutinhas e cocos; recompensas pelo primeiro registro na Goblopédia e pelo primeiro carimbo de cada país; histórico de transações
 - [x] **Animais:** os 12 do Ultimate Animated Animals pelos biomas (vacas, cavalos e burros nos campos, cervos e raposas nas florestas, alpacas nas montanhas, lobos na tundra, cachorros perto dos bairros). **Os mesmos para todos os jogadores**: o servidor sorteia quais existem e a posição sai do horário do servidor ([ADR 0032](docs/decisoes/0032-animais-deterministicos.md)). Tímidos fogem se você correr; **E** faz carinho (coraçõezinhos) ou dá frutinha (o animal come e segue você por um tempo)
 - [x] **Câmera fotográfica e Goblopédia (G):** com a câmera na mão, o botão direito mira por cima do ombro, a roda dá zoom e o clique tira a foto (salva no seu computador). O que estiver enquadrado entra no álbum: animais, a **flor azul rara** e **árvores de outono e com neve** ([ADR 0033](docs/decisoes/0033-goblopedia-e-camera.md))
 - [x] **Estações do ano reais** pela data e pelo hemisfério: no fim de outubro, outono no norte (árvores de outono, chão dourado, folhas caindo) e primavera no sul (verde mais claro e florzinhas); inverno com neve e flocos caindo. Transição gradual, nada nos trópicos, e o globo afastado e o mini mapa mostram os dois hemisférios ([ADR 0034](docs/decisoes/0034-estacoes-do-ano.md))
 - [x] **Aeroportos e passaportes:** um aeroporto perto da capital de cada país, montado com o Fantasy Town Kit (terminal, pista, biruta); no balcão (E), destinos com preço pela distância e passaportes. A viagem afasta até o globo e desenha um arco até o destino. **Para entrar num país (a pé ou de avião) você precisa do passaporte dele**; o do seu país é grátis. **Livro de passaporte (P)** com um carimbo único por país visitado ([ADR 0035](docs/decisoes/0035-aeroportos-viagem-e-passaportes.md))
-- [x] **Modo dev (F1)** com moedas, passaportes, barreira, linhas e polígonos de fronteira, estação forçada, animais, Goblopédia e voo de graça
+- [x] **Modo dev (F1)** com gobolares, passaportes, barreira, linhas e polígonos de fronteira, estação forçada, animais, Goblopédia e voo de graça
 
 **Fase 2.6: ajustes da 2.5** ✅
 
@@ -168,12 +168,12 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 
 Com o servidor em modo dev (`GOBLO_DEV=1`) e o jogo aberto, aperte **F1**:
 
-1. **Moedas e caixa de vendas:** aba **Itens**, dê **Kit inicial**. Volte para casa (**H**), chegue na **caixa de vendas** (ao lado da bancada) e aperte **E**: venda madeira e veja o saldo subir no HUD. Para dar moedas direto, use **Dar moedas** na aba Itens.
+1. **Gobolares e caixa de vendas:** aba **Itens**, dê **Kit inicial**. Volte para casa (**H**), chegue na **caixa de vendas** (ao lado da bancada) e aperte **E**: venda madeira e veja o saldo subir no HUD. Para dar gobolares direto, use **Dar gobolares** na aba Itens.
 2. **Fronteiras:** aba **Mundo**, digite lat **-25,5** e lon **-54,35** (Foz do Iguaçu) e clique **Ir**. Ande para o oeste: a linha tracejada com marquinhos aparece no chão e, sem passaporte, você desliza ao longo dela com o aviso. Na aba **Viagem**, selecione o Paraguai (aba Mundo) e clique **Dar passaporte**: agora dá para entrar, aparece a plaquinha "Bem-vindo!" e o carimbo novo. **P** abre o livro do passaporte. Para ver a costa e os polígonos, ligue **Polígonos de debug**; para andar livre, desligue a **Barreira**.
 3. **Animais:** vá para um campo (lat **-34,6**, lon **-60,5**, pampa argentino) ou uma floresta (**48,5**, **2,0**, França). Ande devagar até um animal e aperte **E** (carinho). Dê **Frutinhas** (aba Itens) e aperte **E** de novo: ele come e segue você. Corra (Shift) na direção de um cervo ou raposa: ele foge. Aba **Natureza**: **Criar perto de mim** e **Listar carregados**.
 4. **Câmera e Goblopédia:** aba Itens, dê **Câmera fotográfica** (ou fabrique na bancada). Aperte o número dela (1–5) para segurar, **botão direito** para mirar, **roda** para zoom e **clique** para fotografar um animal. Aperte **G**: a página dele está lá, com país, bioma e a foto. **Completar** e **Zerar a Goblopédia** ficam na aba Natureza.
 5. **Estações:** aba **Natureza**, clique **Inverno**, **Outono**, **Primavera** e **Verão** (vale para o hemisfério norte; o sul fica com a oposta) e afaste a câmera (roda) para ver os dois hemisférios. **Data real** volta ao normal. Fotografe uma árvore de outono para a Goblopédia.
-6. **Aeroporto e viagem:** aba **Viagem**: selecione um país na aba Mundo e clique **Voar de graça para lá** para conhecer um aeroporto. No balcão (**E**), escolha um destino (dê moedas antes) e clique **Comprar passaporte e viajar**: a tela escurece, a câmera vai até o globo, o arco liga os aeroportos e você chega no destino com carimbo novo. **H** sempre volta para casa.
+6. **Aeroporto e viagem:** aba **Viagem**: selecione um país na aba Mundo e clique **Voar de graça para lá** para conhecer um aeroporto. No balcão (**E**), escolha um destino (dê gobolares antes) e clique **Comprar passaporte e viajar**: a tela escurece, a câmera vai até o globo, o arco liga os aeroportos e você chega no destino com carimbo novo. **H** sempre volta para casa.
 
 ## Como testar a fase 2.6
 
@@ -443,7 +443,7 @@ Mais de 100 testes. Além dos do mundo (grade, biomas, escala, formato binário)
 E os da fase 2.5:
 
 - fronteiras: pontos 20 a 30 km para dentro de cada lado de Foz do Iguaçu × Ciudad del Este × Puerto Iguazú, Corumbá × Puerto Quijarro, Tabatinga × Letícia, Strasbourg × Kehl, e Luxemburgo, Andorra e Liechtenstein; a regra do cliente concorda com o ponto em polígono em 1.800 pontos sorteados;
-- moedas: não dá para gastar o que não tem (saldo nunca negativo, nada muda numa compra recusada), a venda credita o valor certo, as recompensas não se repetem;
+- gobolares: não dá para gastar o que não tem (saldo nunca negativo, nada muda numa compra recusada), a venda credita o valor certo, as recompensas não se repetem;
 - animais determinísticos (mesmo id e mesma posição no mesmo horário), dentro da célula, fora dos lotes, andando e parando sem saltos, e um arquivo de referência que o cliente confere;
 - Goblopédia: recompensa só na primeira foto, frutinha marca amizade, flor rara não muda os outros objetos;
 - estações por data e latitude (15 de janeiro: inverno em Berlim, verão em São Paulo, sem estação em Manaus; fim de outubro: outono no norte e primavera no sul);
@@ -482,7 +482,7 @@ tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930   # 
 
 - **IP:** quando um jogador novo abre o jogo, o servidor usa o IP da conexão **só para sugerir o país**, consultando uma base local (DB-IP, sem enviar nada para fora). O IP é descartado na hora: **não é guardado no banco nem aparece no log**. Rodando na própria máquina (IP `127.0.0.1`), o país vem do idioma do sistema (`pt_BR` → Brasil). De qualquer jeito, o jogador confirma ou troca o país na tela.
 - **Identidade:** não há e-mail nem senha. O jogo cria um token aleatório guardado só no seu computador; o servidor guarda apenas um hash dele.
-- **O que o servidor guarda:** apelido, país, lote, inventário, o que você coletou em cada dia, o que colocou no lote, moedas (com o histórico), passaportes, carimbos e o progresso da Goblopédia.
+- **O que o servidor guarda:** apelido, país, lote, inventário, o que você coletou em cada dia, o que colocou no lote, gobolares (com o histórico), passaportes, carimbos e o progresso da Goblopédia.
 - **Fotos:** as fotos da câmera ficam só no seu computador (`user://fotos/`); o servidor guarda apenas o que foi registrado, onde e quando.
 
 ## Dados
@@ -507,9 +507,9 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 1. **Fase 1: o globo.** Globo, personagem andando e servidor do mundo. ✅
 2. **Fase 1.5: um mundo de verdade.** Escala, pulo, biomas, vegetação, dia e noite, oceano, nuvens e navegação. ✅
 3. **Fase 2: coletar e construir.** Jogador e país, lotes, coleta, inventário, bancada, decoração, casa em níveis, bairro, banco de dados e modo dev. ✅
-4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, moedas e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
+4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, gobolares e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
 5. **Fase 3: fronteiras vivas e multiplayer.** Lotes longe das fronteiras, fronteira que abre com o passaporte, outros jogadores em tempo real no nosso servidor (sem Nakama, [ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md)), chat, emotes, validações no servidor e preparo para jogar com amigos. ✅
-6. **Fase 4: economia.** Loja de itens e troca entre jogadores (as moedas e os passaportes já existem desde a fase 2.5).
+6. **Fase 4: economia.** Loja de itens e troca entre jogadores (as gobolares e os passaportes já existem desde a fase 2.5).
 
 ## Sobre mim
 
