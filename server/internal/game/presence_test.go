@@ -74,6 +74,18 @@ func TestServerChecksReach(t *testing.T) {
 		t.Fatalf("na caixa de vendas: %v", err)
 	}
 
+	// Bancada: fabricar só perto da do próprio lote (canto 11, 1).
+	f.give(t, p, "wood", 10)
+	recipe := f.svc.Content().Recipes[0].ID
+	pres.pos[p.ID] = tp.Add(east.Scale(60))
+	if _, err := f.svc.Craft(f.ctx, p, recipe, 1); !errors.Is(err, game.ErrTooFar) {
+		t.Fatalf("longe da bancada, fabricar deu %v", err)
+	}
+	pres.pos[p.ID] = fr.Point(lot.X0+12*game.TileSize, lot.Y0+2*game.TileSize)
+	if _, err := f.svc.Craft(f.ctx, p, recipe, 1); errors.Is(err, game.ErrTooFar) || errors.Is(err, game.ErrOffline) {
+		t.Fatalf("na bancada, fabricar deu %v", err)
+	}
+
 	// Frutinha: o animal precisa estar perto (com a folga das reações locais).
 	animals, err := f.svc.Animals(f.ctx, f.svc.World().Cells[lot.Cell].Neighbors)
 	if err != nil || len(animals) == 0 {

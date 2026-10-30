@@ -56,6 +56,7 @@ type ReachRules struct {
 	Animal      float64 `json:"animal"`
 	AnimalDrift float64 `json:"animal_drift"`
 	SellBox     float64 `json:"sell_box"`
+	Workbench   float64 `json:"workbench"`
 	Airport     float64 `json:"airport"`
 	PhotoAnimal float64 `json:"photo_animal"`
 	PhotoObject float64 `json:"photo_object"`

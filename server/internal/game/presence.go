@@ -192,6 +192,18 @@ func (s *Service) nearCountry(pos world.Vec3, country string, r float64) bool {
 
 // requireSellBox: para vender, o jogador precisa estar na caixa de vendas do próprio lote.
 func (s *Service) requireSellBox(ctx context.Context, p *Player) error {
+	return s.requireOwnPlacement(ctx, p, "sell_box", s.content.Rules.Reach.SellBox,
+		"Coloque uma caixa de vendas no seu lote.", "da sua caixa de vendas")
+}
+
+// requireWorkbench: para fabricar, o jogador precisa estar numa bancada do próprio lote.
+func (s *Service) requireWorkbench(ctx context.Context, p *Player) error {
+	return s.requireOwnPlacement(ctx, p, "workbench", s.content.Rules.Reach.Workbench,
+		"Coloque uma bancada no seu lote.", "da sua bancada")
+}
+
+// requireOwnPlacement: o jogador perto de um objeto `item` colocado no próprio lote.
+func (s *Service) requireOwnPlacement(ctx context.Context, p *Player, item string, reach float64, none, what string) error {
 	if s.presence == nil {
 		return nil
 	}
@@ -205,13 +217,21 @@ func (s *Service) requireSellBox(ctx context.Context, p *Player) error {
 	}
 	f := CellFrame(s.world, lot.Cell)
 	x0, y0, _, _ := SlotRect(lot.Slot)
-	var last error = ErrNotFound.with("Coloque uma caixa de vendas no seu lote.")
+	var last error = ErrNotFound.with("%s", none)
 	for _, pl := range pls {
-		if pl.Item != "sell_box" {
+		if pl.Item != item {
 			continue
 		}
-		pt := f.Point(x0+(float64(pl.X)+0.5)*TileSize, y0+(float64(pl.Y)+0.5)*TileSize)
-		if last = s.requireNear(p, pt, s.content.Rules.Reach.SellBox, "da sua caixa de vendas"); last == nil {
+		// Centro do objeto (a bancada ocupa mais de um quadradinho).
+		w, h := 1, 1
+		if it := s.content.Item(item); it != nil && it.Footprint[0] > 0 {
+			w, h = it.Footprint[0], it.Footprint[1]
+			if pl.Rot%2 == 1 {
+				w, h = h, w
+			}
+		}
+		pt := f.Point(x0+(float64(pl.X)+float64(w)/2)*TileSize, y0+(float64(pl.Y)+float64(h)/2)*TileSize)
+		if last = s.requireNear(p, pt, reach, what); last == nil {
 			return nil
 		}
 	}

@@ -832,9 +832,8 @@ func consume(ctx context.Context, tx Store, player int64, items []StackView) err
 	return nil
 }
 
-// Craft fabrica uma receita `times` vezes.
-//
-// TODO(fase 3): conferir se o jogador está perto de uma bancada (hoje só o cliente confere).
+// Craft fabrica uma receita `times` vezes. Com o tempo real ligado, o jogador precisa estar
+// numa bancada do próprio lote (ADR 0040).
 func (s *Service) Craft(ctx context.Context, p *Player, recipeID string, times int) (*CraftResult, error) {
 	r := s.content.Recipe(recipeID)
 	if r == nil {
@@ -842,6 +841,9 @@ func (s *Service) Craft(ctx context.Context, p *Player, recipeID string, times i
 	}
 	if times <= 0 || times > 99 {
 		return nil, ErrInvalid
+	}
+	if err := s.requireWorkbench(ctx, p); err != nil {
+		return nil, err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
