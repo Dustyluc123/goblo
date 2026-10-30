@@ -1639,7 +1639,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1681,6 +1681,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("mp-test"):
 		await _mp_test()
+		return
+	if _args.has("crowd-test"):
+		await _crowd_test()
 		return
 	if _args.has("travel-test"):
 		await _travel_test()
@@ -2382,6 +2385,31 @@ func _travel_test() -> void:
 	_ui.close_windows()
 	print("Goblo: travel-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
 	get_tree().quit(1 if not fails.is_empty() else 0)
+
+
+## Multidão (fase 3): quanto custa por quadro (CPU) ter 0, 10, 20 e 40 bots por perto.
+func _crowd_test() -> void:
+	Engine.max_fps = 0
+	var measure := func() -> float:
+		var frames := 0
+		var t0 := Time.get_ticks_usec()
+		while frames < 240:
+			await get_tree().process_frame
+			frames += 1
+		return (Time.get_ticks_usec() - t0) / 1000.0 / frames
+	await get_tree().create_timer(2.0).timeout
+	var base: float = await measure.call()
+	print("Goblo: crowd-test   0 jogadores: %.2f ms por quadro" % base)
+	var made := 0
+	for target in [10, 20, 40]:
+		await dev_bots(target - made)
+		made = target
+		await get_tree().create_timer(3.0).timeout
+		var ms: float = await measure.call()
+		print("Goblo: crowd-test %3d bots criados (%d visíveis): %.2f ms por quadro (+%.3f ms por jogador)" % [
+			target, _remotes.visible_count, ms, (ms - base) / maxf(1.0, _remotes.visible_count)])
+	await dev_bots(0)
+	get_tree().quit(0)
 
 
 ## Dois clientes (fase 3): cada um vê o outro, o chat chega e o movimento aparece liso.

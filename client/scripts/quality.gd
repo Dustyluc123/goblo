@@ -24,24 +24,26 @@ const LABELS := {"low": "baixa", "medium": "média", "high": "alta"}
 ##   lot_radius: até onde as casas e lotes aparecem
 ##   glow: brilho suave nas partes claras (a névoa e o tonemapping valem em todas)
 ##   weather: partículas de folhas caindo (outono) e neve (inverno) em volta da câmera
+##   max_3d_lines: no máximo quantas linhas o 3D tem (fase 3): numa tela maior que a de
+##     referência (3136 × 1930), scale_3d baixa sozinho, e a placa trabalha o mesmo tanto
 const PRESETS := {
 	"low": {
 		"small_density": 0.4, "small_radius": 30.0, "big_radius": 70.0,
 		"collider_radius": 35.0, "shadows": false, "big_shadows": false, "shadow_splits": 1,
 		"shadow_distance": 0.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": false, "clouds": 30,
-		"scale_3d": 0.5, "lod_threshold": 6.0, "lot_radius": 90.0, "glow": false, "weather": 0,
+		"scale_3d": 0.5, "lod_threshold": 6.0, "lot_radius": 90.0, "glow": false, "weather": 0, "max_3d_lines": 1000,
 	},
 	"medium": {
 		"small_density": 0.7, "small_radius": 40.0, "big_radius": 100.0,
 		"collider_radius": 40.0, "shadows": true, "big_shadows": false, "shadow_splits": 2,
 		"shadow_distance": 40.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": true, "clouds": 50,
-		"scale_3d": 0.67, "lod_threshold": 3.0, "lot_radius": 120.0, "glow": true, "weather": 160,
+		"scale_3d": 0.67, "lod_threshold": 3.0, "lot_radius": 120.0, "glow": true, "weather": 160, "max_3d_lines": 1300,
 	},
 	"high": {
 		"small_density": 1.0, "small_radius": 60.0, "big_radius": 140.0,
 		"collider_radius": 45.0, "shadows": true, "big_shadows": true, "shadow_splits": 2,
 		"shadow_distance": 60.0, "msaa": Viewport.MSAA_2X, "fxaa": false, "clouds": 80,
-		"scale_3d": 0.75, "lod_threshold": 1.5, "lot_radius": 160.0, "glow": true, "weather": 320,
+		"scale_3d": 0.75, "lod_threshold": 1.5, "lot_radius": 160.0, "glow": true, "weather": 320, "max_3d_lines": 1450,
 	},
 }
 const DEFAULT := "medium"
@@ -118,5 +120,9 @@ static func set_ui_scale(v: float, save := true) -> void:
 ## Fração da resolução da janela em que o 3D é renderizado. Em janelas pequenas (até
 ## 1080 de altura) é 1; em telas maiores, a do preset (ou o que der 1080 linhas, se for mais).
 static func render_scale(window_height: float) -> float:
+	var h := maxf(window_height, 1.0)
 	var target: float = current()["scale_3d"]
-	return clampf(maxf(target, FULL_RES_HEIGHT / maxf(window_height, 1.0)), 0.25, 1.0)
+	var s := maxf(target, FULL_RES_HEIGHT / h)
+	# Telas maiores que a de referência: no máximo max_3d_lines linhas de 3D.
+	s = minf(s, maxf(float(current().get("max_3d_lines", 100000)), FULL_RES_HEIGHT) / h)
+	return clampf(s, 0.25, 1.0)

@@ -18,6 +18,11 @@ const MAX_SAMPLES := 12
 ## Quanto tempo dá para continuar o movimento sem foto nova (ms).
 const MAX_EXTRAPOLATE := 250.0
 const BUBBLE_TIME := 6.0
+## Desempenho na placa de vídeo (fase 3, travadas.log do autor): só os SHADOW_NEAR mais
+## perto fazem sombra; nome até NAME_RANGE; o personagem some além de MODEL_RANGE.
+const SHADOW_NEAR := 6
+const NAME_RANGE := 30.0
+const MODEL_RANGE := 70.0
 ## Animações por código (o mesmo de Net.send_move / PROTOCOLO.md).
 const ANIMS := ["idle", "walk", "sprint", "fall", "interact-right", "pick-up", "holding-right", "sit"]
 ## Emotes → animação e quantas vezes toca (0 = fica até se mexer).
@@ -102,7 +107,7 @@ func _on_enter(d: Dictionary) -> void:
 	label.no_depth_test = true
 	label.fixed_size = false
 	label.position = Vector3(0, 1.35, 0)
-	label.visibility_range_end = 45.0
+	label.visibility_range_end = NAME_RANGE
 	root.add_child(label)
 	a["label"] = label
 	var bubble := Label3D.new()
@@ -116,6 +121,7 @@ func _on_enter(d: Dictionary) -> void:
 	bubble.autowrap_mode = TextServer.AUTOWRAP_WORD
 	bubble.width = 420.0
 	bubble.position = Vector3(0, 1.7, 0)
+	bubble.visibility_range_end = 40.0
 	bubble.visible = false
 	root.add_child(bubble)
 	a["bubble"] = bubble
@@ -140,6 +146,11 @@ func _build_model(a: Dictionary, character: String) -> void:
 	model.rotation.y = PI  # os modelos olham para +Z
 	(a["node"] as Node3D).add_child(model)
 	a["model"] = model
+	a["meshes"] = model.find_children("*", "MeshInstance3D", true, false)
+	a["shadow"] = true
+	_set_shadow(a, false)
+	for mi: MeshInstance3D in a["meshes"]:
+		mi.visibility_range_end = MODEL_RANGE
 	var aps := model.find_children("*", "AnimationPlayer", true, false)
 	var ap: AnimationPlayer = aps[0] if not aps.is_empty() else null
 	if ap:
@@ -223,6 +234,7 @@ func _process(delta: float) -> void:
 	for i in order.size():
 		var a: Dictionary = _avatars[order[i]]
 		var anim_code := _interpolate(a, t)
+		_set_shadow(a, i < SHADOW_NEAR)
 		var near := i < net.animated_near and (a["node"] as Node3D).global_position.distance_to(cam) < net.anim_lod_distance
 		a["lod_acc"] = float(a["lod_acc"]) + delta
 		if near or (_frame + i) % 3 == 0:
@@ -263,6 +275,14 @@ func _interpolate(a: Dictionary, t: float) -> int:
 			_place(a, pos2, lerp_angle(float(p0[2]), float(p1[2]), u))
 			return int(p1[3]) if u > 0.5 else int(p0[3])
 	return 0
+
+
+func _set_shadow(a: Dictionary, on: bool) -> void:
+	if bool(a.get("shadow", false)) == on:
+		return
+	a["shadow"] = on
+	for mi: MeshInstance3D in a.get("meshes", []):
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if on else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _place(a: Dictionary, pos: Vector3, yaw: float) -> void:
