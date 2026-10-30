@@ -52,6 +52,9 @@ type SellResult struct {
 // TODO(fase 3): conferir se o jogador está perto de uma caixa de vendas (hoje só o cliente
 // confere, como na bancada).
 func (s *Service) Sell(ctx context.Context, p *Player, items []StackView) (*SellResult, error) {
+	if err := s.requireSellBox(ctx, p); err != nil {
+		return nil, err
+	}
 	want := map[string]int{}
 	for _, it := range items {
 		if it.Count <= 0 || it.Count > 9999 {

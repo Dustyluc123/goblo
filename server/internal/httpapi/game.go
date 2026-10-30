@@ -12,6 +12,7 @@ import (
 
 	"github.com/Dustyluc123/goblo/server/internal/game"
 	"github.com/Dustyluc123/goblo/server/internal/geoip"
+	"github.com/Dustyluc123/goblo/server/internal/world"
 )
 
 // maxCells limita quantas células cabem num pedido de objetos ou lotes.
@@ -22,6 +23,7 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /recipes", s.recipes)
 	mux.HandleFunc("GET /geo", s.geo)
 	mux.HandleFunc("POST /players", s.createPlayer)
+	mux.HandleFunc("POST /player/character", s.auth(s.character))
 	mux.HandleFunc("GET /me", s.auth(s.me))
 	mux.HandleFunc("GET /objects", s.auth(s.objects))
 	mux.HandleFunc("POST /interact", s.auth(s.interact))
@@ -173,11 +175,16 @@ func remoteIP(r *http.Request) netip.Addr {
 
 func (s *Server) createPlayer(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Nickname string `json:"nickname"`
-		Country  string `json:"country"`
+		Nickname  string `json:"nickname"`
+		Country   string `json:"country"`
+		Character string `json:"character"`
 	}
 	if err := readJSON(r, &body); err != nil {
 		writeError(w, s, err)
+		return
+	}
+	if !s.Game.Content().Rules.ValidCharacter(body.Character) {
+		writeError(w, s, game.ErrInvalid.With("Personagem desconhecido."))
 		return
 	}
 	p, token, err := s.Game.CreatePlayer(r.Context(), body.Nickname, body.Country)
@@ -185,12 +192,34 @@ func (s *Server) createPlayer(w http.ResponseWriter, r *http.Request) {
 		writeError(w, s, err)
 		return
 	}
+	if body.Character != "" {
+		if err := s.Game.SetCharacter(r.Context(), p, body.Character); err != nil {
+			writeError(w, s, err)
+			return
+		}
+	}
 	me, err := s.Game.Me(r.Context(), p)
 	if err != nil {
 		writeError(w, s, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{"token": token, "me": me})
+}
+
+// character troca o personagem (configurações). Quem está perto vê pelo tempo real.
+func (s *Server) character(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Character string `json:"character"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	if err := s.Game.SetCharacter(r.Context(), p, body.Character); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	s.me(w, r, p)
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request, p *game.Player) {
@@ -382,15 +411,17 @@ func (s *Server) pedia(w http.ResponseWriter, r *http.Request, p *game.Player) {
 
 func (s *Server) pediaRegister(w http.ResponseWriter, r *http.Request, p *game.Player) {
 	var body struct {
-		Entry   string `json:"entry"`
-		Country string `json:"country"`
-		Biome   string `json:"biome"`
+		Entry   string     `json:"entry"`
+		Country string     `json:"country"`
+		Biome   string     `json:"biome"`
+		Look    [3]float64 `json:"look"` // direção da câmera na foto (opcional)
 	}
 	if err := readJSON(r, &body); err != nil {
 		writeError(w, s, err)
 		return
 	}
-	res, err := s.Game.RegisterPedia(r.Context(), p, body.Entry, body.Country, body.Biome)
+	look := world.Vec3{X: body.Look[0], Y: body.Look[1], Z: body.Look[2]}
+	res, err := s.Game.RegisterPedia(r.Context(), p, body.Entry, body.Country, body.Biome, look)
 	if err != nil {
 		writeError(w, s, err)
 		return

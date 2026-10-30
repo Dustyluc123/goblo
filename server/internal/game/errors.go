@@ -28,6 +28,9 @@ func (e *Error) with(format string, args ...any) *Error {
 	return &Error{Code: e.Code, Status: e.Status, Message: fmt.Sprintf(format, args...), Details: e.Details}
 }
 
+// With é with para outros pacotes (mensagem personalizada, mesmo código).
+func (e *Error) With(format string, args ...any) *Error { return e.with(format, args...) }
+
 // withDetails devolve uma cópia com detalhes para o cliente.
 func (e *Error) withDetails(d any) *Error {
 	c := *e

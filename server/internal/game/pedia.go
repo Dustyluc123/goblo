@@ -116,10 +116,17 @@ type PediaResult struct {
 // `biome`. Na primeira foto, guarda onde foi e paga a recompensa (uma vez só).
 //
 // TODO(fase 3): o servidor ainda não sabe se o animal estava mesmo na frente do jogador.
-func (s *Service) RegisterPedia(ctx context.Context, p *Player, entry, country, biome string) (*PediaResult, error) {
+//
+// look é a direção da câmera no momento da foto (zero = não confere o ângulo). Com a
+// camada em tempo real ligada, o servidor confere se a coisa estava perto e na frente da
+// câmera (ADR 0040).
+func (s *Service) RegisterPedia(ctx context.Context, p *Player, entry, country, biome string, look world.Vec3) (*PediaResult, error) {
 	e := s.content.PediaEntry(entry)
 	if e == nil {
 		return nil, ErrNotFound.with("Isso não está na Goblopédia.")
+	}
+	if err := s.pediaSeen(ctx, p, e, look); err != nil {
+		return nil, err
 	}
 	if s.CountryName(country) == "" {
 		country = ""

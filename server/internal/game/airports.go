@@ -285,6 +285,9 @@ func (s *Service) BuyPassport(ctx context.Context, p *Player, country string) (*
 		res.Passport, err = s.passportView(ctx, tx, p)
 		return err
 	})
+	if err == nil {
+		s.emit(Event{Kind: "passports", PlayerID: p.ID})
+	}
 	return res, err
 }
 
@@ -296,6 +299,12 @@ func (s *Service) BuyPassport(ctx context.Context, p *Player, country string) (*
 func (s *Service) Stamp(ctx context.Context, p *Player, country string) (*PassportResult, error) {
 	if !s.validCountry(country) {
 		return nil, ErrCountry
+	}
+	// Carimbo a pé: o jogador precisa estar mesmo no país (ou a um passo dele).
+	if pos, _, _, checked, err := s.where(p); err != nil {
+		return nil, err
+	} else if checked && !s.nearCountry(pos, country, 2.0) {
+		return nil, ErrInvalid.with("Você não está em %s.", s.CountryName(country))
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -324,7 +333,7 @@ func (s *Service) Stamp(ctx context.Context, p *Player, country string) (*Passpo
 // Travel compra a passagem de `from` para `to` (e, com buyPassport, o passaporte do destino
 // junto) e carimba a chegada. Sem o passaporte do destino, não dá para viajar.
 //
-// TODO(fase 3): conferir se o jogador está mesmo no aeroporto `from`.
+// O jogador precisa estar no balcão do aeroporto `from` (ADR 0040).
 func (s *Service) Travel(ctx context.Context, p *Player, from, to string, buyPassport, free bool) (*PassportResult, error) {
 	dest := s.airportBy[to]
 	if dest == nil {
@@ -335,6 +344,13 @@ func (s *Service) Travel(ctx context.Context, p *Player, from, to string, buyPas
 	}
 	if from == to {
 		return nil, ErrInvalid.with("Você já está em %s.", s.CountryName(to))
+	}
+	// No balcão do aeroporto de saída (o voo de graça do modo dev sai de qualquer lugar).
+	if !free {
+		counter, _ := s.ArrivalPoint(from)
+		if err := s.requireNear(p, counter, s.content.Rules.Reach.Airport, "do balcão do aeroporto"); err != nil {
+			return nil, err
+		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -372,6 +388,12 @@ func (s *Service) Travel(ctx context.Context, p *Player, from, to string, buyPas
 		res.Passport, err = s.passportView(ctx, tx, p)
 		return err
 	})
+	if err == nil {
+		s.allowArrival(p.ID, to)
+	}
+	if err == nil {
+		s.emit(Event{Kind: "passports", PlayerID: p.ID})
+	}
 	return res, err
 }
 
@@ -465,5 +487,8 @@ func (s *Service) DevPassport(ctx context.Context, p *Player, action, country st
 		v, err = s.passportView(ctx, tx, p)
 		return err
 	})
+	if err == nil {
+		s.emit(Event{Kind: "passports", PlayerID: p.ID})
+	}
 	return v, err
 }

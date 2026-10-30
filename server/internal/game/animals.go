@@ -306,7 +306,7 @@ type FeedResult struct {
 // FeedAnimal gasta uma frutinha do bolso para o animal comer (e virar amigo por um tempo,
 // no cliente). Nunca há forma de machucar os animais.
 //
-// TODO(fase 3): conferir se o jogador está perto do animal.
+// A distância até o animal é conferida no servidor (ADR 0040).
 func (s *Service) FeedAnimal(ctx context.Context, p *Player, id int64) (*FeedResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -314,6 +314,10 @@ func (s *Service) FeedAnimal(ctx context.Context, p *Player, id int64) (*FeedRes
 	err := s.store.InTx(ctx, func(tx Store) error {
 		a, err := s.animal(ctx, tx, id)
 		if err != nil {
+			return err
+		}
+		reach := s.content.Rules.Reach.Animal + s.content.Rules.Reach.AnimalDrift
+		if err := s.requireNear(p, s.AnimalPoint(a, s.clock.Now()), reach, "do animal"); err != nil {
 			return err
 		}
 		inv, err := tx.Inventory(ctx, p.ID)

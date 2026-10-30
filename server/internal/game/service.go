@@ -49,6 +49,12 @@ type Service struct {
 	kiosks map[int][2]float64
 	// Nível de encaixe de cada lote em cada país ("lote:país" → int), LotTier.
 	tiers sync.Map
+	// Onde os jogadores estão (camada em tempo real) e quem recebe os eventos.
+	presence Presence
+	events   func(Event)
+	// Voos pagos esperando a chegada (ConsumeArrival).
+	arrivalMu sync.Mutex
+	arrivals  map[int64]arrival
 }
 
 // NewService monta as regras. clock nil = relógio real.
@@ -293,6 +299,7 @@ type MeView struct {
 	SlotsMax    int         `json:"slots_max"`
 	Day         DayView     `json:"day"`
 	Coins       int64       `json:"coins"`
+	Character   string      `json:"character"`
 	// Passaportes: o do país de residência primeiro (grátis), depois os comprados.
 	Passports []string `json:"passports"`
 }
@@ -304,7 +311,7 @@ func (s *Service) Me(ctx context.Context, p *Player) (*MeView, error) {
 
 func (s *Service) meView(ctx context.Context, st Store, p *Player) (*MeView, error) {
 	now := s.clock.Now()
-	me := &MeView{ID: p.ID, Nickname: p.Nickname, Country: p.Country, CountryName: s.world.Countries[p.Country], SlotsMax: InventorySlots}
+	me := &MeView{ID: p.ID, Nickname: p.Nickname, Country: p.Country, CountryName: s.world.Countries[p.Country], SlotsMax: InventorySlots, Character: p.Character}
 	lot, err := st.LotByOwner(ctx, p.ID)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return nil, err
@@ -545,6 +552,10 @@ func (s *Service) Interact(ctx context.Context, p *Player, objectID int64, actio
 		if obj == nil {
 			return ErrNotFound
 		}
+		// Distância conferida no servidor (ADR 0040): árvores e pedras grandes alcançam mais.
+		if err := s.requireNear(p, s.ObjectPoint(obj), s.content.Rules.Reach.Object*math.Max(1, obj.Scale), "para usar isso"); err != nil {
+			return err
+		}
 		inv, err := tx.Inventory(ctx, p.ID)
 		if err != nil {
 			return err
@@ -585,6 +596,10 @@ func (s *Service) Interact(ctx context.Context, p *Player, objectID int64, actio
 		res.Inventory, res.SlotsUsed = s.inventoryView(inv)
 		return nil
 	})
+	if err == nil {
+		// Os outros veem a árvore balançar (o estado de coleta continua por jogador).
+		s.emit(Event{Kind: "object", Cell: cell, PlayerID: p.ID, Data: map[string]any{"id": objectID, "action": action}})
+	}
 	return res, err
 }
 
@@ -931,6 +946,13 @@ type PlaceResult struct {
 	SlotsUsed int         `json:"slots_used"`
 }
 
+// emitLot avisa os vizinhos (tempo real) que o lote mudou: decoração nova, obra, casa.
+func (s *Service) emitLot(p *Player, res *PlaceResult, err error) {
+	if err == nil && res != nil {
+		s.emit(Event{Kind: "lot", Cell: res.Lot.Cell, PlayerID: p.ID, Data: res.Lot})
+	}
+}
+
 func (s *Service) placeResult(ctx context.Context, tx Store, p *Player, lot *Lot) (*PlaceResult, error) {
 	views, err := s.lotViews(ctx, tx, []Lot{*lot})
 	if err != nil {
@@ -994,6 +1016,7 @@ func (s *Service) Place(ctx context.Context, p *Player, lotID int64, item string
 		res, err = s.placeResult(ctx, tx, p, lot)
 		return err
 	})
+	s.emitLot(p, res, err)
 	return res, err
 }
 
@@ -1027,6 +1050,7 @@ func (s *Service) Remove(ctx context.Context, p *Player, placementID int64) (*Pl
 		res, err = s.placeResult(ctx, tx, p, lot)
 		return err
 	})
+	s.emitLot(p, res, err)
 	return res, err
 }
 
@@ -1191,6 +1215,7 @@ func (s *Service) BuildHouse(ctx context.Context, p *Player, lotID int64, x, y, 
 		res, err = s.placeResult(ctx, tx, p, lot)
 		return err
 	})
+	s.emitLot(p, res, err)
 	return res, err
 }
 

@@ -12,21 +12,21 @@ func TestPediaRewardOnlyOnce(t *testing.T) {
 	f := newFixture(t)
 	p, me := f.player(t, "Fotógrafa", "BRA")
 	reward := f.svc.Content().Economy.Rewards.PediaFirst
-	r1, err := f.svc.RegisterPedia(f.ctx, p, "cow", "ARG", "grassland")
+	r1, err := f.svc.RegisterPedia(f.ctx, p, "cow", "ARG", "grassland", world.Vec3{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !r1.First || r1.Reward != reward || r1.Coins != me.Coins+reward || r1.Sightings != 1 {
 		t.Fatalf("primeira foto: %+v", r1)
 	}
-	r2, err := f.svc.RegisterPedia(f.ctx, p, "cow", "BRA", "forest")
+	r2, err := f.svc.RegisterPedia(f.ctx, p, "cow", "BRA", "forest", world.Vec3{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if r2.First || r2.Reward != 0 || r2.Coins != r1.Coins || r2.Sightings != 2 {
 		t.Fatalf("segunda foto não pode pagar de novo: %+v", r2)
 	}
-	if _, err := f.svc.RegisterPedia(f.ctx, p, "dragao", "BRA", "forest"); !errors.Is(err, game.ErrNotFound) {
+	if _, err := f.svc.RegisterPedia(f.ctx, p, "dragao", "BRA", "forest", world.Vec3{}); !errors.Is(err, game.ErrNotFound) {
 		t.Fatalf("espécie inventada: %v", err)
 	}
 	list, err := f.svc.Pedia(f.ctx, p)
