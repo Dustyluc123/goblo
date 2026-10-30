@@ -1117,7 +1117,7 @@ func _fly(from_airport: Dictionary, dest: Dictionary) -> void:
 
 
 ## Tamanho do avião no voo (o globo fica longe da câmera).
-const FLIGHT_PLANE_SCALE := 4.0
+const FLIGHT_PLANE_SCALE := 10.0
 
 
 ## Arco pontilhado entre dois pontos do globo e o avião (meta "dot").
@@ -1172,6 +1172,9 @@ func _process(delta: float) -> void:
 	var typing := focus is LineEdit or focus is SpinBox
 	_player.input_blocked = typing or _ui.menu_open() or _photo.selfie()
 	_bob_intro_arrow()
+	# Com o diálogo aberto, o "pular" fica dentro da caixa.
+	if _intro_skip:
+		_intro_skip.visible = is_instance_valid(intro_guide) and not _ui.dialog.visible
 	_hud.set_help_visible(not _ui.any_open())
 	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
 	_ui.hotbar.visible = not _ui.menu_open() and not _photo.active
@@ -1882,6 +1885,7 @@ func _run_automation() -> void:
 ##   --season=winter|autumn|spring|summer  força a estação
 ##   --look=GRAUS                          gira a câmera em volta do personagem
 ##   --ui=welcome | photo | selfie | hearts | travel | flight | airport | pedia-full | passport-full
+##        | shop | sell | dialog | intro | trade  (fase 3.5)
 func _screenshot_setup() -> void:
 	if _args.has("season"):
 		await dev_force_season(str(_args["season"]))
@@ -1930,7 +1934,37 @@ func _screenshot_setup() -> void:
 				_ui.travel._show()
 		"flight":
 			dev_travel(str(_args.get("country", "JPN")))
-			await get_tree().create_timer(4.0).timeout
+			await get_tree().create_timer(float(_args.get("wait", 4.0))).timeout
+		"shop", "dialog", "sell":
+			# Praça: o lojista (diálogo), a loja aberta ou a venda na loja.
+			var a := _airports.of_country(str(_args.get("country", _tracker.current)))
+			await _teleport(_airports.arrival_point(a))
+			await get_tree().create_timer(2.5).timeout
+			await dev_starter_kit()
+			for cell: int in _airports._built:
+				for n in (_airports._built[cell] as Node3D).get_meta("npcs", []):
+					if is_instance_valid(n) and (n as Npc).role == "shopkeeper" and (n as Npc).country == str(a["country"]):
+						await _teleport(n.global_position - n.global_basis.z * 1.6)
+						_player.face(n.global_position)
+						_camera.snap_behind_target()
+						await get_tree().create_timer(0.8).timeout
+						await talk(n)
+			await get_tree().create_timer(2.5).timeout
+			if ui != "dialog":
+				_dialog_choose(0 if ui == "shop" else 1)
+				await get_tree().create_timer(1.0).timeout
+		"intro":
+			await restart_intro()
+			await get_tree().create_timer(2.5).timeout
+		"trade":
+			await dev_starter_kit()
+			await dev_trade_bot()
+			await get_tree().create_timer(1.0).timeout
+			_ui.trade._offer_items = [{"item": "stone", "count": 5}, {"item": "branch", "count": 2}]
+			_ui.trade._send_offer()
+			await get_tree().create_timer(0.8).timeout
+			net_send({"t": "trade_ready", "on": true})
+			await get_tree().create_timer(1.0).timeout
 		"pedia-full":
 			await _dev("/dev/pedia", {"action": "complete"}, "")
 			_ui.pedia.toggle()
@@ -3259,12 +3293,9 @@ func _setup_dialogs() -> void:
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	box.offset_top = 70
-	var b := UiStyle.button("Pular apresentação", false)
+	var b := UiStyle.button("Pular apresentação  (Alt + clique)", false)
 	b.pressed.connect(skip_intro)
 	box.add_child(b)
-	var hint := UiStyle.label("segure Alt para clicar", 13, UiStyle.INK_SOFT)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(hint)
 	box.visible = false
 	_ui.add_child(box)
 	_intro_skip = box
@@ -3586,7 +3617,7 @@ func _npc_test() -> void:
 	# Apresentação: o guia aparece, fala e pede para sacudir uma árvore.
 	await restart_intro()
 	await get_tree().create_timer(0.3).timeout
-	check.call(is_instance_valid(intro_guide) and _ui.dialog.is_open() and _intro_skip.visible, "guia aparece com o diálogo e o botão de pular")
+	check.call(is_instance_valid(intro_guide) and _ui.dialog.is_open() and _ui.dialog._skip.visible, "guia aparece com o diálogo e o botão de pular")
 	check.call(_ui.dialog._text.contains(intro_guide.npc_name if intro_guide else "?"), "fala com o nome do guia: %s" % _ui.dialog._text)
 	_dialog_choose(0)
 	await get_tree().create_timer(0.2).timeout

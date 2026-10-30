@@ -82,6 +82,11 @@ func _ready() -> void:
 	_pick = OptionButton.new()
 	_pick.focus_mode = Control.FOCUS_NONE
 	_pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_pick.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_pick.add_theme_font_size_override("font_size", 17)
+	_pick.add_theme_constant_override("icon_max_width", 28)
+	_pick.get_popup().add_theme_constant_override("icon_max_width", 28)
+	_pick.get_popup().add_theme_font_size_override("font_size", 17)
 	add_row.add_child(_pick)
 	_pick_count = SpinBox.new()
 	_pick_count.min_value = 1

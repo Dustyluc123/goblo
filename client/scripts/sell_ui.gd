@@ -175,7 +175,7 @@ func refresh() -> void:
 		coin.diameter = 18.0
 		coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(coin)
-		row.add_child(UiStyle.label("%d cada" % price, 16, UiStyle.INK_SOFT))
+		row.add_child(UiStyle.label("%s cada" % session.price_text(price), 16, UiStyle.INK_SOFT))
 		var qty := SpinBox.new()
 		qty.min_value = 1
 		qty.max_value = n

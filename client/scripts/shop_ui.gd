@@ -72,7 +72,7 @@ func open(c: String) -> void:
 
 
 func _fill(d: Dictionary) -> void:
-	_title.text = "Loja de %s" % str(d.get("country_name", country))
+	_title.text = "Loja da praça · %s" % str(d.get("country_name", country))
 	var left := int(d.get("next_rollover", 0)) - int(Time.get_unix_time_from_system())
 	_hint.text = "Estoque de hoje (chega coisa nova em %dh%02d, às 5h daqui). Os itens do dia e os exclusivos daqui mudam todo dia!" % [maxi(0, left) / 3600, (maxi(0, left) % 3600) / 60]
 	for ch in _rows.get_children():
@@ -88,7 +88,7 @@ func _fill(d: Dictionary) -> void:
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		row.add_child(ic)
-		var name := UiStyle.label(str(st.get("name", id)), 18)
+		var name := UiStyle.label(session.item_name(id), 18)
 		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name)
 		var kind := str(st.get("kind", ""))

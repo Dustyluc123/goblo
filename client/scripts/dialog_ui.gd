@@ -43,7 +43,7 @@ func _ready() -> void:
 	_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_panel.offset_bottom = -30
-	_panel.custom_minimum_size = Vector2(900, 190)
+	_panel.custom_minimum_size = Vector2(820, 190)
 	add_child(_panel)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
