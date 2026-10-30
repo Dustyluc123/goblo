@@ -30,6 +30,7 @@
 - [Como testar com o modo dev](#como-testar-com-o-modo-dev)
 - [Como testar a fase 2.5](#como-testar-a-fase-25)
 - [Como testar a fase 2.6](#como-testar-a-fase-26)
+- [Como testar a fase 3](#como-testar-a-fase-3)
 - [Medições](#medições)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
@@ -107,6 +108,17 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 - [x] **Travadas:** registro em `user://travadas.log` de todo quadro acima de 25 ms, com o que estava acontecendo, e as últimas no F2. Com ele: linhas de fronteira (até 320 ms por pedaço) e leitura dos pedaços do servidor em threads, aeroportos, colisão do chão e lotes espalhados entre quadros, shaders pré-aquecidos na tela de carregamento e **limite de fps** no F6 (30, 60 ou sem limite; V-Sync sempre ligado) ([ADR 0036](docs/decisoes/0036-travadas-e-limite-de-fps.md))
 - [x] **Nunca no oceano:** andar, teleporte, chegada de voo, nascimento e H sempre terminam em terra
 
+**Fase 3: fronteiras vivas e multiplayer** ✅
+
+- [x] **Fronteira não corta lote:** lote novo fica inteiro no país do dono e a 2 unidades da fronteira (países pequenos, como a Albânia, ficam com o melhor lote que houver); para o dono, o lote e a margem contam como o país dele, e ninguém fica preso em bolsões ([ADR 0037](docs/decisoes/0037-lotes-e-fronteiras.md))
+- [x] **Fronteira viva:** cortina de luz pastel com brilhinhos, marcos com bandeirolas de festa e cadeadinho. Com os dois passaportes ela abre (cortina baixa, corda em arco, cadeado aberto), anima ao comprar o passaporte, faz uma onda quando você encosta e solta confete ao atravessar ([ADR 0038](docs/decisoes/0038-fronteira-viva.md))
+- [x] **Multiplayer em tempo real** no nosso próprio servidor ([ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md), protocolo em [docs/PROTOCOLO.md](docs/PROTOCOLO.md)): os outros jogadores aparecem com o personagem escolhido, o apelido e as animações, com movimento liso (interpolação de ~110 ms); o servidor valida velocidade, oceano e fronteira e corrige com suavidade; reconecta sozinho
+- [x] **Chat (Enter), emotes (T) e jogadores por perto (J)** com silenciar e bloquear; árvore balançando e decoração surgindo na hora quando um vizinho mexe
+- [x] **Escolha de personagem** (os 12 do Mini Characters) no primeiro acesso e no F6
+- [x] **O servidor confere** a distância na coleta, bancada, caixa de vendas, frutinha, Goblopédia e balcão do aeroporto, a barreira da fronteira e o carimbo a pé ([ADR 0040](docs/decisoes/0040-validacoes-no-servidor.md))
+- [x] **Ferramentas:** bots no modo dev (F1 → Rede), simulação de atraso e perda, ping no F2, bots em Go e teste de carga
+- [x] **Para jogar com amigos (sem publicar):** Dockerfile, [docs/DEPLOY.md](docs/DEPLOY.md), exportação para macOS e Windows e endereço do servidor configurável
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -171,6 +183,17 @@ Com o servidor em modo dev (`GOBLO_DEV=1`) e o jogo aberto, aperte **F1**:
 4. **Limite de fps:** **F6** → Limite de fps: 30, 60 (padrão) ou sem limite. O V-Sync fica sempre ligado. Com 30, a placa esquenta menos.
 5. **Oceano:** `godot --headless --path . -- --smoke-test --spawn=48.5,2.0` termina em terra (antes terminava no mar da Normandia).
 
+## Como testar a fase 3
+
+Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto:
+
+1. **Fronteira viva:** F1 → Mundo → vá para **-25,5** e **-54,35** (Foz do Iguaçu) e ande para o oeste. A cortina rosa e lilás, as bandeirolas e o cadeado aparecem, e ao encostar a cortina faz uma onda. F1 → Viagem → dê o passaporte do Paraguai: a fronteira abre animando. Atravesse e veja o confete. Em **Visão da fronteira** dá para ver todas abertas ou todas fechadas.
+2. **Outros jogadores sem abrir outro jogo:** F1 → **Rede** → **Criar 5 bots perto**. Eles andam, acenam, sentam e falam. Teste o chat (**Enter**, escreva, Enter de novo), os emotes (**T** e depois 1 a 5) e a lista (**J**, com Silenciar e Bloquear). Na mesma aba, simule rede ruim (atraso e perda) e veja os bots continuarem lisos. **F2** mostra o ping, os pacotes por segundo e quantos jogadores estão visíveis.
+3. **Dois jogos no mesmo Mac:** abra dois terminais em `client/` e rode `godot --path . -- --profile=jogador1` em um e `godot --path . -- --profile=jogador2` no outro (cada perfil é um jogador). Leve os dois para o mesmo lugar (F1 → Mundo) e converse. Sem janela, `tools/dois_clientes.sh` faz isso sozinho e confere.
+4. **Personagem:** **F6** → Personagem. Quem está perto vê a troca na hora.
+5. **Validações do servidor:** tente coletar uma árvore pelo F1 → Mundo teleportando para longe e voltando: o servidor só aceita de perto. Sem passaporte, mesmo com a barreira do cliente desligada (F1 → Viagem), o servidor segura você na fronteira.
+6. **Teste de carga:** `cd server && scripts/teste-de-carga.sh 100 60` (servidor de teste na porta 8090, banco temporário).
+
 ## Medições
 
 Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M, tela Retina), Godot 4.7.2 com o renderizador Mobile.
@@ -208,6 +231,17 @@ Números do autor antes da fase (janela grande): alta no bairro 28 fps (872 draw
 - **MultiMesh por modelo e pedaço**, com o buffer montado de uma vez. Objetos colhidos ficam escondidos (escala zero) sem refazer o pedaço.
 - **Só o que está perto:** objetos e lotes são pedidos por pedaço em volta do personagem e soltos quando ele se afasta; colisão das árvores só a até 40 unidades, direto no `PhysicsServer3D`; só os 6 lampiões mais próximos ganham luz de verdade.
 - Da fase 1.5: renderizador Mobile, malha do globo em 96 grupos, grama sorteada em threads, HUD leve.
+
+**Fase 3: teste de carga** (`scripts/teste-de-carga.sh`, 100 bots na mesma região por 60 s, servidor e bots no mesmo Mac):
+
+| O quê | Resultado |
+| --- | --- |
+| CPU do servidor | ~75% de um núcleo (o perfil mostra que quase tudo é rede: acordar goroutines e escrever no socket; a lógica do jogo fica em ~10%) |
+| Memória do servidor | ~135 MB (quase toda do mundo e das fronteiras; parado já usa isso) |
+| Banda por jogador | ~12–13 KB/s recebidos (vendo os 40 mais perto, 15 fotos por segundo) e ~0,3 KB/s mandados |
+| Correções indevidas | 0 |
+
+**Fase 3: travadas.log do autor** (2 min, alta, janela 3584 × 2240, floresta tropical): não eram picos, e sim o jogo inteiro em 23 a 39 fps, caindo conforme os bots chegavam. A CPU dos outros jogadores é quase zero (`--crowd-test`: 40 jogadores somam menos de 0,1 ms por quadro); o peso estava na placa de vídeo. Correções: o 3D tem no máximo 1000, 1300 e 1450 linhas (baixa, média e alta), igual à tela de referência, então numa tela maior a placa trabalha o mesmo tanto; os outros jogadores só fazem sombra nos 6 mais perto, com nome até 30 unidades e personagem até 70. Falta medir de novo com a janela.
 
 **Fase 2.6: travadas** (`--hitch-test`, sem janela, só CPU, qualidade alta): de 28 para 11 quadros acima de 25 ms no mesmo passeio. Pior caso antes: 320 ms (linhas de fronteira de um pedaço), 200 ms (uma dúzia de aeroportos no mesmo quadro), 46 ms (JSON de um pedaço). Os que sobram são de teleporte e da estação forçada pelo modo dev. Com janela (em segundo plano, então só vale o custo de cada parte), a montagem de um lote de vizinho caiu de 3–23 ms para ~1 ms e a de árvores e grama de um pedaço de ~16 ms para até 3 ms por quadro. A compilação de shaders na hora de desenhar ainda aparece algumas vezes: o registro de uma partida de verdade (`travadas.log`) vai dizer quais.
 
@@ -366,6 +400,9 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | **H** | voltar para casa (de qualquer lugar) |
 | **G** | Goblopédia (álbum de fotos) |
 | **P** | livro de passaporte |
+| **Enter** | chat: abre, Enter manda, Esc fecha |
+| **T** | emotes: acenar, sim, não, sentar, comemorar (1 a 5) |
+| **J** | jogadores por perto (silenciar e bloquear) |
 | Botão direito (câmera na mão) | modo foto em primeira pessoa; **F** alterna com o selfie; **roda** dá zoom, **clique** fotografa, botão direito ou Esc sai |
 | Mover o mouse | girar a câmera (o cursor fica capturado e escondido durante o jogo) |
 | **Alt** (Option) segurado | soltar o cursor enquanto segura |
@@ -373,9 +410,9 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | Botão direito + arrastar | girar a câmera com o cursor solto (modo construção, Alt, depois do Esc) |
 | Roda do mouse / dois dedos no trackpad | zoom, do personagem até o planeta inteiro |
 | **F1** | painel do modo dev (servidor com `GOBLO_DEV=1`) |
-| F2 | painel de desempenho, com as últimas travadas |
+| F2 | painel de desempenho, com a rede (ping, pacotes, jogadores visíveis) e as últimas travadas |
 | F3 / F4 | acelerar o tempo do céu / voltar ao horário real |
-| F6 | configurações: qualidade (baixa, média, alta), limite de fps (30, 60, sem limite), tamanho da interface, sensibilidade do mouse, inverter eixo vertical, tela cheia |
+| F6 | configurações: personagem, qualidade (baixa, média, alta), limite de fps (30, 60, sem limite), tamanho da interface, sensibilidade do mouse, inverter eixo vertical, tela cheia |
 | F11 | tela cheia |
 
 ## Testes
@@ -386,7 +423,7 @@ go test ./...
 go vet ./...
 ```
 
-85 testes. Além dos do mundo (grade, biomas, escala, formato binário), os da fase 2 conferem:
+Mais de 100 testes. Além dos do mundo (grade, biomas, escala, formato binário), os da fase 2 conferem:
 
 - rotas `/dev/…` bloqueadas (403) sem `GOBLO_DEV=1`, e funcionando com ele;
 - criação de jogador com lote no país certo, preferindo biomas agradáveis (China, Austrália, EUA, Rússia), e lote mesmo na Groenlândia (só gelo e tundra);
@@ -412,6 +449,12 @@ E os da fase 2.5:
 - estações por data e latitude (15 de janeiro: inverno em Berlim, verão em São Paulo, sem estação em Manaus; fim de outubro: outono no norte e primavera no sul);
 - aeroportos perto das capitais, preço da viagem pela distância, passaporte obrigatório, carimbo único por país, nenhum lote novo no hexágono do aeroporto.
 
+E os da fase 3:
+
+- lote novo nunca cruza a fronteira; ponto de um lote antigo que cruza conta como país do dono só para ele; nenhum bolsão inacessível em quatro fronteiras (busca em largura numa grade de 0,5 unidade);
+- tempo real com clientes WebSocket de verdade: andar normal não é corrigido, salto de velocidade, mar e fronteira sem passaporte são; com o passaporte entra e ganha o carimbo pelo servidor; área de interesse (entra e sai); chat com filtro de palavrões, tamanho e limite por segundo; bloqueio; conexão duplicada derruba a antiga; reconexão lembra a posição e recusa nascer longe sem o modo dev;
+- distância conferida no servidor: coleta, bancada, caixa de vendas, frutinha, Goblopédia (com a direção da câmera) e balcão do aeroporto, que libera a chegada do voo uma vez só.
+
 O cliente tem testes automáticos que rodam sem janela (com o servidor no ar; o `--play-test` precisa de `GOBLO_DEV=1`):
 
 ```bash
@@ -427,6 +470,8 @@ godot --headless --path . -- --travel-test --profile=teste8               # barr
 godot --headless --path . -- --dev-test --profile=teste9                  # botões novos do painel dev
 godot --headless --path . -- --cursor-test --profile=teste10              # cursor volta depois do voo, H, teleporte, menus
 godot --headless --path . -- --hitch-test --profile=teste11               # passeio com o registro de travadas (travadas.log)
+godot --headless --path . -- --crowd-test --profile=teste12               # custo de CPU de 0 a 40 jogadores por perto (bots do modo dev)
+tools/dois_clientes.sh http://127.0.0.1:8080                              # dois jogos se vendo: área de interesse, interpolação e chat
 godot --headless --path . -s tests/test_animais.gd                        # trajeto dos animais igual ao do servidor
 godot --headless --path . -s tests/test_estacoes.gd                       # estações iguais às do servidor
 godot --path . -- --perf-test=20 --spawn=-3,-60                           # fps na floresta tropical (janela na frente)
@@ -463,7 +508,7 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 2. **Fase 1.5: um mundo de verdade.** Escala, pulo, biomas, vegetação, dia e noite, oceano, nuvens e navegação. ✅
 3. **Fase 2: coletar e construir.** Jogador e país, lotes, coleta, inventário, bancada, decoração, casa em níveis, bairro, banco de dados e modo dev. ✅
 4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, moedas e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
-5. **Fase 3: multiplayer em tempo real.** Ver os outros jogadores andando, com o servidor validando a posição (avaliar o Nakama, [ADR 0005](docs/decisoes/0005-nakama-na-fase-multiplayer.md)).
+5. **Fase 3: fronteiras vivas e multiplayer.** Lotes longe das fronteiras, fronteira que abre com o passaporte, outros jogadores em tempo real no nosso servidor (sem Nakama, [ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md)), chat, emotes, validações no servidor e preparo para jogar com amigos. ✅
 6. **Fase 4: economia.** Loja de itens e troca entre jogadores (as moedas e os passaportes já existem desde a fase 2.5).
 
 ## Sobre mim
