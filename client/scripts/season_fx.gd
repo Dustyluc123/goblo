@@ -85,6 +85,60 @@ func update(camera: Camera3D, autumn: float, winter: float, far_amount: float) -
 	_snow.emitting = near and winter > 0.35
 
 
+## Chuvinha de confete num ponto (ao atravessar uma fronteira aberta, fase 3): uma vez só,
+## papeizinhos pastel caindo e girando. Some sozinha.
+func confetti(pos: Vector3) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var p := _confetti_node()
+	add_child(p)
+	var up := pos.normalized()
+	var x := up.cross(Vector3.UP if absf(up.y) < 0.9 else Vector3.RIGHT).normalized()
+	p.global_transform = Transform3D(Basis(x, up, x.cross(up)), pos)
+	p.emitting = true
+	get_tree().create_timer(p.lifetime + 0.5).timeout.connect(p.queue_free)
+
+
+func _confetti_node() -> GPUParticles3D:
+	var p := GPUParticles3D.new()
+	p.one_shot = true
+	p.amount = 60
+	p.lifetime = 2.2
+	p.explosiveness = 0.9
+	p.local_coords = false
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.visibility_aabb = AABB(Vector3(-4, -3, -4), Vector3(8, 7, 8))
+	var pm := ParticleProcessMaterial.new()
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 55.0
+	pm.initial_velocity_min = 2.2
+	pm.initial_velocity_max = 3.6
+	pm.gravity = Vector3(0, -3.0, 0)
+	pm.damping_min = 1.0
+	pm.damping_max = 2.0
+	pm.angular_velocity_min = -360.0
+	pm.angular_velocity_max = 360.0
+	pm.angle_min = 0.0
+	pm.angle_max = 360.0
+	var ramp := Gradient.new()
+	ramp.colors = PackedColorArray([Color("ff9fb8"), Color("ffd27f"), Color("9fe0c0"), Color("a9c8ff"), Color("d7b4ff")])
+	ramp.offsets = PackedFloat32Array([0.0, 0.25, 0.5, 0.75, 1.0])
+	var gt := GradientTexture1D.new()
+	gt.gradient = ramp
+	pm.color_initial_ramp = gt
+	p.process_material = pm
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.09, 0.06)
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	quad.material = mat
+	p.draw_pass_1 = quad
+	return p
+
+
 ## Cópias das partículas soltando folhas e neve, para o pré-aquecimento dos shaders.
 func warm_nodes() -> Array[Node3D]:
 	var out: Array[Node3D] = []
@@ -96,6 +150,12 @@ func warm_nodes() -> Array[Node3D]:
 		c.emitting = true
 		c.set_meta("warm_size", 4.0)
 		out.append(c)
+	if _leaves != null:
+		var conf := _confetti_node()
+		conf.one_shot = false
+		conf.emitting = true
+		conf.set_meta("warm_size", 4.0)
+		out.append(conf)
 	return out
 
 

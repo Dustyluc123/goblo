@@ -9,6 +9,8 @@ signal me_changed
 signal equipped_changed
 ## O saldo de moedas mudou (delta = quanto mudou).
 signal coins_changed(delta: int)
+## Os passaportes mudaram (comprou, ganhou no modo dev, zerou).
+signal passports_changed
 
 const PROFILE_DIR := "user://"
 
@@ -126,7 +128,10 @@ func has_passport(code: String) -> bool:
 func set_passport_book(book: Dictionary) -> void:
 	passport_book = book
 	if book.has("passports"):
+		var before := passports()
 		me["passports"] = book["passports"]
+		if passports() != before:
+			passports_changed.emit()
 	if book.has("coins"):
 		set_coins(int(book["coins"]))
 

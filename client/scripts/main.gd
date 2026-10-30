@@ -431,6 +431,9 @@ func _setup_game() -> void:
 	_build.player = _player
 	_ui.on_build_close = _build.exit
 	_border_lines.setup(world, _data)
+	_border_lines.has_passport = func(code: String) -> bool: return _session.has_passport(code)
+	# Comprou (ou perdeu) um passaporte: as fronteiras perto abrem (ou fecham) animando.
+	_session.passports_changed.connect(func() -> void: _border_lines.refresh_state(true))
 	_animals.setup(world, _data, _player, _session.animal_species)
 	_tracker.world = world
 	_tracker.data = _data
@@ -583,6 +586,7 @@ func _on_country_changed(code: String, walked: bool) -> void:
 				_ui.toast(subtitle)
 	if walked:
 		_hud.welcome(_tracker.name_of(code), subtitle)
+		_season_fx.confetti(_player.global_position + _player.global_position.normalized() * 1.2)
 		_ui.restore_control()
 
 
@@ -662,6 +666,20 @@ func hitch_context() -> PackedStringArray:
 	return out
 
 
+## Encostou numa fronteira fechada: a cortina faz uma onda a partir do ponto (no máximo
+## uma a cada 0,8 s).
+var _touch_at := -10.0
+
+
+func _border_touch(pos: Vector3, target: String) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _touch_at < 0.8:
+		return
+	_touch_at = now
+	var here := _tracker.exact_at(pos, _player.cell_id)
+	_border_lines.touch(pos + pos.normalized() * 0.5, here, target)
+
+
 ## O ponto está no lote do jogador ou na margem em volta (Service.InLotArea no servidor)?
 func _in_own_lot_area(lot: Dictionary, p: Vector3) -> bool:
 	var f := _data.frame(int(lot["cell"]))
@@ -701,6 +719,7 @@ func _border_guard(from: Vector3, probe: Vector3) -> Vector3:
 		_barrier_msg_at = now
 		_ui.toast("Para entrar aqui, você precisa do passaporte deste país: %s. Ele pode ser comprado em qualquer aeroporto." % country_name(target))
 		_ui.restore_control()
+	_border_touch(from, target)
 	var bn := _data.borders.border_normal(from, _player.cell_id, world.surface_radius(_player.cell_id), target)
 	if bn.is_empty() or (bn["normal"] as Vector3) == Vector3.ZERO:
 		return (probe - from).normalized()
@@ -1280,6 +1299,13 @@ func dev_travel(code: String) -> void:
 func set_barrier(on: bool) -> void:
 	barrier_on = on
 	_ui.dev.status("Barreira da fronteira %s." % ("ligada" if on else "desligada"))
+
+
+## Modo dev: fronteiras todas abertas, todas fechadas ou pelos passaportes ("").
+func set_border_view(mode: String) -> void:
+	_border_lines.view_override = mode
+	_border_lines.refresh_state(true)
+	_ui.dev.status({"open": "Todas as fronteiras abertas (só a visão).", "closed": "Todas as fronteiras fechadas (só a visão).", "": "Fronteiras pelos seus passaportes."}[mode])
 
 
 func set_border_lines(lines: bool, debug: bool) -> void:
@@ -2357,8 +2383,101 @@ func _border_test() -> void:
 	print("Goblo: border-test %s andando para o oeste: %s em %.1f s" % ["ok   " if crossed else "FALHOU", str(changes), t])
 	if not crossed:
 		fails += 1
+	fails += await _border_live_test()
 	print("Goblo: border-test %s" % ("tudo certo" if fails == 0 else "%d falhas" % fails))
 	get_tree().quit(1 if fails > 0 else 0)
+
+
+## Fronteira viva (fase 3): peças montadas, fechada sem passaporte, onda ao encostar, abre
+## animando ao ganhar o passaporte, visão do modo dev e nenhuma travada andando ao longo
+## dela. Devolve o número de falhas.
+func _border_live_test() -> int:
+	var fails: Array = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: border-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	const PAIR := "BRA|PRY"
+	await dev_passport("reset", "")
+	barrier_on = true
+	await teleport_exact(-25.50, -54.35)
+	for i in 30:
+		await get_tree().process_frame
+	# Peças do par Brasil–Paraguai.
+	var meshes := 0
+	var markers := 0
+	for chunk in _border_lines.get_children():
+		for g in chunk.get_children():
+			if str(g.get_meta("pair", "")) != PAIR:
+				continue
+			for c in g.get_children():
+				if c is MeshInstance3D:
+					meshes += 1
+				elif c is MultiMeshInstance3D:
+					markers = maxi(markers, (c as MultiMeshInstance3D).multimesh.instance_count)
+	check.call(meshes >= 3 and markers >= 2, "cortina, faixa e bandeirolas (%d malhas) e %d marcos no par %s" % [meshes, markers, PAIR])
+	check.call(is_zero_approx(_border_lines.openness(PAIR)), "sem o passaporte do Paraguai, fechada (%.2f)" % _border_lines.openness(PAIR))
+	# Encostar: anda para o oeste com a barreira e a cortina faz a onda.
+	var rippled := false
+	_player.autopilot = true
+	var t := 0.0
+	while t < 4.0 and not rippled:
+		var up := _player.global_position.normalized()
+		_player.auto_wish = up.cross(Vector3.UP).normalized()
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		rippled = float(_border_lines._pairs.get(PAIR, {}).get("ripple", -1.0)) >= 0.0
+	_player.autopilot = false
+	check.call(rippled and _tracker.current == "BRA", "ao encostar, a cortina faz a onda (e segura: %s)" % _tracker.current)
+	# Ganhou o passaporte: abre animando.
+	await dev_passport("give", "PRY")
+	await get_tree().create_timer(0.5).timeout
+	var mid := _border_lines.openness(PAIR)
+	await get_tree().create_timer(1.6).timeout
+	check.call(mid > 0.05 and mid < 0.95 and is_equal_approx(_border_lines.openness(PAIR), 1.0),
+		"com o passaporte, abre com animação (%.2f no meio, %.2f no fim)" % [mid, _border_lines.openness(PAIR)])
+	set_border_view("closed")
+	await get_tree().create_timer(1.8).timeout
+	check.call(is_zero_approx(_border_lines.openness(PAIR)), "modo dev: todas fechadas")
+	set_border_view("")
+	await get_tree().create_timer(1.8).timeout
+	# Desempenho: 20 s andando ao longo da fronteira (sem limite de fps, para medir só o
+	# trabalho de cada quadro), contando os quadros acima de 25 ms.
+	var fps_before := Engine.max_fps
+	Engine.max_fps = 0
+	var hitches_before := HitchLog.total
+	var worst := 0.0
+	_player.autopilot = true
+	_player.auto_run = true
+	t = 0.0
+	while t < 20.0:
+		var pos := _player.global_position
+		var up := pos.normalized()
+		var north := (Vector3.UP - up * up.dot(Vector3.UP)).normalized()
+		var wish := north
+		var bn := _data.borders.border_normal(pos, _player.cell_id, world.surface_radius(_player.cell_id), "PRY")
+		if not bn.is_empty() and (bn["normal"] as Vector3) != Vector3.ZERO:
+			var n: Vector3 = bn["normal"]
+			var tangent := up.cross(n).normalized()
+			if tangent.dot(north) < 0.0:
+				tangent = -tangent
+			# Fica a uns 2 unidades da linha, do lado brasileiro.
+			wish = (tangent + n * clampf(float(bn["dist"]) - 2.0, -1.0, 1.0) * 0.6).normalized()
+		_player.auto_wish = wish
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	_player.autopilot = false
+	Engine.max_fps = fps_before
+	var n_hitch := HitchLog.total - hitches_before
+	for e: Dictionary in HitchLog.recent.slice(maxi(0, HitchLog.recent.size() - n_hitch)):
+		worst = maxf(worst, float(e["ms"]))
+	var ll := WorldData.vec_to_lat_lon(_player.global_position)
+	check.call(n_hitch == 0, "20 s andando ao longo da fronteira (até %s): %d quadros acima de 25 ms (pior %.0f ms)" % [
+		WorldData.format_lat_lon(ll.x, ll.y), n_hitch, worst])
+	if n_hitch > 0:
+		for e: Dictionary in HitchLog.recent.slice(maxi(0, HitchLog.recent.size() - n_hitch)):
+			print("Goblo: border-test   travada %.0f ms: %s" % [e["ms"], "; ".join(e["what"])])
+	return fails.size()
 
 
 ## A câmera só muda de distância quando o jogador mexe: encosta o personagem em casas

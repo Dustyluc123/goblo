@@ -192,6 +192,15 @@ func _travel_tab() -> Control:
 	debug.toggled.connect(func(on: bool) -> void: game.set_border_lines(lines.button_pressed, on))
 	box.add_child(lines)
 	box.add_child(debug)
+	var view := HBoxContainer.new()
+	view.add_theme_constant_override("separation", 6)
+	view.add_child(UiStyle.label("Visão da fronteira:", 16))
+	for opt: Array in [["Pelos passaportes", ""], ["Todas abertas", "open"], ["Todas fechadas", "closed"]]:
+		var b := UiStyle.button(opt[0], false)
+		var mode: String = opt[1]
+		b.pressed.connect(func() -> void: game.set_border_view(mode))
+		view.add_child(b)
+	box.add_child(view)
 	var book := HBoxContainer.new()
 	book.add_theme_constant_override("separation", 6)
 	var complete := UiStyle.button("Completar o passaporte", false)
