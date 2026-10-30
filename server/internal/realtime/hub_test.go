@@ -160,6 +160,13 @@ func (c *conn) move(p world.Vec3) {
 	}
 }
 
+// mark é o número de mensagens de texto recebidas até agora (para esperar só as novas).
+func (c *conn) mark() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.texts)
+}
+
 func (c *conn) waitText(kind string, d time.Duration) map[string]any {
 	return c.waitTextAfter(kind, 0, d)
 }
@@ -530,10 +537,12 @@ func TestTradeFlow(t *testing.T) {
 		t.Fatalf("B recebeu %d madeiras", woods)
 	}
 	// Oferecer o que não tem é recusado (aviso), e cancelar fecha para os dois.
+	mark := b.mark()
 	a.send(map[string]any{"t": "trade_req", "to": b.player.ID})
-	b.waitTextAfter("trade_req", 3, time.Second)
+	b.waitTextAfter("trade_req", mark, time.Second)
+	mark = a.mark()
 	b.send(map[string]any{"t": "trade_answer", "from": a.player.ID, "ok": true})
-	time.Sleep(200 * time.Millisecond)
+	a.waitTextAfter("trade_open", mark, time.Second)
 	n := a.count("info")
 	a.send(map[string]any{"t": "trade_offer", "items": []any{map[string]any{"item": "coconut", "count": 9}}, "coins": 0})
 	time.Sleep(200 * time.Millisecond)
@@ -574,4 +583,38 @@ func TestTradeFlow(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 	a.send(map[string]any{"t": "trade_confirm"})
 	a.waitTextAfter("trade_done", 0, 2*time.Second)
+}
+
+// Modo dev: "abrir uma troca com um bot" cria um bot parado do lado, já com a troca aberta;
+// ele oferece madeira, acompanha o "pronto" e a confirmação.
+func TestDevTradeBot(t *testing.T) {
+	e := newEnv(t, true)
+	a, _ := e.join(t, "Freguesa", "BRA")
+	a.tp("dev", ground(-23.55, -46.63))
+	e.svc.DevGive(e.ctx, a.player, "stone", 4)
+	time.Sleep(200 * time.Millisecond)
+	if _, err := e.hub.DevTradeBot(a.player.ID); err != nil {
+		t.Fatal(err)
+	}
+	a.waitText("trade_open", time.Second)
+	a.send(map[string]any{"t": "trade_offer", "items": []any{map[string]any{"item": "stone", "count": 2}}, "coins": 0})
+	time.Sleep(200 * time.Millisecond)
+	a.send(map[string]any{"t": "trade_ready", "on": true})
+	time.Sleep(600 * time.Millisecond)
+	a.send(map[string]any{"t": "trade_confirm"})
+	done := a.waitText("trade_done", 2*time.Second)
+	if done == nil {
+		t.Fatal("a troca com o bot não terminou")
+	}
+	inv, _, _ := e.svc.InventoryOf(e.ctx, a.player.ID)
+	wood := 0
+	for _, s := range inv {
+		if s.Item == "wood" {
+			wood = s.Count
+		}
+	}
+	if wood != 3 {
+		t.Fatalf("recebeu %d madeiras do bot", wood)
+	}
+	e.hub.RemoveBots()
 }

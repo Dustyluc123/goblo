@@ -231,10 +231,11 @@ func (h *Hub) dropTrade(c *client) {
 
 // --- Bots do modo dev -----------------------------------------------------------------------
 
-// botAnswer: bots de número par aceitam pedidos de troca; os outros recusam. Com Hub.mu.
+// botAnswer: bots de número par (e os parados da troca dev) aceitam pedidos de troca; os
+// outros recusam. Com Hub.mu.
 func (h *Hub) botAnswer(bot, from *client) {
 	bot.tradeReqs[from.id] = time.Now()
-	h.answerTrade(bot, from.id, bot.id%2 == 0, time.Now())
+	h.answerTrade(bot, from.id, bot.id%2 == 0 || bot.bot.stay, time.Now())
 }
 
 // botTrade: o bot oferece 3 madeiras e acompanha o jogador: fica pronto quando o outro

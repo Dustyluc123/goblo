@@ -31,6 +31,7 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /dev/online", s.auth(s.devOnline))
 	mux.HandleFunc("POST /dev/shop/restock", s.auth(s.devShopRestock))
 	mux.HandleFunc("POST /dev/bots", s.auth(s.devBots))
+	mux.HandleFunc("POST /dev/trade-bot", s.auth(s.devTradeBot))
 	mux.HandleFunc("POST /dev/border-lots/move", s.auth(s.devMoveBorderLots))
 }
 
@@ -217,6 +218,20 @@ func (s *Server) devBots(w http.ResponseWriter, r *http.Request, p *game.Player)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"created": s.Realtime.SpawnBots(pos, body.Count, p.Country)})
+}
+
+// devTradeBot cria um bot do lado do jogador e abre uma troca com ele.
+func (s *Server) devTradeBot(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	if s.Realtime == nil {
+		writeError(w, s, game.ErrOffline)
+		return
+	}
+	nick, err := s.Realtime.DevTradeBot(p.ID)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"bot": nick})
 }
 
 // devShopRestock adianta o estoque da loja de um país (sem país, o do jogador).

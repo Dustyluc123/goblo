@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"github.com/Dustyluc123/goblo/server/internal/game"
 	"github.com/Dustyluc123/goblo/server/internal/world"
 )
 
@@ -19,6 +20,8 @@ type botState struct {
 	rng     *rand.Rand
 	nextAt  time.Time
 	running bool
+	// stay: bot parado do lado do jogador (troca do modo dev); sempre aceita trocas.
+	stay bool
 }
 
 var botPhrases = []string{"Oi!", "Que lugar bonito!", "Alguém viu uma vaca por aqui?", "Bom dia!", "Vou colher umas flores.", "Olha o pôr do sol!"}
@@ -60,6 +63,45 @@ func (h *Hub) SpawnBots(pos world.Vec3, n int, country string) int {
 		}
 	}
 	return made
+}
+
+// DevTradeBot cria um bot parado do lado do jogador e já abre uma troca com ele (modo dev).
+// Devolve o apelido do bot.
+func (h *Hub) DevTradeBot(playerID int64) (string, error) {
+	h.mu.Lock()
+	me := h.clients[playerID]
+	if !h.dev || me == nil || !me.spawned {
+		h.mu.Unlock()
+		return "", game.ErrOffline
+	}
+	pos, country := me.pos, me.player.Country
+	h.nextBot++
+	k := h.nextBot
+	h.mu.Unlock()
+	rng := rand.New(rand.NewPCG(uint64(k), 7))
+	chars := h.rules.Characters
+	p, err := h.svc.DevCreateBot(context.Background(), fmt.Sprintf("Bot %d", k), country, chars[rng.IntN(len(chars))])
+	if err != nil {
+		return "", err
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	start, ok := h.landNear(pos, 1.6, rng)
+	if !ok {
+		start = pos
+	}
+	c := &client{hub: h, id: p.ID, player: p, spawned: true, pos: start, cell: h.world.FindCell(start, -1),
+		visible: map[int64]bool{}, blocked: map[int64]bool{}, blockedBy: map[int64]bool{}, done: make(chan struct{}),
+		tradeReqs: map[int64]time.Time{}, bot: &botState{center: start, target: start, rng: rng, stay: true}}
+	h.clients[p.ID] = c
+	if me.trade != nil {
+		return p.Nickname, nil
+	}
+	h.nextTrade++
+	t := &trade{id: h.nextTrade, sides: [2]*client{me, c}}
+	me.trade, c.trade = t, t
+	h.sendTrade(t, "trade_open")
+	return p.Nickname, nil
 }
 
 // RemoveBots tira todos os bots do modo dev (e apaga os jogadores falsos deles).
@@ -114,9 +156,9 @@ func (h *Hub) moveBots(now time.Time) {
 		if b.running {
 			speed *= 2.3
 		}
-		if dist < 0.4 {
+		if dist < 0.4 || b.stay {
 			c.anim = 0
-			if now.After(b.nextAt) {
+			if !b.stay && now.After(b.nextAt) {
 				if t, ok := h.landNear(b.center, 16, b.rng); ok {
 					b.target = t
 					b.running = b.rng.IntN(4) == 0
