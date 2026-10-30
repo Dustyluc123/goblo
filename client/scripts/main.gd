@@ -271,6 +271,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	_hud.show_status("Preparando os gráficos…")
 	tm = Time.get_ticks_msec()
 	var warmed := await ShaderWarmup.run(self, _camera, _warm_extras())
+	_neighborhood.prefill_arrays()
 	load_stats["warmup_ms"] = Time.get_ticks_msec() - tm
 	load_stats["warmup_items"] = warmed
 
@@ -2405,6 +2406,7 @@ func _camera_test() -> void:
 		await _teleport(pos)
 		_player.face(LotGeom.point(f, lot, _session.tile_size, int(h["x"]) + fp.x * 0.5, int(h["y"]) - 5.0))
 		_camera.snap_behind_target()  # personagem de costas para a casa: câmera do lado dela
+		await _neighborhood.settle()  # lotes que chegam aos poucos e malhas juntadas em thread
 		await get_tree().create_timer(0.6).timeout
 		await spin_and_check.call("encostado na casa de %s" % lot.get("owner", "?"))
 		if walls == 0 and _args.has("screenshot"):

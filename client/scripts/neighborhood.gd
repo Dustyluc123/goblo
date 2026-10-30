@@ -43,6 +43,15 @@ var view_distance := 120.0
 var _queue := {}
 ## Junções de malhas rodando em threads: {"task", "root", "part_of", "out"}.
 var _merges: Array = []
+## Tempo de cada parte do último lote montado (registro de travadas).
+var _parts := {}
+## Cópia dos arrays de cada malha (malha → [arrays por superfície]). Ler a malha de volta
+## da placa de vídeo custava 8 a 12 ms por lote; as malhas são as mesmas em todos os lotes.
+var _arrays_cache := {}
+## Malhas da placa (iguais em todos os lotes, para entrarem na cache).
+var _post_mesh: BoxMesh
+var _boxes := {}
+var _board_mesh: BoxMesh
 
 
 func setup(w: WorldData, d: ChunkData, s: Session) -> void:
@@ -136,6 +145,13 @@ func _process(_delta: float) -> void:
 		build_lot(lot)
 
 
+## Espera o bairro assentar: fila montada e malhas juntadas (testes).
+func settle() -> void:
+	flush()
+	while not _merges.is_empty():
+		await get_tree().process_frame
+
+
 ## Monta já tudo o que está na fila (nascimento, testes).
 func flush() -> void:
 	for id: int in _queue.keys():
@@ -175,8 +191,13 @@ func lot_node(id: int) -> Node3D:
 func build_lot(l: Dictionary) -> void:
 	_queue.erase(int(l["id"]))
 	var t0 := Time.get_ticks_usec()
+	_parts = {}
 	_build_lot(l)
-	HitchLog.note("lote %d montado (%d objetos)" % [int(l["id"]), (l.get("placements", []) as Array).size()], (Time.get_ticks_usec() - t0) / 1000.0)
+	var detail := PackedStringArray()
+	for k: String in _parts:
+		detail.append("%s %.1f" % [k, _parts[k]])
+	HitchLog.note("lote %d montado (%d objetos; ms: %s)" % [int(l["id"]), (l.get("placements", []) as Array).size(), ", ".join(detail)],
+		(Time.get_ticks_usec() - t0) / 1000.0)
 
 
 func _build_lot(l: Dictionary) -> void:
@@ -191,19 +212,32 @@ func _build_lot(l: Dictionary) -> void:
 	var tile := session.tile_size
 	var n := session.lot_tiles
 	var own := int(l.get("owner_id", -1)) == int(session.me.get("id", -2))
+	var t := Time.get_ticks_usec()
 	root.add_child(_border(f, l, tile, n, own))
+	t = _part("borda", t)
 	root.add_child(_sign(f, l, tile, n, str(l.get("owner", "?")), own))
+	t = _part("placa", t)
 	var body := StaticBody3D.new()
 	root.add_child(body)
 
 	var house: Variant = l.get("house")
 	if house is Dictionary:
 		_build_house(root, body, f, l, tile, house)
+	t = _part("casa", t)
 	for p: Dictionary in l.get("placements", []):
 		_build_placement(root, body, f, l, tile, p)
+	t = _part("objetos", t)
 	if not own:
 		_merge(root)
+	t = _part("junção", t)
 	_apply_range(root)
+	_part("distância", t)
+
+
+func _part(name: String, since: int) -> int:
+	var now := Time.get_ticks_usec()
+	_parts[name] = (now - since) / 1000.0
+	return now
 
 
 ## Junta as malhas do lote em duas ArrayMesh com uma superfície por material: a casa
@@ -224,14 +258,43 @@ func _merge(root: Node3D) -> void:
 		var part := "house" if mi.has_meta("house") else "rest"
 		part_of[mi] = part
 		var xf := _local_to(mi, root)
-		for si in mi.mesh.get_surface_count():
+		var surfaces := _surface_arrays(mi.mesh)
+		for si in surfaces.size():
 			var mat: Material = mi.material_override if mi.material_override else mi.mesh.surface_get_material(si)
-			jobs.append([part, mat, mi.mesh.surface_get_arrays(si), xf])
+			jobs.append([part, mat, surfaces[si], xf])
 	if jobs.is_empty():
 		return
 	var out := []
 	var task := WorkerThreadPool.add_task(func() -> void: out.append(_merge_arrays(jobs)))
 	_merges.append({"task": task, "root": root, "part_of": part_of, "out": out})
+
+
+## Caixa do tamanho dado, uma por tamanho (para a cache de arrays valer na obra também).
+func _box_of(size: Vector3) -> BoxMesh:
+	var key := "%.3f,%.3f,%.3f" % [size.x, size.y, size.z]
+	if not _boxes.has(key):
+		var b := BoxMesh.new()
+		b.size = size
+		_boxes[key] = b
+	return _boxes[key]
+
+
+## Enche a cache de arrays com as malhas das casas e decorações (tela de carregamento).
+func prefill_arrays() -> void:
+	for name: String in ModelLibrary.cached_names():
+		var lib := ModelLibrary.get_cached(name)
+		if not lib.is_empty() and not ModelLibrary.is_baked(lib) and lib.get("mesh") != null:
+			_surface_arrays(lib["mesh"])
+
+
+## Arrays de todas as superfícies da malha, da cache.
+func _surface_arrays(mesh: Mesh) -> Array:
+	if not _arrays_cache.has(mesh):
+		var list: Array = []
+		for si in mesh.get_surface_count():
+			list.append(mesh.surface_get_arrays(si))
+		_arrays_cache[mesh] = list
+	return _arrays_cache[mesh]
 
 
 ## Junta as malhas por parte e material (pode rodar numa thread: só mexe nos arrays).
@@ -361,17 +424,18 @@ func _sign(f: Dictionary, l: Dictionary, tile: float, n: int, owner: String, own
 	var node := Node3D.new()
 	var pos := LotGeom.point(f, l, tile, n * 0.5, -0.6)
 	node.transform = Transform3D(WorldData.frame_basis(f, 0.0), pos)
+	if _post_mesh == null:
+		_post_mesh = BoxMesh.new()
+		_post_mesh.size = Vector3(0.08, 0.7, 0.08)
+		_board_mesh = BoxMesh.new()
+		_board_mesh.size = Vector3(0.9, 0.32, 0.05)
 	var post := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(0.08, 0.7, 0.08)
-	post.mesh = box
+	post.mesh = _post_mesh
 	post.position = Vector3(0, 0.35, 0)
 	post.material_override = _wood_mat
 	node.add_child(post)
 	var board := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3(0.9, 0.32, 0.05)
-	board.mesh = bm
+	board.mesh = _board_mesh
 	board.position = Vector3(0, 0.78, 0)
 	board.material_override = _own_paint_mat if own else _paint_mat
 	node.add_child(board)
@@ -483,9 +547,7 @@ func _scaffold(f: Dictionary, l: Dictionary, tile: float, r: Vector2i, x: int, y
 	parts.append([Vector3(hx * 1.0, 0.12, hz * 0.5), Vector3(0.1, 0.18, 0.05), 0.0])
 	for part: Array in parts:
 		var mi := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = part[0]
-		mi.mesh = box
+		mi.mesh = _box_of(part[0])
 		mi.material_override = wood
 		mi.position = part[1]
 		mi.rotation.z = part[2]
