@@ -193,6 +193,7 @@ func interact() -> Dictionary:
 		return r
 	var res: Dictionary = r["data"]
 	session.set_inventory(res["inventory"], int(res["slots_used"]))
+	game.net_act(action)
 	if action == "shake" or action == "chop" or action == "mine":
 		_wobble(o, 0.12 if action == "shake" else 0.06)
 	data.set_object_state(o["id"], res["state"])
@@ -217,6 +218,7 @@ func _animal(an: Dictionary) -> Dictionary:
 	player.play_action("interact-right")
 	if not _wants_fruit(an):
 		animals.pet(id)
+		game.net_act("pet", id)
 		return {"ok": true, "action": "pet"}
 	if id < 0:  # animal criado pelo modo dev: só existe aqui
 		animals.fed(id)
@@ -229,10 +231,21 @@ func _animal(an: Dictionary) -> Dictionary:
 		return r
 	session.set_inventory(r["data"]["inventory"], int(r["data"]["slots_used"]))
 	animals.fed(id)
+	game.net_act("feed", id)
 	ui.toast(str(r["data"]["message"]), "berries")
 	game.on_animal_fed(str(r["data"]["species"]))
 	_timer = 0.0
 	return r
+
+
+## Outro jogador sacudiu, cortou ou quebrou um objeto perto: aqui ele balança também (o
+## estado da coleta continua de cada um).
+func remote_action(id: int, action: String) -> void:
+	var o := data.object(id)
+	if o.is_empty() or o.get("hidden", false):
+		return
+	if action == "shake" or action == "chop" or action == "mine":
+		_wobble(o, 0.12 if action == "shake" else 0.06)
 
 
 ## Árvore (ou pedra) balançando: esconde a instância do MultiMesh e anima uma cópia.

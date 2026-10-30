@@ -3,7 +3,7 @@ extends Control
 ## Tela de primeiro acesso: o jogador escolhe um apelido e confirma (ou troca) o país.
 ## O país sugerido vem do servidor (pelo IP; rodando local, pelo idioma do sistema).
 
-signal submitted(nickname: String, country: String)
+signal submitted(nickname: String, country: String, character: String)
 
 var _nick: LineEdit
 var _search: LineEdit
@@ -13,6 +13,7 @@ var _error: Label
 var _button: Button
 var _countries: Array = []  # [código, nome] em ordem alfabética
 var _selected := ""
+var _char: OptionButton
 
 
 func _ready() -> void:
@@ -36,6 +37,15 @@ func _ready() -> void:
 	_nick.max_length = 16
 	_nick.text_submitted.connect(func(_t: String) -> void: _submit())
 	box.add_child(_nick)
+	box.add_child(UiStyle.label("Personagem (os outros jogadores veem; dá para trocar no F6)", 18))
+	_char = OptionButton.new()
+	_char.focus_mode = Control.FOCUS_NONE
+	_char.add_theme_font_size_override("font_size", 17)
+	for id: String in Player.CHARACTERS:
+		_char.add_item(Player.character_label(id))
+		_char.set_item_metadata(_char.item_count - 1, id)
+	_char.select(Player.CHARACTERS.find("character-male-a"))
+	box.add_child(_char)
 	box.add_child(UiStyle.label("País", 18))
 	_detected = UiStyle.label("", 16, UiStyle.INK_SOFT)
 	_detected.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -95,4 +105,4 @@ func _submit() -> void:
 		return
 	_error.text = ""
 	_button.disabled = true
-	submitted.emit(_nick.text, _selected)
+	submitted.emit(_nick.text, _selected, str(_char.get_item_metadata(_char.selected)))

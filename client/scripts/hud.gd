@@ -111,6 +111,18 @@ func set_help_visible(on: bool) -> void:
 
 
 ## Mostra o selo "MODO DEV · F1" quando o servidor está com GOBLO_DEV=1.
+## Estado da conexão em tempo real, no cartão (some quando está tudo certo).
+var _net_label: Label
+
+
+func set_net_state(state: String) -> void:
+	if _net_label == null:
+		_net_label = _label(15, Color("b5566b"))
+		_info_box.add_child(_net_label)
+	_net_label.text = "Conectando ao servidor…" if state == "conectando" else "Sem conexão: tentando de novo…"
+	_net_label.visible = state != "conectado"
+
+
 func set_dev(on: bool) -> void:
 	if _dev_badge == null:
 		_dev_badge = _label(15, Color("6b4c9a"))

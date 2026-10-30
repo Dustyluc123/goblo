@@ -48,6 +48,9 @@ extends Node3D
 ##   --hitch-test        passeio pelos momentos suspeitos de travar (correr, afastar a câmera,
 ##                       Alemanha no outono, pampa com animais, modo foto, voo, casa, troca de
 ##                       estação) e imprime as travadas (> 25 ms) do registro (servidor dev)
+##   --mp-test=a|b       dois jogos ao mesmo tempo (tools/dois_clientes.sh): cada um espera ver
+##                       o outro (--peer=APELIDO), o b anda e fala, o a confere que viu o b
+##                       andar e responde; os dois conferem o chat (servidor dev)
 ##   --cursor-test       voo, casa (H), teleporte do modo dev, menus, aviso da fronteira e
 ##                       plaquinha: depois de cada um, o cursor volta a ser capturado e o
 ##                       mouse gira a câmera sem clique (finge a janela na frente)
@@ -93,6 +96,12 @@ var _pedia_art: PediaArt
 var _season_fx: SeasonFx
 var _airports: Airports
 var _hitches: HitchLog
+## Tempo real (fase 3): conexão, outros jogadores e o envio da posição.
+var _net: Net
+var _remotes: RemotePlayers
+var _send_t := 0.0
+var _last_sent := []
+var _spawn_sent := false
 ## Voando (viagem de avião): o mundo não carrega pedaços pelo caminho.
 var _flying := false
 ## Barreira do passaporte ligada (o modo dev pode desligar).
@@ -205,6 +214,12 @@ func _ready() -> void:
 	_hitches.name = "HitchLog"
 	_hitches.game = self
 	add_child(_hitches)
+	_net = Net.new()
+	_net.name = "Net"
+	add_child(_net)
+	_remotes = RemotePlayers.new()
+	_remotes.name = "RemotePlayers"
+	add_child(_remotes)
 
 	_http = HTTPRequest.new()
 	_http.timeout = 30.0
@@ -266,6 +281,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	var tm := Time.get_ticks_msec()
 	await ModelLibrary.preload_all(_models_to_preload(), get_tree())
 	await Animals.preload_scenes(_session.animal_species, get_tree())
+	await RemotePlayers.preload_characters(_session.rules.get("characters", []), get_tree())
 	load_stats["models_ms"] = Time.get_ticks_msec() - tm
 	_setup_game()
 	_hud.show_status("Preparando os gráficos…")
@@ -294,6 +310,12 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	load_stats["content_ms"] = Time.get_ticks_msec() - t1
 	_hud.hide_status()
 	_ready_to_play = true
+	# Espera a conexão em tempo real (até 6 s) para o servidor saber onde você está.
+	var wait := 0.0
+	while not _net.is_welcomed and wait < 6.0:
+		await get_tree().process_frame
+		wait += get_process_delta_time()
+	_send_spawn()
 	var win := DisplayServer.window_get_size()
 	_hitches.start("qualidade %s · janela %d × %d · limite %s · V-Sync %s · %s" % [Quality.label(), win.x, win.y,
 		FpsLimit.label(), "ligado" if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else "desligado",
@@ -342,7 +364,10 @@ func _identify() -> bool:
 	if (_is_automation() or _args.has("nickname")) and _args.get("ui", "") != "first":
 		var nick := str(_args.get("nickname", "Robo %d" % randi_range(1000, 9999)))
 		var country := str(_args.get("country", detected if not detected.is_empty() else "BRA"))
-		var r := await _api.request("POST", "/players", {"nickname": nick, "country": country})
+		var body := {"nickname": nick, "country": country}
+		if _args.has("character"):
+			body["character"] = str(_args["character"])
+		var r := await _api.request("POST", "/players", body)
 		if not r["ok"]:
 			_fail("Não consegui criar o jogador: %s" % r["message"])
 			return false
@@ -363,7 +388,7 @@ func _identify() -> bool:
 		var screen := _ui.show_first_access(world.countries, detected, source)
 		while true:
 			var sub: Array = await screen.submitted
-			var r := await _api.request("POST", "/players", {"nickname": sub[0], "country": sub[1]})
+			var r := await _api.request("POST", "/players", {"nickname": sub[0], "country": sub[1], "character": sub[2]})
 			if r["ok"]:
 				created = r["data"]
 				break
@@ -493,6 +518,206 @@ func _setup_game() -> void:
 	apply_season(Seasons.north_phase(season_now()))
 	_session.coins_changed.connect(func(delta: int) -> void: _hud.set_coins(_session.coins_text(_session.coins), delta))
 	_hud.set_coins(_session.coins_text(_session.coins))
+	_setup_net()
+
+
+# --- Tempo real (fase 3) --------------------------------------------------------------------
+
+func _setup_net() -> void:
+	var character := str(_session.me.get("character", ""))
+	if not character.is_empty() and character != _player.character:
+		_player.set_character(character)
+	_remotes.setup(_net, _camera)
+	_ui.players.setup(self, _remotes)
+	_ui.settings.on_character = set_character
+	_ui.settings.show_character(_player.character)
+	_ui.chat.max_chars = int(_session.rules.get("chat", {}).get("max_chars", 120))
+	_ui.chat.sent.connect(func(text: String) -> void: _net.send_json({"t": "chat", "text": text}))
+	_ui.emotes.picked.connect(emote)
+	_net.welcomed.connect(func(_info: Dictionary) -> void:
+		_spawn_sent = false
+		if _ready_to_play:
+			_send_spawn())
+	_net.state_changed.connect(func(state: String) -> void:
+		_hud.set_net_state(state)
+		if state == "sem conexão" and _ready_to_play:
+			_ui.toast("Sem conexão com o servidor. Tentando de novo…"))
+	_net.corrected.connect(func(pos: Vector3, _reason: int) -> void:
+		if not _flying:
+			_player.correct(pos))
+	_net.teleport_result.connect(func(why: String, ok: bool) -> void:
+		if not ok:
+			HitchLog.note("teleporte recusado pelo servidor: %s" % why)
+			if why == "spawn":
+				# O servidor não aceitou o lugar de nascimento: volta para casa.
+				_teleport(home_point(), "home"))
+	_net.chat_received.connect(_on_chat)
+	_net.emote_received.connect(func(id: int, _e: String) -> void: pass)
+	_net.act_received.connect(func(id: int, a: String, animal: int) -> void:
+		if (a == "pet" or a == "feed") and id != _net.player_id:
+			_animals.remote_pet(animal))
+	_net.object_event.connect(func(d: Dictionary, by: int) -> void:
+		if by != _net.player_id:
+			_interaction.remote_action(int(d.get("id", -1)), str(d.get("action", ""))))
+	_net.lot_event.connect(func(lot: Dictionary, by: int) -> void:
+		if by != _net.player_id:
+			_data.set_lot(lot))
+	_net.stamped.connect(_on_stamped)
+	_net.blocked_changed.connect(func(id: int, on: bool) -> void:
+		if on:
+			_ui.players.blocked[id] = true
+		else:
+			_ui.players.blocked.erase(id)
+		_ui.toast("Jogador bloqueado: vocês não veem mais o chat nem os emotes um do outro." if on else "Jogador desbloqueado."))
+	_net.info.connect(func(text: String) -> void: _ui.toast(text))
+	_net.kicked.connect(func(reason: String) -> void:
+		_hud.show_status("%s\nFeche este jogo ou entre de novo." % reason))
+	_remotes.muted = _load_mutes()
+	_net.start(_server_url, _api.token)
+
+
+## Primeira posição no servidor (nascimento ou reconexão).
+func _send_spawn() -> void:
+	if _spawn_sent or not _net.is_welcomed:
+		return
+	_spawn_sent = true
+	_net.teleport("spawn", _player.global_position)
+	_last_sent = []
+
+
+## Manda a posição send_hz vezes por segundo (só se mudou, ou 1 vez por segundo parado).
+func _send_movement(delta: float) -> void:
+	if not _net.is_welcomed or not _spawn_sent or _flying or not _player.visible:
+		return
+	_send_t -= delta
+	if _send_t > 0.0:
+		return
+	_send_t = 1.0 / float(_net.send_hz)
+	var pos := _player.global_position
+	var yaw := Net.yaw_of(pos, _player.facing)
+	var code := _player.anim_code()
+	var flags := 0
+	if _player.is_on_floor():
+		flags |= Net.FLAG_ON_FLOOR
+	if Input.is_action_pressed("run"):
+		flags |= Net.FLAG_RUNNING
+	if _player.noclip:
+		flags |= Net.FLAG_NOCLIP
+	if _photo.active:
+		flags |= Net.FLAG_PHOTO
+	var now := Time.get_ticks_msec()
+	if not _last_sent.is_empty():
+		var same: bool = (_last_sent[0] as Vector3).distance_to(pos) < 0.01 and absf(float(_last_sent[1]) - yaw) < 0.01 and _last_sent[2] == code
+		if same and now - int(_last_sent[3]) < 1000:
+			return
+	_net.send_move(pos, yaw, code, flags)
+	_last_sent = [pos, yaw, code, now]
+
+
+func _on_chat(id: int, nick: String, text: String) -> void:
+	var own := id == _net.player_id
+	if not own and _remotes.muted.has(id):
+		return
+	_ui.chat.add_line(nick, text, own)
+	if not own:
+		_remotes.say(id, text)
+
+
+## Carimbo a pé dado pelo servidor (ADR 0040).
+func _on_stamped(res: Dictionary) -> void:
+	if res.has("passport"):
+		_session.set_passport_book(res["passport"])
+	var reward := int(res.get("reward", 0))
+	_ui.toast("Carimbo novo no passaporte!  +%s" % _session.coins_text(reward))
+
+
+## Emote do jogador: toca aqui e manda para quem está perto.
+func emote(e: String) -> void:
+	_player.play_emote(e)
+	if e == "cheer":
+		_season_fx.confetti(_player.global_position + _player.global_position.normalized() * 1.4)
+	_net.send_json({"t": "emote", "e": e})
+
+
+## Ação que os outros veem (animação de coletar, carinho, foto).
+func net_act(a: String, animal := 0) -> void:
+	_net.send_json({"t": "act", "a": a, "animal": animal})
+
+
+## Silenciar (só neste computador, guardado no perfil).
+func set_muted(id: int, on: bool) -> void:
+	if on:
+		_remotes.muted[id] = true
+	else:
+		_remotes.muted.erase(id)
+	var cfg := ConfigFile.new()
+	for k: int in _remotes.muted:
+		cfg.set_value("silenciados", str(k), true)
+	cfg.save("user://silenciados_%s.cfg" % _session.profile)
+	_ui.toast("Jogador silenciado." if on else "Você volta a ouvir esse jogador.")
+
+
+func _load_mutes() -> Dictionary:
+	var out := {}
+	var cfg := ConfigFile.new()
+	if cfg.load("user://silenciados_%s.cfg" % _session.profile) == OK and cfg.has_section("silenciados"):
+		for k: String in cfg.get_section_keys("silenciados"):
+			out[int(k)] = true
+	return out
+
+
+func set_blocked(id: int, on: bool) -> void:
+	_net.send_json({"t": "block", "id": id, "on": on})
+
+
+## Troca o personagem (configurações): guarda no servidor e os outros veem.
+func set_character(c: String) -> void:
+	var r := await _api.request("POST", "/player/character", {"character": c})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return
+	_session.set_me(r["data"])
+	_player.set_character(c)
+	_on_equipped()
+	_net.send_json({"t": "char", "c": c})
+
+
+## Modo dev: cria n bots perto (0 = tira todos).
+func dev_bots(n: int) -> void:
+	var r := await _dev("/dev/bots", {"count": n}, "")
+	if r["ok"]:
+		var d: Dictionary = r["data"]
+		_ui.dev.status("%d bots criados perto de você." % int(d["created"]) if d.has("created") else "%d bots tirados." % int(d.get("removed", 0)))
+
+
+## Modo dev: quem está conectado e os números da rede.
+func dev_online() -> void:
+	var r := await _api.request("GET", "/dev/online")
+	if not r["ok"]:
+		_ui.dev.status(str(r["message"]))
+		return
+	var lines := PackedStringArray()
+	for o: Dictionary in r["data"].get("online", []):
+		lines.append("%s%s · %s · %s · vê %d" % [o["nickname"], " (bot)" if o["bot"] else "", o["country"],
+			WorldData.format_lat_lon(float(o["lat"]), float(o["lon"])), int(o["visible"])])
+	var st: Dictionary = r["data"].get("stats", {})
+	if not st.is_empty():
+		var secs := maxf(1.0, float(st["uptime_ms"]) / 1000.0)
+		lines.insert(0, "%d conectados, %d bots · servidor mandou %.1f KB/s e recebeu %.1f KB/s em média" % [
+			int(st["clients"]), int(st["bots"]), float(st["bytes_out"]) / 1024.0 / secs, float(st["bytes_in"]) / 1024.0 / secs])
+	_ui.dev.show_online("\n".join(lines))
+
+
+## Modo dev: simula atraso (ms; -1 = não muda) e perda (0 a 0,1; -1 = não muda).
+func set_net_sim(latency: int, loss: float) -> void:
+	if latency >= 0:
+		_net.sim_latency_ms = latency
+	if loss >= 0.0:
+		_net.sim_loss = loss
+
+
+func player_position() -> Vector3:
+	return _player.global_position
 
 
 ## Casinha no mini mapa e marcador discreto no globo (visão afastada) onde fica o lote.
@@ -577,7 +802,8 @@ func _on_cell_changed(id: int) -> void:
 func _on_country_changed(code: String, walked: bool) -> void:
 	_hud.set_country(code, _tracker.name_of(code))
 	var subtitle := ""
-	if _session.has_passport(code) and not _session.stamped(code) and not _flying:
+	# Com o tempo real, quem carimba é o servidor (_on_stamped); sem ele, pede aqui.
+	if _session.has_passport(code) and not _session.stamped(code) and not _flying and not _net.connected():
 		var r := await _api.request("POST", "/passport/stamp", {"country": code})
 		if r["ok"] and r["data"].get("stamp") != null:
 			_session.set_passport_book(r["data"]["passport"])
@@ -604,6 +830,11 @@ func _warm_extras() -> Array[Node3D]:
 			if ap.has_animation("Idle"):
 				ap.play("Idle")
 		out.append(a)
+	# Os personagens dos outros jogadores (um de cada já basta: mesmos materiais).
+	for c: String in RemotePlayers._scenes.keys().slice(0, 2):
+		var m := (RemotePlayers._scenes[c] as PackedScene).instantiate() as Node3D
+		m.set_meta("warm_size", 1.0)
+		out.append(m)
 	var heart := Sprite3D.new()
 	heart.texture = Animals._heart_texture()
 	heart.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -795,7 +1026,7 @@ func _fly(from_airport: Dictionary, dest: Dictionary) -> void:
 		dot.position = dir * (world.radius + 18.0 + sin(k * PI) * angle * 70.0)
 		_player.global_position = dir * (world.radius + 1.0)
 		await get_tree().process_frame
-	await _teleport(_airports.arrival_point(dest))
+	await _teleport(_airports.arrival_point(dest), "travel")
 	_player.set_physics_process(false)
 	arc.queue_free()
 	_camera.zoom = zoom_before
@@ -887,12 +1118,14 @@ func _process(delta: float) -> void:
 		var far := _camera.far_amount
 		_home_marker.visible = far > 0.25
 		_home_marker.modulate.a = smoothstep(0.25, 0.6, far)
+	_send_movement(delta)
 	if _hud.perf_visible():
 		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d animais · %d pedidos\nqualidade %s" % [
 			Engine.get_frames_per_second(), 1000.0 / maxf(1.0, Engine.get_frames_per_second()),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
 			_vegetation.instance_count, _data.all_lots().size(), _animals.active_count, _api.in_flight, Quality.label()]
+			+ "\nrede: %s · ping %d ms · ↓%d ↑%d pacotes/s · %d jogadores visíveis" % [_net.state, _net.ping_ms, _net.pps_in, _net.pps_out, _remotes.visible_count]
 			+ "\n\n" + HitchLog.summary())
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
@@ -944,6 +1177,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		_ui.close_windows()
 		if not was_open:
 			_ui.passport.toggle()
+		get_viewport().set_input_as_handled()
+	elif (key == KEY_ENTER or key == KEY_KP_ENTER) and not _ui.menu_open() and not _ui.chat.is_open():
+		_ui.chat.open()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("emotes"):
+		var was_open := _ui.emotes.visible
+		_ui.close_windows()
+		if not was_open:
+			_ui.emotes.toggle()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("players"):
+		var was_open := _ui.players.visible
+		_ui.close_windows()
+		if not was_open:
+			_ui.players.toggle()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("pedia"):
 		var was_open := _ui.pedia.visible
@@ -1009,7 +1257,7 @@ func go_home() -> void:
 	if _session.lot().is_empty():
 		_ui.toast("Você ainda não tem lote.")
 		return
-	await _teleport(home_point())
+	await _teleport(home_point(), "home")
 	_ui.toast("Bem-vindo de volta para casa!")
 
 
@@ -1023,12 +1271,16 @@ func land_point(pos: Vector3) -> Vector3:
 	return world.centers[land] * world.surface_radius(land)
 
 
-func _teleport(pos: Vector3) -> void:
+## `why` diz ao servidor por que o personagem pulou de lugar: "home" (H), "travel" (chegada
+## do voo pago), "dev" (modo dev e testes) ou "spawn".
+func _teleport(pos: Vector3, why := "dev") -> void:
 	pos = land_point(pos)
 	_build.exit()
 	_tracker.mark_teleport()
 	_player.set_physics_process(false)
 	_player.teleport(pos)
+	_net.teleport(why, _player.global_position)
+	_last_sent = []
 	_terrain.update_collision(pos, -1)
 	_camera.snap_behind_target()
 	await _data.load_now(pos, 40.0)
@@ -1378,7 +1630,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1417,6 +1669,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("hitch-test"):
 		await _hitch_test()
+		return
+	if _args.has("mp-test"):
+		await _mp_test()
 		return
 	if _args.has("travel-test"):
 		await _travel_test()
@@ -2120,6 +2375,70 @@ func _travel_test() -> void:
 	get_tree().quit(1 if not fails.is_empty() else 0)
 
 
+## Dois clientes (fase 3): cada um vê o outro, o chat chega e o movimento aparece liso.
+func _mp_test() -> void:
+	var role := str(_args["mp-test"])
+	var peer := str(_args.get("peer", ""))
+	var fails: Array = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: mp-test[%s] %s %s" % [role, "ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	var heard := []
+	_net.chat_received.connect(func(_id: int, nick: String, text: String) -> void:
+		if nick == peer:
+			heard.append(text))
+	var find_peer := func() -> int:
+		for id: int in _remotes.ids():
+			if str(_remotes.info(id).get("nick", "")) == peer:
+				return id
+		return -1
+	var t := 0.0
+	while find_peer.call() < 0 and t < 40.0:
+		await get_tree().create_timer(0.25).timeout
+		t += 0.25
+	var pid: int = find_peer.call()
+	check.call(pid >= 0, "vê %s (em %.1f s, conexão %s)" % [peer, t, _net.state])
+	if pid < 0:
+		get_tree().quit(1)
+		return
+	if role == "b":
+		await get_tree().create_timer(1.0).timeout
+		_net.send_json({"t": "chat", "text": "oi do b"})
+		Input.action_press("move_forward")
+		await get_tree().create_timer(2.5).timeout
+		Input.action_release("move_forward")
+		t = 0.0
+		while not heard.has("oi do a") and t < 30.0:
+			await get_tree().create_timer(0.25).timeout
+			t += 0.25
+		check.call(heard.has("oi do a"), "chat de %s chegou: %s" % [peer, str(heard)])
+		# Fica mais um pouco para o a terminar.
+		await get_tree().create_timer(2.0).timeout
+	else:
+		t = 0.0
+		while not heard.has("oi do b") and t < 30.0:
+			await get_tree().create_timer(0.1).timeout
+			t += 0.1
+		check.call(heard.has("oi do b"), "chat de %s chegou: %s" % [peer, str(heard)])
+		# O b anda logo depois de falar: a posição desenhada acompanha, sem saltos.
+		var start := _remotes.position_of(pid)
+		var biggest := 0.0
+		var last := start
+		for i in 60:
+			await get_tree().process_frame
+			await get_tree().create_timer(0.05).timeout
+			var p := _remotes.position_of(pid)
+			biggest = maxf(biggest, p.distance_to(last))
+			last = p
+		var moved := start.distance_to(last)
+		check.call(moved > 3.0 and biggest < 2.0, "%s andou %.1f unidades na tela, maior salto entre quadros %.2f" % [peer, moved, biggest])
+		_net.send_json({"t": "chat", "text": "oi do a"})
+		await get_tree().create_timer(3.0).timeout
+	print("Goblo: mp-test[%s] %s" % [role, "tudo certo" if fails.is_empty() else "%d falhas" % fails.size()])
+	get_tree().quit(1 if not fails.is_empty() else 0)
+
+
 ## Travadas (fase 2.6): passeio pelos momentos que podem travar, com o registro ligado.
 ## No headless mede só a CPU; com janela (tools/sem_foco.sh), entra a compilação de shader.
 func _hitch_test() -> void:
@@ -2287,6 +2606,8 @@ func _dev_test() -> void:
 		print("Goblo: dev-test %s %s" % ["ok   " if ok else "FALHOU", what])
 		if not ok:
 			fails.append(what)
+	# O servidor carimba o país de casa ao nascer (e paga): espera isso antes de contar.
+	await get_tree().create_timer(1.5).timeout
 	var c0 := _session.coins
 	await dev_coins(250)
 	check.call(_session.coins == c0 + 250, "dar moedas (%d → %d)" % [c0, _session.coins])

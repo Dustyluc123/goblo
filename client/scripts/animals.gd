@@ -408,6 +408,13 @@ static func _heart_texture() -> ImageTexture:
 # --- Modo dev -------------------------------------------------------------------------------
 
 ## Cria um animal só neste cliente, perto do ponto (teste de animação e interação).
+## Outro jogador fez carinho ou deu frutinha: corações em cima do animal (se ele está aqui).
+func remote_pet(id: int) -> void:
+	var e: Dictionary = _active.get(id, {})
+	if not e.is_empty():
+		_hearts(e["node"], 3)
+
+
 func spawn_debug(sp: String, pos: Vector3) -> bool:
 	if not species.has(sp):
 		return false

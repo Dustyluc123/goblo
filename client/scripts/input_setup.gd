@@ -18,6 +18,8 @@ const ACTIONS := {
 	"home": [KEY_H],
 	"pedia": [KEY_G],
 	"passport": [KEY_P],
+	"emotes": [KEY_T],
+	"players": [KEY_J],
 	"dev_panel": [KEY_F1],
 }
 

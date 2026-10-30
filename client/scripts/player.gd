@@ -15,6 +15,16 @@ extends CharacterBody3D
 signal cell_changed(cell_id: int)
 
 const CHARACTERS_DIR := "res://assets/kenney/mini-characters/"
+## Os 12 personagens que o jogador pode escolher (os mesmos de rules.json, no servidor).
+const CHARACTERS := ["character-female-a", "character-female-b", "character-female-c", "character-female-d",
+	"character-female-e", "character-female-f", "character-male-a", "character-male-b", "character-male-c",
+	"character-male-d", "character-male-e", "character-male-f"]
+
+
+## Nome curto do personagem para as listas ("Personagem 7").
+static func character_label(id: String) -> String:
+	var i := CHARACTERS.find(id)
+	return "Personagem %d" % (i + 1) if i >= 0 else id
 
 ## Qual dos 12 personagens do Mini Characters usar.
 @export_enum(
@@ -65,6 +75,11 @@ var fly_speed := 14.0
 ## Pose do selfie (modo foto) e a mistura atual dela (0 a 1).
 var posing := false
 var pose_blend := 0.0
+## Emote em pose (sentar): fica até o personagem se mexer.
+var emote_pose := ""
+## Correção do servidor (fase 3): o corpo desliza até aqui em poucos quadros.
+var _correction := Vector3.INF
+var _correction_left := 0
 
 var _tool_holder: Node3D
 var _skeleton: Skeleton3D
@@ -135,10 +150,10 @@ func _setup_animation(model: Node3D) -> void:
 	if players.is_empty():
 		return
 	var player := players[0] as AnimationPlayer
-	for anim_name in ["idle", "walk", "sprint", "fall", "holding-right"]:
+	for anim_name in ["idle", "walk", "sprint", "fall", "holding-right", "sit"]:
 		if player.has_animation(anim_name):
 			player.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
-	for anim_name in ["interact-right", "pick-up"]:
+	for anim_name in ["interact-right", "interact-left", "pick-up", "emote-yes", "emote-no"]:
 		if player.has_animation(anim_name):
 			player.get_animation(anim_name).loop_mode = Animation.LOOP_NONE
 
@@ -198,8 +213,61 @@ func play_action(anim_name: String) -> void:
 	_anim_tree.set("parameters/action/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 
+## O servidor corrigiu a posição (velocidade, oceano, fronteira): longe, vai direto; perto,
+## desliza em poucos quadros.
+func correct(pos: Vector3) -> void:
+	if pos.distance_to(global_position) > 4.0:
+		teleport(pos - pos.normalized() * 0.4)
+		_correction = Vector3.INF
+		return
+	_correction = pos
+	_correction_left = 6
+
+
+## Código da animação que os outros veem (Net.send_move, PROTOCOLO.md): 0 parado,
+## 1 andando, 2 correndo, 3 no ar, 6 pose de foto, 7 sentado.
+func anim_code() -> int:
+	if posing:
+		return 6
+	if emote_pose == "sit":
+		return 7
+	if air_blend > 0.5:
+		return 3
+	if anim_blend > 1.3:
+		return 2
+	if anim_blend > 0.25:
+		return 1
+	return 0
+
+
+## Emote do personagem: acenar, sim, não e comemorar tocam uma vez; sentar fica até andar.
+func play_emote(emote: String) -> void:
+	match emote:
+		"wave":
+			play_action("interact-left")
+		"yes":
+			play_action("emote-yes")
+		"no":
+			play_action("emote-no")
+		"cheer":
+			request_jump()
+			play_action("interact-right")
+		"sit":
+			set_emote_pose("sit")
+
+
+func set_emote_pose(anim: String) -> void:
+	emote_pose = anim
+	if _anim_tree == null:
+		return
+	var tree := _anim_tree.tree_root as AnimationNodeBlendTree
+	(tree.get_node("pose_anim") as AnimationNodeAnimation).animation = anim if not anim.is_empty() else "holding-right"
+
+
 ## Pose do selfie ligada ou desligada (a mistura muda aos poucos).
 func set_pose(on: bool) -> void:
+	if on:
+		set_emote_pose("")  # a pose do selfie troca a de sentar
 	posing = on
 
 
@@ -325,6 +393,16 @@ func _physics_process(delta: float) -> void:
 	_try_step_up(horizontal, up)
 
 	velocity = horizontal + up * vertical_speed
+	if _correction != Vector3.INF:
+		# Correção do servidor: desliza até a posição válida (6 quadros de física).
+		global_position = global_position.lerp(_correction, 0.4)
+		velocity = Vector3.ZERO
+		_correction_left -= 1
+		if _correction_left <= 0:
+			global_position = _correction
+			_correction = Vector3.INF
+	if not emote_pose.is_empty() and wish.length() > 0.1:
+		set_emote_pose("")
 	var before := global_position
 	move_and_slide()
 	# Rede de segurança: o desvio da fronteira, o degrau ou o deslize na colisão podem
@@ -422,7 +500,7 @@ func _update_animation(delta: float, up: Vector3) -> void:
 	var airborne := not is_on_floor() and (_jumping or _since_floor > 0.15)
 	air_blend = lerpf(air_blend, 1.0 if airborne else 0.0, clampf(14.0 * delta, 0.0, 1.0))
 	var falling := clampf(-v.dot(up) / 4.0, 0.0, 1.0)
-	pose_blend = move_toward(pose_blend, 1.0 if posing else 0.0, delta * 4.0)
+	pose_blend = move_toward(pose_blend, 1.0 if (posing or not emote_pose.is_empty()) else 0.0, delta * 4.0)
 	if _anim_tree:
 		_anim_tree.set("parameters/pose/blend_amount", pose_blend)
 		_anim_tree.set("parameters/locomotion/blend_position", anim_blend)

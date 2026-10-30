@@ -190,9 +190,12 @@ func take_photo() -> Array:
 	tw.tween_property(_flash, "color:a", 0.0, 0.35)
 	var path := PediaPhotos.save(img)
 	var registered: Array = []
+	game.net_act("photo")
+	var cam_now := get_viewport().get_camera_3d()
+	var look := -cam_now.global_basis.z if cam_now else Vector3.ZERO
 	for s: Dictionary in subjects:
 		var r := await api.request("POST", "/pedia/register", {"entry": s["entry"], "country": tracker.current,
-			"biome": world.biome_names[world.biomes[player.cell_id]]})
+			"biome": world.biome_names[world.biomes[player.cell_id]], "look": [look.x, look.y, look.z]})
 		if not r["ok"]:
 			ui.toast(str(r["message"]))
 			continue

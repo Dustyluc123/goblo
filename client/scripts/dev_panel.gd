@@ -44,6 +44,7 @@ func _ready() -> void:
 	tabs.add_child(_travel_tab())
 	tabs.add_child(_nature_tab())
 	tabs.add_child(_player_tab())
+	tabs.add_child(_net_tab())
 	_status = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
@@ -382,3 +383,65 @@ func _player_tab() -> Control:
 		b.pressed.connect(a[1])
 		box.add_child(b)
 	return box
+
+
+## Aba Rede (fase 3): quem está conectado, bots perto de mim e simulação de atraso e perda.
+var _online: Label
+var _latency: Label
+var _loss: Label
+
+
+func _net_tab() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Rede"
+	box.add_theme_constant_override("separation", 8)
+	var bots := HBoxContainer.new()
+	bots.add_theme_constant_override("separation", 6)
+	for n: int in [1, 5, 20]:
+		var b := UiStyle.button("Criar %d bot%s perto" % [n, "s" if n > 1 else ""], n == 5)
+		b.pressed.connect(func() -> void: game.dev_bots(n))
+		bots.add_child(b)
+	var rm := UiStyle.button("Tirar os bots", false)
+	rm.pressed.connect(func() -> void: game.dev_bots(0))
+	bots.add_child(rm)
+	box.add_child(bots)
+	box.add_child(UiStyle.label("Simular rede ruim (só neste computador):", 15, UiStyle.INK_SOFT))
+	_latency = UiStyle.label("Atraso: 0 ms", 16)
+	box.add_child(_latency)
+	var lat := HSlider.new()
+	lat.min_value = 0
+	lat.max_value = 300
+	lat.step = 10
+	lat.focus_mode = Control.FOCUS_NONE
+	lat.value_changed.connect(func(v: float) -> void:
+		_latency.text = "Atraso: %d ms" % int(v)
+		game.set_net_sim(int(v), -1.0))
+	box.add_child(lat)
+	_loss = UiStyle.label("Perda de pacotes de movimento: 0%", 16)
+	box.add_child(_loss)
+	var loss := HSlider.new()
+	loss.min_value = 0
+	loss.max_value = 10
+	loss.step = 1
+	loss.focus_mode = Control.FOCUS_NONE
+	loss.value_changed.connect(func(v: float) -> void:
+		_loss.text = "Perda de pacotes de movimento: %d%%" % int(v)
+		game.set_net_sim(-1, v / 100.0))
+	box.add_child(loss)
+	var refresh := UiStyle.button("Atualizar quem está conectado", false)
+	refresh.pressed.connect(func() -> void: game.dev_online())
+	box.add_child(refresh)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 140)
+	box.add_child(scroll)
+	_online = UiStyle.label("", 15)
+	_online.autowrap_mode = TextServer.AUTOWRAP_WORD
+	_online.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_online)
+	return box
+
+
+## Lista de conectados (vem de GameMain.dev_online).
+func show_online(text: String) -> void:
+	_online.text = text

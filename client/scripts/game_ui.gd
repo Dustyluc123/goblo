@@ -24,6 +24,9 @@ var sell: SellUi
 var pedia: PediaUi
 var travel: TravelUi
 var passport: PassportUi
+var players: PlayersUi
+var emotes: EmoteWheel
+var chat: ChatUi
 ## Todas as janelas (menus): qualquer uma aberta trava o jogo e solta o cursor. Janela nova
 ## só precisa entrar aqui (add_window).
 var windows: Array[Control] = []
@@ -110,6 +113,10 @@ func _ready() -> void:
 	pedia = add_window(PediaUi.new()) as PediaUi
 	travel = add_window(TravelUi.new()) as TravelUi
 	passport = add_window(PassportUi.new()) as PassportUi
+	players = add_window(PlayersUi.new()) as PlayersUi
+	emotes = add_window(EmoteWheel.new()) as EmoteWheel
+	chat = ChatUi.new()
+	add_child(chat)
 
 
 ## Registra uma janela (menu) e a coloca na tela.
@@ -288,7 +295,7 @@ func _drop_stale_focus() -> void:
 	if menu_open():
 		return
 	var focus := get_viewport().gui_get_focus_owner()
-	if focus != null:
+	if focus != null and not focus.has_meta("keep_focus"):
 		focus.release_focus()
 
 
