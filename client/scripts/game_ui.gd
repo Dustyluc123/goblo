@@ -27,6 +27,7 @@ var passport: PassportUi
 var players: PlayersUi
 var emotes: EmoteWheel
 var chat: ChatUi
+var server_setup: ServerSetup
 ## Todas as janelas (menus): qualquer uma aberta trava o jogo e solta o cursor. Janela nova
 ## só precisa entrar aqui (add_window).
 var windows: Array[Control] = []
@@ -117,6 +118,7 @@ func _ready() -> void:
 	emotes = add_window(EmoteWheel.new()) as EmoteWheel
 	chat = ChatUi.new()
 	add_child(chat)
+	server_setup = add_window(ServerSetup.new()) as ServerSetup
 
 
 ## Registra uma janela (menu) e a coloca na tela.

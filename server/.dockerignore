@@ -1,0 +1,6 @@
+goblo.db*
+*.db
+*.db-*
+data/raw/
+bin/
+server

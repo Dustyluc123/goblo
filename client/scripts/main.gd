@@ -79,6 +79,7 @@ var _cached_version := ""
 var _request_started := 0
 var _collision_timer := 0.0
 var _ready_to_play := false
+var _server_asked := false
 
 var _api: Api
 var _session: Session
@@ -750,6 +751,14 @@ func _fail(message: String) -> void:
 		get_tree().quit(1)
 		return
 	_hud.show_status(message + "\nTentando de novo em %d s…" % int(RETRY_SECONDS))
+	if world == null and not _ui.server_setup.visible and not _server_asked:
+		# Sem mundo: talvez o servidor seja outro (jogar com amigos).
+		_server_asked = true
+		_ui.server_setup.open(_server_url)
+		_ui.server_setup.chosen.connect(func(url: String) -> void:
+			_server_url = url
+			_api.base_url = url
+			_hud.show_status("Conectando a %s…" % url))
 	await get_tree().create_timer(RETRY_SECONDS).timeout
 	if world == null:
 		_request_world()
@@ -3070,6 +3079,15 @@ func _resolve_server_url() -> String:
 	var url := str(_args.get("server", ""))
 	if url.is_empty():
 		url = OS.get_environment("GOBLO_SERVER_URL")
+	if url.is_empty():
+		# Jogo exportado para um amigo: arquivo goblo-servidor.txt ao lado do executável.
+		var beside := OS.get_executable_path().get_base_dir().path_join("goblo-servidor.txt")
+		if OS.has_feature("template") and FileAccess.file_exists(beside):
+			url = FileAccess.get_file_as_string(beside).strip_edges()
+	if url.is_empty() and not _is_automation():
+		var cfg := ConfigFile.new()
+		if cfg.load(Quality.SETTINGS_FILE) == OK:
+			url = str(cfg.get_value("network", "server_url", ""))
 	if url.is_empty():
 		url = str(ProjectSettings.get_setting("goblo/server_url", DEFAULT_SERVER))
 	return url.trim_suffix("/")
