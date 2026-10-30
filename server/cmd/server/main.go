@@ -7,6 +7,7 @@
 //	-radius     GOBLO_RADIUS     raio sugerido do planeta (padrão 1000)
 //	-db         GOBLO_DB         arquivo do banco SQLite (padrão goblo.db)
 //	-geoip      GOBLO_GEOIP      base IP → país da DB-IP (padrão data/raw/dbip-country-lite.csv.gz)
+//	            GOBLO_PPROF      endereço local do perfil de CPU (ex.: 127.0.0.1:6060), para medir
 //	            GOBLO_DEV=1      liga o modo desenvolvedor (rotas /dev/…)
 package main
 
@@ -17,6 +18,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strconv"
@@ -48,6 +50,10 @@ func run(log *slog.Logger) error {
 	geoPath := flag.String("geoip", env("GOBLO_GEOIP", "data/raw/dbip-country-lite.csv.gz"), "base IP → país (CSV da DB-IP)")
 	flag.Parse()
 	dev := os.Getenv("GOBLO_DEV") == "1"
+	if addr := os.Getenv("GOBLO_PPROF"); addr != "" {
+		// Perfil de CPU e memória para medir (ex.: GOBLO_PPROF=127.0.0.1:6060), só local.
+		go func() { log.Info("pprof", "erro", http.ListenAndServe(addr, nil)) }()
+	}
 
 	start := time.Now()
 	geoData, err := world.LoadGeography(data.NaturalEarth)
