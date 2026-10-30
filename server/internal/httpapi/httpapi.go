@@ -21,6 +21,7 @@ import (
 
 	"github.com/Dustyluc123/goblo/server/internal/game"
 	"github.com/Dustyluc123/goblo/server/internal/geoip"
+	"github.com/Dustyluc123/goblo/server/internal/realtime"
 	"github.com/Dustyluc123/goblo/server/internal/world"
 )
 
@@ -34,6 +35,8 @@ type Server struct {
 	A2ToA3   map[string]string // código ISO A2 → código do país no mundo
 	Dev      bool              // GOBLO_DEV=1: libera as rotas /dev/…
 	Log      *slog.Logger
+	// Realtime é a camada em tempo real (GET /ws e rotas de rede do modo dev). Pode ser nil.
+	Realtime *realtime.Hub
 }
 
 // NewHandler monta só as rotas do mundo (usado nos testes do mundo).
@@ -55,7 +58,15 @@ func (s *Server) Handler() http.Handler {
 		s.gameRoutes(mux)
 	}
 	s.devRoutes(mux)
-	return logRequests(s.Log, cors(mux))
+	logged := logRequests(s.Log, cors(mux))
+	if s.Realtime == nil {
+		return logged
+	}
+	// O WebSocket fica fora do registro de requisições (ele precisa da conexão crua).
+	outer := http.NewServeMux()
+	outer.HandleFunc("GET /ws", s.Realtime.ServeWS)
+	outer.Handle("/", logged)
+	return outer
 }
 
 func health(w http.ResponseWriter, _ *http.Request) {

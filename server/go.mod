@@ -3,6 +3,7 @@ module github.com/Dustyluc123/goblo/server
 go 1.27.3
 
 require (
+	github.com/coder/websocket v1.8.12
 	github.com/paulmach/orb v0.13.0
 	modernc.org/sqlite v1.61.0
 )

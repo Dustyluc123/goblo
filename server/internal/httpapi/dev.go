@@ -28,6 +28,8 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dev/passport", s.auth(s.devPassport))
 	mux.HandleFunc("POST /dev/travel", s.auth(s.travel(true)))
 	mux.HandleFunc("GET /dev/border-lots", s.auth(s.devBorderLots))
+	mux.HandleFunc("GET /dev/online", s.auth(s.devOnline))
+	mux.HandleFunc("POST /dev/bots", s.auth(s.devBots))
 	mux.HandleFunc("POST /dev/border-lots/move", s.auth(s.devMoveBorderLots))
 }
 
@@ -180,4 +182,38 @@ func (s *Server) devFakeNeighbors(w http.ResponseWriter, r *http.Request, p *gam
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"created": n})
+}
+
+// devOnline: quem está conectado em tempo real e os números da rede.
+func (s *Server) devOnline(w http.ResponseWriter, _ *http.Request, _ *game.Player) {
+	if s.Realtime == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"online": []any{}})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"online": s.Realtime.Online(), "stats": s.Realtime.Stats()})
+}
+
+// devBots cria bots perto do jogador (count > 0) ou tira todos (count = 0).
+func (s *Server) devBots(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Count int `json:"count"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	if s.Realtime == nil {
+		writeError(w, s, game.ErrOffline)
+		return
+	}
+	if body.Count <= 0 {
+		writeJSON(w, http.StatusOK, map[string]any{"removed": s.Realtime.RemoveBots()})
+		return
+	}
+	pos, _, _, ok := s.Realtime.Where(p.ID)
+	if !ok {
+		writeError(w, s, game.ErrOffline)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"created": s.Realtime.SpawnBots(pos, body.Count, p.Country)})
 }

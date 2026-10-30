@@ -27,6 +27,7 @@ import (
 	"github.com/Dustyluc123/goblo/server/internal/game"
 	"github.com/Dustyluc123/goblo/server/internal/geoip"
 	"github.com/Dustyluc123/goblo/server/internal/httpapi"
+	"github.com/Dustyluc123/goblo/server/internal/realtime"
 	"github.com/Dustyluc123/goblo/server/internal/store/sqlitestore"
 	"github.com/Dustyluc123/goblo/server/internal/world"
 )
@@ -117,9 +118,14 @@ func run(log *slog.Logger) error {
 		log.Info("lotes antigos perto de fronteira (contam como país do dono; F1 → Mundo pode mudá-los)",
 			"total", len(list), "cruzando", crossing)
 	}
+	hub := realtime.NewHub(svc, log, dev)
+	svc.SetPresence(hub)
+	svc.SetEvents(hub.OnEvent)
+	go hub.Run()
+	defer hub.Close()
 	api := &httpapi.Server{
 		World: w, Geo: geoData, Snapshot: snap, Game: svc,
-		GeoIP: geo, A2ToA3: a2, Dev: dev, Log: log,
+		GeoIP: geo, A2ToA3: a2, Dev: dev, Log: log, Realtime: hub,
 	}
 	srv := &http.Server{
 		Addr:              *addr,
