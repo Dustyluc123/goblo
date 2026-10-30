@@ -104,6 +104,7 @@ type Content struct {
 	Objects map[string][]ObjectRule `json:"-"`
 	Economy Economy                 `json:"-"`
 	Animals *AnimalContent          `json:"-"`
+	Rules   Rules                   `json:"-"`
 	Pedia   struct {
 		Extras []PediaEntry `json:"extras"`
 	} `json:"-"`
@@ -147,7 +148,7 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 		{"game/items.json", &items}, {"game/recipes.json", &recipes},
 		{"game/houses.json", &houses}, {"game/objects.json", &objects},
 		{"game/economy.json", &c.Economy}, {"game/animals.json", &c.Animals},
-		{"game/goblopedia.json", &c.Pedia},
+		{"game/goblopedia.json", &c.Pedia}, {"game/rules.json", &c.Rules},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -197,6 +198,9 @@ func (c *Content) index() error {
 		if h.Footprint[0] > LotTiles || h.Footprint[1] > LotTiles {
 			return fmt.Errorf("casa nível %d: maior que o lote", h.Level)
 		}
+	}
+	if err := c.Rules.check(); err != nil {
+		return err
 	}
 	if c.Economy.Currency.Plural == "" || c.Economy.Passport.Default <= 0 || c.Economy.Travel.Min <= 0 {
 		return fmt.Errorf("economy.json: moeda, passaporte e passagem mínima são obrigatórios")

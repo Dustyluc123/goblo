@@ -47,6 +47,8 @@ type Service struct {
 	airportCells map[int]bool
 	// Pontos de chegada (países pequenos): hexágono → (x, y) do balcão.
 	kiosks map[int][2]float64
+	// Nível de encaixe de cada lote em cada país ("lote:país" → int), LotTier.
+	tiers sync.Map
 }
 
 // NewService monta as regras. clock nil = relógio real.
@@ -162,17 +164,21 @@ func (s *Service) Authenticate(ctx context.Context, token string) (*Player, erro
 func (s *Service) assignLot(ctx context.Context, tx Store, p *Player, country string) (*Lot, error) {
 	cells := s.byCountry[country]
 	const batch = 64
-	for start := 0; start < len(cells); start += batch {
-		end := min(start+batch, len(cells))
-		if lot, err := s.firstFreeLot(ctx, tx, p, cells[start:end]); lot != nil || err != nil {
-			return lot, err
+	// Primeiro um lote longe da fronteira; se o país não tiver mais, um inteiro no país; por
+	// último (países pequenos), um com a maior parte no país (ADR 0037).
+	for tier := LotTierClear; tier < LotTierUnusable; tier++ {
+		for start := 0; start < len(cells); start += batch {
+			end := min(start+batch, len(cells))
+			if lot, err := s.firstFreeLot(ctx, tx, p, country, tier, cells[start:end]); lot != nil || err != nil {
+				return lot, err
+			}
 		}
 	}
 	return nil, ErrNoLot.with("Não há lote livre em %s.", s.world.Countries[country])
 }
 
 // firstFreeLot ocupa o primeiro lote livre das células, na ordem dada.
-func (s *Service) firstFreeLot(ctx context.Context, tx Store, p *Player, cells []int) (*Lot, error) {
+func (s *Service) firstFreeLot(ctx context.Context, tx Store, p *Player, country string, maxTier int, cells []int) (*Lot, error) {
 	lots, err := tx.LotsByCells(ctx, cells)
 	if err != nil {
 		return nil, err
@@ -186,7 +192,8 @@ func (s *Service) firstFreeLot(ctx context.Context, tx Store, p *Player, cells [
 			continue
 		}
 		for _, slot := range LotSlots(s.world, cell) {
-			if taken[slot.ID] {
+			// Lote novo: inteiro no país do dono, longe da fronteira (ADR 0037).
+			if taken[slot.ID] || s.LotTier(cell, slot.Slot, country) > maxTier {
 				continue
 			}
 			lot := &Lot{ID: slot.ID, Cell: cell, Slot: slot.Slot, OwnerID: p.ID}

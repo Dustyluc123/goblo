@@ -662,6 +662,19 @@ func hitch_context() -> PackedStringArray:
 	return out
 
 
+## O ponto está no lote do jogador ou na margem em volta (Service.InLotArea no servidor)?
+func _in_own_lot_area(lot: Dictionary, p: Vector3) -> bool:
+	var f := _data.frame(int(lot["cell"]))
+	if p.normalized().dot(f["center"]) < 0.99:
+		return false
+	var xy := WorldData.frame_coords(f, p)
+	var x0 := float(lot["x0"])
+	var y0 := float(lot["y0"])
+	var size := _session.tile_size * _session.lot_tiles
+	var m := float(_session.rules.get("borders", {}).get("lot_margin", 2.0))
+	return xy.x >= x0 - m and xy.x <= x0 + size + m and xy.y >= y0 - m and xy.y <= y0 + size + m
+
+
 ## Nome de um país (com ou sem hexágono).
 func country_name(code: String) -> String:
 	return _tracker.name_of(code) if _tracker else code
@@ -676,6 +689,8 @@ func _border_guard(from: Vector3, probe: Vector3) -> Vector3:
 	var lot := _session.lot()
 	if not lot.is_empty() and int(lot["cell"]) == cell:
 		return Vector3.ZERO  # o hexágono de casa é sempre livre
+	if not lot.is_empty() and _in_own_lot_area(lot, probe):
+		return Vector3.ZERO  # lote e margem contam como o país do dono (ADR 0037)
 	var target := _tracker.exact_at(probe, cell)
 	if target.is_empty() or _session.has_passport(target):
 		return Vector3.ZERO

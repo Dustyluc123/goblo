@@ -131,6 +131,7 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"sell_prices":     c.Economy.SellPrices,
 		"animals":         c.Animals.Species,
 		"pedia":           c.PediaEntries(),
+		"rules":           c.Rules,
 	})
 }
 

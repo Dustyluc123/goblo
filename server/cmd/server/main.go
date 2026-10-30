@@ -107,6 +107,16 @@ func run(log *slog.Logger) error {
 	}
 	svc := game.NewService(w, content, store, clock)
 	svc.SetGeography(geoData)
+	if list, err := svc.BorderLots(ctx0); err == nil && len(list) > 0 {
+		crossing := 0
+		for _, b := range list {
+			if b.Crossing {
+				crossing++
+			}
+		}
+		log.Info("lotes antigos perto de fronteira (contam como país do dono; F1 → Mundo pode mudá-los)",
+			"total", len(list), "cruzando", crossing)
+	}
 	api := &httpapi.Server{
 		World: w, Geo: geoData, Snapshot: snap, Game: svc,
 		GeoIP: geo, A2ToA3: a2, Dev: dev, Log: log,

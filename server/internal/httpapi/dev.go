@@ -27,6 +27,34 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dev/pedia", s.auth(s.devPedia))
 	mux.HandleFunc("POST /dev/passport", s.auth(s.devPassport))
 	mux.HandleFunc("POST /dev/travel", s.auth(s.travel(true)))
+	mux.HandleFunc("GET /dev/border-lots", s.auth(s.devBorderLots))
+	mux.HandleFunc("POST /dev/border-lots/move", s.auth(s.devMoveBorderLots))
+}
+
+// devBorderLots lista os lotes antigos que cruzam a fronteira ou ficam perto demais dela.
+func (s *Server) devBorderLots(w http.ResponseWriter, r *http.Request, _ *game.Player) {
+	list, err := s.Game.BorderLots(r.Context())
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	crossing := 0
+	for _, b := range list {
+		if b.Crossing {
+			crossing++
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"lots": list, "near": len(list) - crossing, "crossing": crossing})
+}
+
+// devMoveBorderLots muda esses lotes para um lugar válido no país do dono (ADR 0037).
+func (s *Server) devMoveBorderLots(w http.ResponseWriter, r *http.Request, _ *game.Player) {
+	moved, left, err := s.Game.DevMoveBorderLots(r.Context())
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"moved": moved, "left": left})
 }
 
 func (s *Server) devPassport(w http.ResponseWriter, r *http.Request, p *game.Player) {

@@ -38,6 +38,8 @@ var currency := {"singular": "moeda", "plural": "moedas"}
 var sell_prices := {}
 ## Espécies de animais (animals.json): id → {name, model, height, shy, walk, run, roam, leg, jump}.
 var animal_species := {}
+## Regras de fronteira e multiplayer (rules.json do servidor).
+var rules := {}
 ## Páginas da Goblopédia (do /content, sem o progresso): [{id, name, kind, model, season}].
 var pedia_catalog: Array = []
 ## Livro de passaporte (GET /passport): {"passports": [...], "stamps": [{country, name, first_at}]}.
@@ -81,6 +83,7 @@ func set_content(data: Dictionary) -> void:
 		currency = data["currency"]
 	sell_prices = data.get("sell_prices", {})
 	animal_species = data.get("animals", {})
+	rules = data.get("rules", {})
 	pedia_catalog = data.get("pedia", [])
 
 

@@ -1,0 +1,7 @@
+{
+  "_doc": "Regras de fronteira e de multiplayer (fase 3). borders.lot_margin: distância mínima (unidades) entre um lote novo e qualquer fronteira com outro país; o lote e a margem também contam como território do país do dono para a regra de passagem dele. borders.sample_step: espaçamento das amostras usadas para conferir isso.",
+  "borders": {
+    "lot_margin": 2.0,
+    "sample_step": 0.5
+  }
+}

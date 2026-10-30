@@ -72,6 +72,9 @@ type LotRepository interface {
 	LotsByCells(ctx context.Context, cells []int) ([]Lot, error)
 	UpdateLot(ctx context.Context, l *Lot) error
 	DeleteLot(ctx context.Context, id int64) error // apaga também os objetos colocados
+	AllLots(ctx context.Context) ([]Lot, error)
+	// MoveLot muda o lote para outra célula/posição (novo id), com a casa e os objetos.
+	MoveLot(ctx context.Context, oldID, newID int64, cell, slot int) error
 }
 
 // InventoryRepository guarda o inventário.

@@ -281,6 +281,42 @@ func (s *Store) UpdateLot(ctx context.Context, l *game.Lot) error {
 	return err
 }
 
+func (s *Store) AllLots(ctx context.Context) ([]game.Lot, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT `+lotCols+` FROM lots ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []game.Lot
+	for rows.Next() {
+		l, err := scanLot(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *l)
+	}
+	return out, rows.Err()
+}
+
+// MoveLot troca o id (célula × 4 + posição) do lote e dos objetos dele numa transação.
+// A chave estrangeira dos objetos é conferida só no fim (defer_foreign_keys).
+func (s *Store) MoveLot(ctx context.Context, oldID, newID int64, cell, slot int) error {
+	return s.InTx(ctx, func(st game.Store) error {
+		tx := st.(*Store)
+		if _, err := tx.q.ExecContext(ctx, `PRAGMA defer_foreign_keys = ON`); err != nil {
+			return err
+		}
+		if _, err := tx.q.ExecContext(ctx, `UPDATE lots SET id = ?, cell = ?, slot = ? WHERE id = ?`, newID, cell, slot, oldID); err != nil {
+			if isUnique(err, "lots") {
+				return game.ErrLotTaken
+			}
+			return err
+		}
+		_, err := tx.q.ExecContext(ctx, `UPDATE placements SET lot_id = ? WHERE lot_id = ?`, newID, oldID)
+		return err
+	})
+}
+
 func (s *Store) DeleteLot(ctx context.Context, id int64) error {
 	_, err := s.q.ExecContext(ctx, `DELETE FROM lots WHERE id = ?`, id)
 	return err

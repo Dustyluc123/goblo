@@ -182,13 +182,11 @@ func TestTwoPlayersNeverShareALot(t *testing.T) {
 		}
 	}
 	small, slots := "", 0
-	for code := range f.world.Countries {
-		total := 0
-		for i, c := range f.world.Cells {
-			if c.Country == code {
-				total += len(game.LotSlots(f.world, i))
-			}
+	for code, n := range cells {
+		if n > 3 {
+			continue // os pequenos bastam (e o teste fica rápido)
 		}
+		total := f.svc.UsableLots(code)
 		if total >= 3 && (small == "" || total < slots || (total == slots && code < small)) {
 			small, slots = code, total
 		}
