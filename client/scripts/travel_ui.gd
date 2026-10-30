@@ -100,6 +100,12 @@ func setup(g: GameMain, s: Session) -> void:
 			_show_passport())
 
 
+## Abre o balcão já na aba de passaportes (a atendente oferece).
+func open_passports(airport: Dictionary) -> void:
+	_tabs.current_tab = 1
+	await open(airport)
+
+
 ## Abre o balcão do aeroporto `airport` e pede os preços ao servidor.
 func open(airport: Dictionary) -> void:
 	from = airport

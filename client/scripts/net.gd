@@ -25,6 +25,11 @@ signal lot_event(lot: Dictionary, by: int)
 signal stamped(result: Dictionary)
 signal blocked_changed(id: int, on: bool)
 signal info(text: String)
+## Troca entre jogadores (fase 3.5): pedido, estado da negociação, fim.
+signal trade_requested(from: int, nick: String)
+signal trade_changed(view: Dictionary)
+signal trade_finished(result: Dictionary)
+signal trade_closed(reason: String)
 signal kicked(reason: String)
 
 const MSG_MOVE := 1
@@ -309,6 +314,14 @@ func _on_text(text: String) -> void:
 			blocked_changed.emit(int(d["id"]), bool(d.get("on", false)))
 		"info":
 			info.emit(str(d.get("text", "")))
+		"trade_req":
+			trade_requested.emit(int(d.get("from", 0)), str(d.get("nick", "?")))
+		"trade_open", "trade_update":
+			trade_changed.emit(d)
+		"trade_done":
+			trade_finished.emit(d)
+		"trade_closed":
+			trade_closed.emit(str(d.get("reason", "")))
 		"kick":
 			_kicked = true
 			kicked.emit(str(d.get("reason", "")))

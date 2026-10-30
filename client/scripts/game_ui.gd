@@ -21,6 +21,9 @@ var dev: DevPanel
 var first_access: FirstAccess
 var settings: SettingsUi
 var sell: SellUi
+var shop: ShopUi
+var dialog: DialogUi
+var trade: TradeUi
 var pedia: PediaUi
 var travel: TravelUi
 var passport: PassportUi
@@ -111,6 +114,9 @@ func _ready() -> void:
 	dev = add_window(DevPanel.new()) as DevPanel
 	settings = add_window(SettingsUi.new()) as SettingsUi
 	sell = add_window(SellUi.new()) as SellUi
+	shop = add_window(ShopUi.new()) as ShopUi
+	dialog = add_window(DialogUi.new()) as DialogUi
+	trade = add_window(TradeUi.new()) as TradeUi
 	pedia = add_window(PediaUi.new()) as PediaUi
 	travel = add_window(TravelUi.new()) as TravelUi
 	passport = add_window(PassportUi.new()) as PassportUi
@@ -135,6 +141,8 @@ func setup(game: GameMain, session: Session, icons: ItemIcons, countries: Dictio
 	craft.setup(game, session, icons)
 	dev.setup(game, session, icons, countries)
 	sell.setup(game, session, icons)
+	shop.setup(game, session, icons)
+	trade.setup(game, session, icons)
 	travel.setup(game, session)
 	passport.setup(game, session)
 

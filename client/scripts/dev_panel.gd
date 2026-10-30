@@ -45,6 +45,7 @@ func _ready() -> void:
 	tabs.add_child(_nature_tab())
 	tabs.add_child(_player_tab())
 	tabs.add_child(_net_tab())
+	tabs.add_child(_npc_tab())
 	_status = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
@@ -445,3 +446,62 @@ func _net_tab() -> Control:
 ## Lista de conectados (vem de GameMain.dev_online).
 func show_online(text: String) -> void:
 	_online.text = text
+
+
+## Aba Loja e NPCs (fase 3.5): estoque, diálogos, apresentação e troca com um bot.
+var _dialogs: OptionButton
+
+
+func _npc_tab() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Loja e NPCs"
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(UiStyle.label("Loja da praça", 18))
+	var restock := UiStyle.button("Repor o estoque agora (país onde estou)", false)
+	restock.tooltip_text = "Adianta a loja para o estoque do dia seguinte (só neste servidor)"
+	restock.pressed.connect(func() -> void: game.dev_shop_restock())
+	box.add_child(restock)
+	box.add_child(UiStyle.label("Diálogos", 18))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	_dialogs = OptionButton.new()
+	_dialogs.focus_mode = Control.FOCUS_NONE
+	_dialogs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_dialogs)
+	var open := UiStyle.button("Abrir diálogo", false)
+	open.pressed.connect(func() -> void:
+		if _dialogs.selected >= 0:
+			visible = false
+			game.open_dialog(_dialogs.get_item_text(_dialogs.selected)))
+	row.add_child(open)
+	box.add_child(row)
+	box.add_child(UiStyle.label("Apresentação do guia", 18))
+	var irow := HBoxContainer.new()
+	irow.add_theme_constant_override("separation", 8)
+	var show := UiStyle.button("Mostrar a apresentação agora", false)
+	show.pressed.connect(func() -> void:
+		visible = false
+		game.restart_intro())
+	irow.add_child(show)
+	var unseen := UiStyle.button("Marcar como não vista", false)
+	unseen.tooltip_text = "No próximo login a apresentação aparece (mesmo no modo dev)"
+	unseen.pressed.connect(func() -> void: game.dev_intro_unseen())
+	irow.add_child(unseen)
+	box.add_child(irow)
+	box.add_child(UiStyle.label("Troca", 18))
+	var trade := UiStyle.button("Abrir uma troca com um bot", false)
+	trade.tooltip_text = "Cria um bot parado do seu lado (ele oferece 3 madeiras e acompanha o Pronto e a confirmação)"
+	trade.pressed.connect(func() -> void:
+		visible = false
+		game.dev_trade_bot())
+	box.add_child(trade)
+	box.add_child(UiStyle.label("Bots criados pela aba Rede: os de número par aceitam pedidos de troca.", 14, UiStyle.INK_SOFT))
+	return box
+
+
+func fill_dialogs(ids: Array) -> void:
+	_dialogs.clear()
+	var sorted := ids.duplicate()
+	sorted.sort()
+	for id: String in sorted:
+		_dialogs.add_item(id)

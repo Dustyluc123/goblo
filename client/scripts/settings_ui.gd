@@ -10,6 +10,11 @@ var _quality_row: HBoxContainer
 var _char: OptionButton
 ## Chamado com o personagem escolhido (GameMain.set_character).
 var on_character := Callable()
+## Rever a apresentação do guia (fase 3.5).
+var on_intro := Callable()
+## Aceitar pedidos de troca (fase 3.5): recebe o novo valor.
+var on_trades := Callable()
+var accept_trades := true
 var _fps_row: HBoxContainer
 var _scale_row: HBoxContainer
 var _mouse_row: HBoxContainer
@@ -60,6 +65,20 @@ func _ready() -> void:
 	var full := UiStyle.button("Tela cheia (F11)", false)
 	full.pressed.connect(toggle_fullscreen)
 	box.add_child(full)
+	var trades := UiStyle.button("", false)
+	trades.text = "Pedidos de troca: aceitando"
+	trades.pressed.connect(func() -> void:
+		accept_trades = not accept_trades
+		trades.text = "Pedidos de troca: aceitando" if accept_trades else "Pedidos de troca: recusando todos"
+		if on_trades.is_valid():
+			on_trades.call(accept_trades))
+	box.add_child(trades)
+	var intro := UiStyle.button("Rever a apresentação", false)
+	intro.pressed.connect(func() -> void:
+		visible = false
+		if on_intro.is_valid():
+			on_intro.call())
+	box.add_child(intro)
 	_info = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_info)

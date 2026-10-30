@@ -62,6 +62,12 @@ func refresh() -> void:
 		row.add_child(name)
 		if bool(inf.get("bot", false)):
 			row.add_child(UiStyle.label("bot", 15, UiStyle.INK_SOFT))
+		var tr_btn := UiStyle.button("Propor troca", false)
+		tr_btn.disabled = blocked.has(id)
+		tr_btn.pressed.connect(func() -> void:
+			visible = false
+			game.propose_trade(id))
+		row.add_child(tr_btn)
 		var mute := UiStyle.button("Ouvir de novo" if remotes.muted.has(id) else "Silenciar", false)
 		mute.pressed.connect(func() -> void:
 			game.set_muted(id, not remotes.muted.has(id))

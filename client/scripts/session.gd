@@ -38,12 +38,22 @@ var coins := 0
 var currency := {"singular": "gobolar", "plural": "gobolares", "symbol": "G$", "slang": "goblinhos"}
 ## Quanto a caixa de vendas paga por unidade de cada item.
 var sell_prices := {}
+## A loja paga este múltiplo da caixa de vendas (economy.json).
+var shop_buy_bonus := 1.25
 ## Espécies de animais (animals.json): id → {name, model, height, shy, walk, run, roam, leg, jump}.
 var animal_species := {}
 ## Regras de fronteira e multiplayer (rules.json do servidor).
 var rules := {}
 ## Páginas da Goblopédia (do /content, sem o progresso): [{id, name, kind, model, season}].
 var pedia_catalog: Array = []
+## NPCs e diálogos (npcs.json e dialogs.json do servidor; fase 3.5).
+var npc_roles := {}
+var npc_names := {}
+var dialogs := {}
+## Apresentação do guia: {"start", "tasks": [{id, action, recipe, after}]}.
+var intro_cfg := {}
+## Progresso da apresentação (GET /intro): {"done", "tasks"}.
+var intro := {"done": true, "tasks": []}
 ## Livro de passaporte (GET /passport): {"passports": [...], "stamps": [{country, name, first_at}]}.
 var passport_book := {}
 
@@ -84,9 +94,14 @@ func set_content(data: Dictionary) -> void:
 	if data.get("currency") is Dictionary:
 		currency = data["currency"]
 	sell_prices = data.get("sell_prices", {})
+	shop_buy_bonus = float(data.get("shop_buy_bonus", 1.25))
 	animal_species = data.get("animals", {})
 	rules = data.get("rules", {})
 	pedia_catalog = data.get("pedia", [])
+	npc_roles = data.get("npcs", {})
+	npc_names = data.get("npc_names", {})
+	dialogs = data.get("dialogs", {})
+	intro_cfg = data.get("intro", {})
 
 
 func set_me(data: Dictionary) -> void:
@@ -237,3 +252,12 @@ func house_level(level: int) -> Dictionary:
 		if int(h["level"]) == level:
 			return h
 	return {}
+
+
+## Nome do NPC de um papel num país (mesmo sorteio do servidor não importa: o aeroporto já
+## traz os nomes; isto é para o guia do lote, que usa o país do jogador).
+func npc_name(role: String, country: String) -> String:
+	var list: Array = (npc_names.get(country, {}) as Dictionary).get(role, [])
+	if list.is_empty():
+		list = (npc_names.get("default", {}) as Dictionary).get(role, [role])
+	return str(list[absi(hash(country + role)) % list.size()])

@@ -56,6 +56,8 @@ extends Node3D
 ##                       mouse gira a câmera sem clique (finge a janela na frente)
 ##   --dev-test          aperta os botões novos do painel dev (gobolares, passaportes, barreira,
 ##                       linhas de fronteira, animais, Goblopédia, voo de graça)
+##   --npc-test          fase 3.5: apresentação do guia (tarefa e pular), lojista, loja,
+##                       atendente e troca com um bot (servidor dev)
 ##   --camera-test       encosta em casas e na floresta, gira a câmera e confere que a
 ##                       distância não muda sozinha, que ela não vai para baixo do chão e
 ##                       que o que fica no caminho está transparente (servidor dev)
@@ -331,6 +333,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 		_session.me.get("country", "?"), str(int(lot.get("id", -1)))])
 	if _args.has("equip"):
 		_session.equip(str(_args["equip"]))
+	_check_intro()
 	_run_automation()
 
 
@@ -482,7 +485,7 @@ func _setup_game() -> void:
 	_interaction.neighborhood = _neighborhood
 	_interaction.animals = _animals
 	_interaction.airports = _airports
-	_airports.setup(world, _data, _airport_list)
+	_airports.setup(world, _data, _airport_list, _session.npc_roles)
 	var dirs: Array = []
 	for a: Dictionary in _airport_list:
 		dirs.append(world.centers[int(a["cell"])])
@@ -520,6 +523,7 @@ func _setup_game() -> void:
 	_session.coins_changed.connect(func(delta: int) -> void: _hud.set_coins(_session.coins_text(_session.coins), delta))
 	_hud.set_coins(_session.coins_text(_session.coins))
 	_setup_net()
+	_setup_dialogs()
 
 
 # --- Tempo real (fase 3) --------------------------------------------------------------------
@@ -571,6 +575,17 @@ func _setup_net() -> void:
 			_ui.players.blocked.erase(id)
 		_ui.toast("Jogador bloqueado: vocês não veem mais o chat nem os emotes um do outro." if on else "Jogador desbloqueado."))
 	_net.info.connect(func(text: String) -> void: _ui.toast(text))
+	_net.trade_requested.connect(func(from: int, nick: String) -> void:
+		if _accept_trades:
+			_ui.trade.show_request(from, nick)
+		else:
+			net_send({"t": "trade_answer", "from": from, "ok": false}))
+	_net.trade_changed.connect(func(v: Dictionary) -> void:
+		if not _ui.trade.visible:
+			_ui.close_windows()
+		_ui.trade.show_view(v))
+	_net.trade_finished.connect(_ui.trade.on_done)
+	_net.trade_closed.connect(_ui.trade.on_closed)
 	_net.kicked.connect(func(reason: String) -> void:
 		_hud.show_status("%s\nFeche este jogo ou entre de novo." % reason))
 	_remotes.muted = _load_mutes()
@@ -669,6 +684,53 @@ func _load_mutes() -> Dictionary:
 
 func set_blocked(id: int, on: bool) -> void:
 	_net.send_json({"t": "block", "id": id, "on": on})
+
+
+# --- Troca entre jogadores (fase 3.5, ADR 0044) ---------------------------------------------
+
+## Aceitar pedidos de troca (F6); desligado, o servidor recusa por você.
+var _accept_trades := true
+
+
+func net_send(msg: Dictionary) -> void:
+	_net.send_json(msg)
+
+
+func toast(text: String, item := "") -> void:
+	_ui.toast(text, item)
+
+
+## Propõe uma troca (lista J ou E perto do jogador). O servidor confere distância e bloqueio.
+func propose_trade(id: int) -> void:
+	if _ui.trade.trading():
+		_ui.toast("Você já está numa troca.")
+		return
+	_net.send_json({"t": "trade_req", "to": id})
+
+
+## Jogador remoto mais perto (até `reach`): id, ou -1.
+func nearest_remote(pos: Vector3, reach: float) -> int:
+	var best := -1
+	var best_d := reach
+	for id: int in _remotes.ids():
+		var d := _remotes.position_of(id).distance_to(pos)
+		if d < best_d:
+			best_d = d
+			best = id
+	return best
+
+
+func remote_position(id: int) -> Vector3:
+	return _remotes.position_of(id)
+
+
+func remote_nick(id: int) -> String:
+	return str(_remotes.info(id).get("nick", "?"))
+
+
+func set_accept_trades(on: bool) -> void:
+	_accept_trades = on
+	_net.send_json({"t": "trade_block", "on": not on})
 
 
 ## Troca o personagem (configurações): guarda no servidor e os outros veem.
@@ -1024,15 +1086,21 @@ func _fly(from_airport: Dictionary, dest: Dictionary) -> void:
 	var b := WorldData.lat_lon_to_vec(float(dest["lat"]), float(dest["lon"]))
 	var arc := _flight_arc(a, b)
 	add_child(arc)
-	var dot: MeshInstance3D = arc.get_meta("dot")
+	var dot: Node3D = arc.get_meta("dot")
 	var angle := a.angle_to(b)
 	var duration := clampf(2.5 + angle * 2.2, 2.5, 6.0)
 	var t := 0.0
+	var arc_at := func(k: float) -> Vector3:
+		return a.slerp(b, k).normalized() * (world.radius + 18.0 + sin(k * PI) * angle * 70.0)
 	while t < duration:
 		t += get_process_delta_time()
 		var k := smoothstep(0.0, 1.0, t / duration)
 		var dir := a.slerp(b, k).normalized()
-		dot.position = dir * (world.radius + 18.0 + sin(k * PI) * angle * 70.0)
+		dot.position = arc_at.call(k)
+		# O avião olha para onde o arco vai (com o "em cima" para fora do globo).
+		var ahead: Vector3 = (arc_at.call(minf(k + 0.01, 1.0)) as Vector3) - (arc_at.call(maxf(k - 0.01, 0.0)) as Vector3)
+		if ahead.length() > 0.001:
+			dot.basis = Basis.looking_at(ahead.normalized(), dir).scaled(Vector3.ONE * FLIGHT_PLANE_SCALE)
 		_player.global_position = dir * (world.radius + 1.0)
 		await get_tree().process_frame
 	await _teleport(_airports.arrival_point(dest), "travel")
@@ -1048,7 +1116,11 @@ func _fly(from_airport: Dictionary, dest: Dictionary) -> void:
 	_ui.restore_control(true)
 
 
-## Arco pontilhado entre dois pontos do globo e o pontinho do avião (meta "dot").
+## Tamanho do avião no voo (o globo fica longe da câmera).
+const FLIGHT_PLANE_SCALE := 4.0
+
+
+## Arco pontilhado entre dois pontos do globo e o avião (meta "dot").
 func _flight_arc(a: Vector3, b: Vector3) -> Node3D:
 	var root := Node3D.new()
 	var angle := a.angle_to(b)
@@ -1073,15 +1145,11 @@ func _flight_arc(a: Vector3, b: Vector3) -> Node3D:
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
 	root.add_child(mmi)
+	# O avião (o mesmo do aeroporto, maior).
 	var dot := MeshInstance3D.new()
-	var s := SphereMesh.new()
-	s.radius = 6.0
-	s.height = 12.0
-	var dm := StandardMaterial3D.new()
-	dm.albedo_color = Color("ff5a72")
-	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	s.material = dm
-	dot.mesh = s
+	dot.mesh = PlaneModel.mesh()
+	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	dot.scale = Vector3.ONE * FLIGHT_PLANE_SCALE
 	root.add_child(dot)
 	root.set_meta("dot", dot)
 	return root
@@ -1103,6 +1171,7 @@ func _process(delta: float) -> void:
 	var focus := get_viewport().gui_get_focus_owner()
 	var typing := focus is LineEdit or focus is SpinBox
 	_player.input_blocked = typing or _ui.menu_open() or _photo.selfie()
+	_bob_intro_arrow()
 	_hud.set_help_visible(not _ui.any_open())
 	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
 	_ui.hotbar.visible = not _ui.menu_open() and not _photo.active
@@ -1454,6 +1523,40 @@ func sell(items: Array) -> Dictionary:
 	return r
 
 
+## Loja da praça: comprar (o estoque do dia; o servidor confere a distância e o preço).
+func shop_buy(country: String, item: String, count: int) -> void:
+	var r := await _api.request("POST", "/shop/buy", {"country": country, "item": item, "count": count})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return
+	_session.set_inventory(r["data"]["inventory"], int(r["data"]["slots_used"]))
+	_session.set_coins(int(r["data"]["coins"]))
+	_ui.toast(str(r["data"]["message"]), item)
+
+
+## Loja da praça: vender (paga mais que a caixa de vendas).
+func shop_sell(country: String, items: Array) -> void:
+	if items.is_empty():
+		return
+	var r := await _api.request("POST", "/shop/sell", {"country": country, "items": items})
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return
+	_session.set_inventory(r["data"]["inventory"], int(r["data"]["slots_used"]))
+	_session.set_coins(int(r["data"]["coins"]))
+	_ui.toast("+%s" % _session.coins_text(int(r["data"]["total"])))
+
+
+func open_shop(country: String) -> void:
+	_ui.close_windows()
+	_ui.shop.open(country)
+
+
+func open_shop_sell(country: String) -> void:
+	_ui.close_windows()
+	_ui.sell.open_mode("shop", country)
+
+
 func craft(recipe: String) -> void:
 	var r := await _api.request("POST", "/craft", {"recipe": recipe, "times": 1})
 	if not r["ok"]:
@@ -1462,6 +1565,7 @@ func craft(recipe: String) -> void:
 	_session.set_inventory(r["data"]["inventory"], int(r["data"]["slots_used"]))
 	var made: Dictionary = r["data"]["crafted"]
 	_ui.toast("+%d %s" % [int(made["count"]), _session.item_name(made["item"])], made["item"])
+	on_intro_task(str(r["data"].get("intro_task", "")), int(r["data"].get("intro_reward", 0)))
 
 
 func start_house_placement() -> void:
@@ -1639,7 +1743,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test", "npc-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1690,6 +1794,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("dev-test"):
 		await _dev_test()
+		return
+	if _args.has("npc-test"):
+		await _npc_test()
 		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
@@ -2360,8 +2467,12 @@ func _travel_test() -> void:
 	await get_tree().create_timer(1.5).timeout
 	_interaction._timer = 0.0
 	await get_tree().create_timer(0.2).timeout
-	check.call(_interaction.target.get("type", "") == "airport", "E no balcão do aeroporto (%s)" % _interaction._prompt_text(_interaction.target))
+	check.call(_interaction.target.get("type", "") in ["airport", "npc"], "E no balcão do aeroporto (%s)" % _interaction._prompt_text(_interaction.target))
 	await _interaction.interact()
+	await get_tree().create_timer(0.5).timeout
+	# A atendente pergunta o destino: "Ver destinos".
+	if _ui.dialog.is_open():
+		_dialog_choose(0)
 	await get_tree().create_timer(1.0).timeout
 	var quotes: Array = _ui.travel._quotes
 	check.call(_ui.travel.visible and quotes.size() > 100, "balcão com %d destinos" % quotes.size())
@@ -3119,3 +3230,461 @@ func _resolve_server_url() -> String:
 	if url.is_empty():
 		url = str(ProjectSettings.get_setting("goblo/server_url", DEFAULT_SERVER))
 	return url.trim_suffix("/")
+
+
+# --- NPCs, diálogos e apresentação do guia (fase 3.5, ADR 0043) -------------------------------
+
+## O guia da apresentação (aparece ao lado do jogador; null fora da apresentação).
+var intro_guide: Npc
+var _talking: Npc
+var _item_of_day := ""
+## Tarefa guiada em andamento ("" = nenhuma) e a seta que aponta o alvo.
+var _intro_task := ""
+var _intro_arrow: Node3D
+var _intro_skip: Control
+
+
+func _setup_dialogs() -> void:
+	_ui.dialog.dialogs = _session.dialogs
+	_ui.dialog.action.connect(_on_dialog_action)
+	_ui.dialog.on_skip = skip_intro
+	_ui.dialog.finished.connect(func() -> void:
+		_talking = null
+		_ui.restore_control())
+	_ui.settings.on_intro = restart_intro
+	_ui.settings.on_trades = set_accept_trades
+	_ui.dev.fill_dialogs(_session.dialogs.keys())
+	# "Pular apresentação": sempre visível enquanto a apresentação está em andamento.
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.offset_top = 70
+	var b := UiStyle.button("Pular apresentação", false)
+	b.pressed.connect(skip_intro)
+	box.add_child(b)
+	var hint := UiStyle.label("segure Alt para clicar", 13, UiStyle.INK_SOFT)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(hint)
+	box.visible = false
+	_ui.add_child(box)
+	_intro_skip = box
+
+
+## Conversa com um NPC: abre o diálogo dele (o guia da apresentação fala o trecho atual).
+func talk(npc: Npc) -> void:
+	if npc == null or _ui.dialog.is_open():
+		return
+	npc.face(_player.global_position)
+	_talking = npc
+	var id := npc.dialog
+	var with_skip := false
+	if npc == intro_guide:
+		id = _intro_dialog()
+		with_skip = true
+	if npc.role == "shopkeeper":
+		_item_of_day = await _shop_item_of_day(npc.country)
+	open_dialog(id, npc, with_skip)
+
+
+## Abre um diálogo pelo id (também pelo painel dev). `npc` dá nome, cargo e cor.
+func open_dialog(id: String, npc: Npc = null, with_skip := false) -> void:
+	var country := npc.country if npc else str(_session.me.get("country", ""))
+	var role := npc.role if npc else "guide"
+	var info: Dictionary = _session.npc_roles.get(role, {})
+	_ui.dialog.vars = {"player": str(_session.me.get("nickname", "")), "country": country_name(country),
+		"item_of_day": _item_of_day if not _item_of_day.is_empty() else "uma novidade",
+		"currency": str(_session.currency.get("plural", "gobolares")), "slang": str(_session.currency.get("slang", "goblinhos"))}
+	var who := npc.npc_name if npc else _session.npc_name(role, country)
+	var title := npc.title if npc else str(info.get("title", ""))
+	_ui.close_windows()
+	_ui.dialog.start(id, who, title, Color(str(info.get("tint", "#ffd27f"))), with_skip)
+
+
+## Um item rotativo do estoque de hoje (o lojista comenta).
+func _shop_item_of_day(country: String) -> String:
+	var r := await _api.request("GET", "/shop?country=" + country)
+	if not r["ok"]:
+		return ""
+	var pick := ""
+	for st: Dictionary in r["data"].get("stock", []):
+		if str(st.get("kind", "")) != "fixed":
+			pick = str(st.get("name", ""))
+			if str(st.get("kind", "")) == "regional":
+				break
+	return pick.to_lower()
+
+
+func _on_dialog_action(act: String, opt: Dictionary) -> void:
+	var country := _talking.country if _talking else str(_session.me.get("country", ""))
+	var ap := _airports.airport_of(country)
+	match act:
+		"open_shop":
+			open_shop(country)
+		"open_shop_sell":
+			open_shop_sell(country)
+		"open_travel":
+			_ui.close_windows()
+			if not ap.is_empty():
+				_ui.travel.open(ap)
+		"open_passports":
+			_ui.close_windows()
+			if not ap.is_empty():
+				_ui.travel.open_passports(ap)
+		"intro_task":
+			_start_intro_task(str(opt.get("task", "")))
+		"intro_done":
+			finish_intro(false)
+		"intro_restart":
+			restart_intro()
+
+
+## Trecho da apresentação a falar agora: o "depois" da última tarefa cumprida.
+func _intro_dialog() -> String:
+	var id := str(_session.intro_cfg.get("start", "intro_hello"))
+	var done: Array = _session.intro.get("tasks", [])
+	for t: Dictionary in _session.intro_cfg.get("tasks", []):
+		if done.has(str(t["id"])):
+			id = str(t["after"])
+	return id
+
+
+## Confere a apresentação ao entrar: conta nova vê; no modo dev e nas automações, pula.
+func _check_intro() -> void:
+	var r := await _api.request("GET", "/intro")
+	if not r["ok"]:
+		return
+	_session.intro = r["data"]
+	if bool(_session.intro.get("done", true)):
+		return
+	var forced := FileAccess.file_exists(_intro_flag())
+	if forced:
+		DirAccess.remove_absolute(_intro_flag())
+	if (_session.dev and not forced) or _is_automation():
+		await _set_intro(true)
+		return
+	await get_tree().create_timer(1.2).timeout
+	start_intro()
+
+
+## Arquivo local que faz o modo dev mostrar a apresentação no próximo login.
+func _intro_flag() -> String:
+	return "user://%s_intro.flag" % _session.profile
+
+
+## Modo dev: marca a apresentação como não vista (aparece no próximo login).
+func dev_intro_unseen() -> void:
+	await _set_intro(false)
+	var f := FileAccess.open(_intro_flag(), FileAccess.WRITE)
+	if f:
+		f.store_string("1")
+	_ui.dev.status("Apresentação marcada como não vista: aparece no próximo login.")
+
+
+## Modo dev: repõe o estoque da loja do país onde o jogador está.
+func dev_shop_restock() -> void:
+	var c := _tracker.current if _tracker else str(_session.me.get("country", ""))
+	var r := await _dev("/dev/shop/restock", {"country": c}, "Estoque de %s reposto." % country_name(c))
+	if r["ok"] and _ui.shop.visible:
+		_ui.shop.open(c)
+
+
+## Modo dev: um bot parado do lado e uma troca aberta com ele.
+func dev_trade_bot() -> void:
+	var r := await _dev("/dev/trade-bot", {}, "")
+	if r["ok"]:
+		_ui.dev.status("Troca aberta com %s." % str(r["data"]["bot"]))
+
+
+func _set_intro(done: bool) -> void:
+	var r := await _api.request("POST", "/intro", {"done": done})
+	if r["ok"]:
+		_session.intro = r["data"]
+
+
+## Começa (ou retoma) a apresentação: o guia aparece ao lado do jogador e fala.
+func start_intro() -> void:
+	if not is_instance_valid(intro_guide):
+		var country := str(_session.me.get("country", ""))
+		var ap := _airports.airport_of(country)
+		var gname := str((ap.get("npcs", {}) as Dictionary).get("guide", _session.npc_name("guide", country)))
+		intro_guide = Npc.create("guide", _session.npc_roles.get("guide", {}), gname, country)
+		add_child(intro_guide)
+		var up := _player.global_position.normalized()
+		var fwd := -_player.global_basis.z
+		fwd = (fwd - up * fwd.dot(up)).normalized()
+		var p := land_point(_player.global_position + fwd * 2.2)
+		intro_guide.global_position = p.normalized() * (_terrain_height(p))
+		intro_guide.face(_player.global_position)
+	_intro_skip.visible = true
+	_clear_intro_arrow()
+	talk(intro_guide)
+
+
+## Altura do chão num ponto (o topo plano da célula).
+func _terrain_height(p: Vector3) -> float:
+	var c := world.find_cell(p, _player.cell_id)
+	return world.surface_radius(c) if c >= 0 else p.length()
+
+
+## Rever a apresentação (F6, o guia da praça, modo dev): marca como não vista e começa.
+func restart_intro() -> void:
+	await _set_intro(false)
+	start_intro()
+
+
+## Pula (ou termina) a apresentação: o servidor guarda; o guia vai embora.
+func skip_intro() -> void:
+	finish_intro(true)
+
+
+func finish_intro(skipped: bool) -> void:
+	_ui.dialog.close()
+	_intro_task = ""
+	_clear_intro_arrow()
+	_intro_skip.visible = false
+	if is_instance_valid(intro_guide):
+		intro_guide.queue_free()
+	intro_guide = null
+	await _set_intro(true)
+	_ui.toast("Apresentação pulada. Dá para rever pelo F6." if skipped else "Boas aventuras no Goblo!")
+
+
+## O guia pediu uma tarefa: mostra a seta em cima do alvo.
+func _start_intro_task(task: String) -> void:
+	_intro_task = task
+	_clear_intro_arrow()
+	var target := _intro_target(task)
+	if target == Vector3.ZERO:
+		return
+	_intro_arrow = _make_arrow()
+	add_child(_intro_arrow)
+	_intro_arrow.global_position = target + target.normalized() * 3.2
+	_intro_arrow.set_meta("base", _intro_arrow.global_position)
+	_intro_arrow.global_basis = Basis.looking_at(-target.normalized(), Vector3.UP if absf(target.normalized().y) < 0.99 else Vector3.FORWARD)
+
+
+## Onde a seta aponta: a árvore mais perto (sacudir) ou a bancada do lote (fabricar).
+func _intro_target(task: String) -> Vector3:
+	for t: Dictionary in _session.intro_cfg.get("tasks", []):
+		if str(t["id"]) != task:
+			continue
+		if not str(t.get("recipe", "")).is_empty():
+			var wbs := _interaction._own_placements("workbench")
+			return wbs[0] if not wbs.is_empty() else Vector3.ZERO
+		var best := Vector3.ZERO
+		var best_d := INF
+		for o: Dictionary in _data.objects_near(_player.global_position, 25.0):
+			if str(o["kind"]) == "tree":
+				var d := (o["pos"] as Vector3).distance_to(_player.global_position)
+				if d < best_d:
+					best_d = d
+					best = o["pos"]
+		return best
+	return Vector3.ZERO
+
+
+## Setinha amarela que balança em cima do alvo (cone apontando para baixo).
+func _make_arrow() -> Node3D:
+	var root := Node3D.new()
+	root.name = "IntroArrow"
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 0.38
+	cone.height = 0.7
+	cone.radial_segments = 8
+	var stem := CylinderMesh.new()
+	stem.top_radius = 0.14
+	stem.bottom_radius = 0.14
+	stem.height = 0.6
+	stem.radial_segments = 8
+	var m := _arrow_material()
+	for part: Array in [[cone, Vector3(0, 0, -0.35)], [stem, Vector3(0, 0, 0.3)]]:
+		var mi := MeshInstance3D.new()
+		mi.mesh = part[0]
+		mi.material_override = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = part[1]
+		mi.rotation.x = -PI / 2  # o eixo do cilindro (Y) vira -Z: a ponta olha para o alvo
+		root.add_child(mi)
+	return root
+
+
+static var _arrow_mat: StandardMaterial3D
+
+
+static func _arrow_material() -> StandardMaterial3D:
+	if _arrow_mat == null:
+		_arrow_mat = StandardMaterial3D.new()
+		_arrow_mat.albedo_color = Color("ffcf4a")
+		_arrow_mat.emission_enabled = true
+		_arrow_mat.emission = Color("ffb020")
+		_arrow_mat.emission_energy_multiplier = 0.6
+	return _arrow_mat
+
+
+func _clear_intro_arrow() -> void:
+	if is_instance_valid(_intro_arrow):
+		_intro_arrow.queue_free()
+	_intro_arrow = null
+
+
+## A seta balança devagar (chamado no _process).
+func _bob_intro_arrow() -> void:
+	if not is_instance_valid(_intro_arrow):
+		return
+	var base: Vector3 = _intro_arrow.get_meta("base")
+	_intro_arrow.global_position = base + base.normalized() * sin(Time.get_ticks_msec() * 0.004) * 0.25
+
+
+## A resposta de uma ação (coleta, bancada) disse que uma tarefa da apresentação foi
+## cumprida: paga (já pago no servidor), tira a seta e o guia comenta.
+func on_intro_task(task: String, reward: int) -> void:
+	if task.is_empty():
+		return
+	var tasks: Array = _session.intro.get("tasks", [])
+	if not tasks.has(task):
+		tasks.append(task)
+	_session.intro["tasks"] = tasks
+	if reward > 0:
+		_session.set_coins(_session.coins + reward)
+		_ui.toast("Tarefa da apresentação!  +%s" % _session.coins_text(reward))
+	if _intro_task == task:
+		_intro_task = ""
+		_clear_intro_arrow()
+	if is_instance_valid(intro_guide):
+		await get_tree().create_timer(0.8).timeout
+		_ui.close_windows()
+		talk(intro_guide)
+
+
+
+# --- Teste da fase 3.5: NPCs, diálogos, apresentação, loja e troca (--npc-test) ---------------
+
+## Completa as falas até a que tem respostas e escolhe a resposta i.
+func _dialog_choose(i: int) -> void:
+	var guard := 0
+	while _ui.dialog.is_open() and guard < 30:
+		_ui.dialog.advance()
+		guard += 1
+		var line: Dictionary = _ui.dialog._lines[_ui.dialog._index]
+		if _ui.dialog._line_done() and not (line.get("options", []) as Array).is_empty():
+			_ui.dialog.choose(i)
+			return
+
+
+func _npc_test() -> void:
+	var fails: Array[String] = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: npc-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	check.call(_session.dev, "servidor em modo dev")
+	await get_tree().create_timer(0.5).timeout
+	check.call(bool(_session.intro.get("done", false)), "modo dev pula a apresentação sozinho")
+	check.call(not _session.dialogs.is_empty() and not _session.npc_roles.is_empty(), "diálogos e NPCs vieram do /content (%d diálogos)" % _session.dialogs.size())
+
+	# Apresentação: o guia aparece, fala e pede para sacudir uma árvore.
+	await restart_intro()
+	await get_tree().create_timer(0.3).timeout
+	check.call(is_instance_valid(intro_guide) and _ui.dialog.is_open() and _intro_skip.visible, "guia aparece com o diálogo e o botão de pular")
+	check.call(_ui.dialog._text.contains(intro_guide.npc_name if intro_guide else "?"), "fala com o nome do guia: %s" % _ui.dialog._text)
+	_dialog_choose(0)
+	await get_tree().create_timer(0.2).timeout
+	check.call(_intro_task == "shake" and is_instance_valid(_intro_arrow), "tarefa sacudir com a seta em cima da árvore")
+	var tree := {}
+	for o: Dictionary in _data.objects_near(_player.global_position, 140.0):
+		if o["kind"] == "tree":
+			var st: Dictionary = o.get("state", {}) if o.get("state") is Dictionary else {}
+			if st.is_empty():
+				tree = o
+				break
+	var coins := _session.coins
+	if not tree.is_empty():
+		_session.equip("")
+		var up: Vector3 = tree["up"]
+		var side := up.cross(Vector3.UP if absf(up.y) < 0.9 else Vector3.RIGHT).normalized()
+		await _teleport((tree["pos"] as Vector3) + side * 1.1)
+		await get_tree().create_timer(0.3).timeout
+		_interaction.target = {"type": "object", "obj": tree}
+		await _interaction.interact()
+		await get_tree().create_timer(1.5).timeout
+	check.call(_session.coins > coins and (_session.intro.get("tasks", []) as Array).has("shake"), "sacudir cumpre a tarefa e paga (%d → %d)" % [coins, _session.coins])
+	check.call(_ui.dialog.is_open() and _ui.dialog._lines == _session.dialogs.get("intro_after_shake"), "o guia comenta depois da tarefa")
+	skip_intro()
+	await get_tree().create_timer(0.8).timeout
+	check.call(not is_instance_valid(intro_guide) and bool(_session.intro.get("done", false)) and not _intro_skip.visible, "pular a apresentação guarda no servidor")
+
+	# Praça central do Brasil: lojista e atendente.
+	var bra := _airports.of_country("BRA")
+	await _teleport(_airports.arrival_point(bra))
+	await get_tree().create_timer(1.5).timeout
+	var shopkeeper: Npc = null
+	var attendant: Npc = null
+	for cell: int in _airports._built:
+		for n in (_airports._built[cell] as Node3D).get_meta("npcs", []):
+			if is_instance_valid(n) and (n as Npc).country == "BRA":
+				if (n as Npc).role == "shopkeeper":
+					shopkeeper = n
+				elif (n as Npc).role == "attendant":
+					attendant = n
+	check.call(shopkeeper != null and attendant != null, "praça com lojista e atendente")
+	if shopkeeper:
+		await _teleport(shopkeeper.global_position + (shopkeeper.global_basis.z * -1.2))
+		await get_tree().create_timer(0.5).timeout
+		_interaction._timer = 0.0
+		await get_tree().create_timer(0.2).timeout
+		check.call(_interaction.target.get("type", "") == "npc", "E perto do lojista: %s" % _interaction._prompt_text(_interaction.target))
+		await talk(shopkeeper)
+		await get_tree().create_timer(0.2).timeout
+		check.call(_ui.dialog.is_open() and not _item_of_day.is_empty(), "lojista fala do item do dia (%s)" % _item_of_day)
+		_dialog_choose(0)
+		await get_tree().create_timer(1.0).timeout
+		check.call(_ui.shop.visible, "\"Quero comprar\" abre a loja")
+		await _dev("/dev/coins", {"amount": 300}, "")
+		var seeds := _session.count("seeds")
+		await shop_buy("BRA", "seeds", 2)
+		check.call(_session.count("seeds") == seeds + 2, "comprar 2 sementes na loja")
+		coins = _session.coins
+		await shop_sell("BRA", [{"item": "seeds", "count": 1}])
+		check.call(_session.coins > coins and _session.count("seeds") == seeds + 1, "vender para a loja paga (%d → %d)" % [coins, _session.coins])
+		_ui.close_windows()
+	if attendant:
+		await talk(attendant)
+		await get_tree().create_timer(0.2).timeout
+		_dialog_choose(1)
+		await get_tree().create_timer(1.0).timeout
+		check.call(_ui.travel.visible and _ui.travel._tabs.current_tab == 1, "atendente oferece o passaporte (aba de passaportes)")
+		_ui.close_windows()
+
+	# Troca com um bot do modo dev (ele oferece 3 madeiras e acompanha).
+	await _dev("/dev/give", {"item": "stone", "count": 5}, "")
+	var wood := _session.count("wood")
+	var stone := _session.count("stone")
+	await dev_trade_bot()
+	var t := 0.0
+	while not _ui.trade.trading() and t < 3.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	check.call(_ui.trade.visible and _ui.trade.trading(), "troca com o bot aberta")
+	await get_tree().create_timer(0.6).timeout
+	var theirs: Dictionary = _ui.trade.view.get("theirs", {})
+	check.call(str(theirs).contains("wood"), "o bot oferece madeira: %s" % str(theirs))
+	_ui.trade._offer_items = [{"item": "stone", "count": 2}]
+	_ui.trade._send_offer()
+	await get_tree().create_timer(0.5).timeout
+	net_send({"t": "trade_ready", "on": true})
+	await get_tree().create_timer(0.8).timeout
+	check.call(bool(_ui.trade.view.get("both_ready", false)), "os dois prontos")
+	net_send({"t": "trade_confirm"})
+	t = 0.0
+	while _ui.trade.trading() and t < 3.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	check.call(_session.count("wood") == wood + 3 and _session.count("stone") == stone - 2, "troca feita: madeira %d → %d, pedra %d → %d" % [wood, _session.count("wood"), stone, _session.count("stone")])
+	await dev_bots(0)
+
+	if fails.is_empty():
+		print("Goblo: npc-test OK")
+	else:
+		print("Goblo: npc-test FALHOU: %s" % ", ".join(fails))
+	get_tree().quit(0 if fails.is_empty() else 1)

@@ -4,22 +4,34 @@ extends Node3D
 ## no hexágono mais perto da capital, que fica só para o aeroporto. Países pequenos ganham
 ## só um ponto de chegada (balcão na beirada do hexágono).
 ##
-## O cenário é montado com peças que o jogo já carrega (Fantasy Town Kit): a casa grande
-## como terminal, a barraquinha vermelha como balcão (E abre as viagens), uma pista de
-## pedra com luzinhas, carrinho de malas e uma biruta feita em código. Só os aeroportos
-## perto do personagem são montados. Na visão afastada, um aviãozinho marca cada aeroporto.
+## Praça central do país (fase 3.5, ADR 0042): no hexágono do aeroporto ficam o terminal
+## com vidraça e o balcão (atendente), a torre de controle, a pista com faixas de cabeceira
+## e luzinhas, a biruta, o portão de embarque, veículos de pátio do Car Kit, o avião parado
+## (PlaneModel), a loja (lojista) e a fonte onde fica a guia. Nos países pequenos, o balcão
+## é compartilhado: atendente e lojista lado a lado. Os NPCs abrem diálogos (E). Só as
+## praças perto do personagem são montadas. Na visão afastada, um aviãozinho marca cada uma.
 
 const BUILD_RADIUS := 130.0
 const FREE_RADIUS := 170.0
 const UPDATE_EVERY := 0.5
 const COUNTER_REACH := 2.0
-const TERMINAL := "res://scenes/houses/house_level_3.tscn"
 const COUNTER := "res://assets/kenney/fantasy-town-kit/stall-red.glb"
+const SHOP := "res://assets/kenney/fantasy-town-kit/stall-green.glb"
 const ROAD := "res://assets/kenney/fantasy-town-kit/road.glb"
 const CART := "res://assets/kenney/fantasy-town-kit/cart.glb"
 const LANTERN := "res://assets/kenney/fantasy-town-kit/lantern.glb"
+const FOUNTAIN := "res://assets/kenney/fantasy-town-kit/fountain-round.glb"
+const BENCH := "res://assets/kenney/graveyard-kit/bench.glb"
+const BANNER := "res://assets/kenney/fantasy-town-kit/banner-green.glb"
+const VAN := "res://assets/kenney/car-kit/van.glb"
+const TRUCK := "res://assets/kenney/car-kit/truck-flat.glb"
+const DELIVERY := "res://assets/kenney/car-kit/delivery.glb"
+const CONE := "res://assets/kenney/car-kit/cone.glb"
 ## Peças que precisam estar carregadas antes do jogo começar.
-const MODELS := [TERMINAL, COUNTER, ROAD, CART, LANTERN]
+const MODELS := [COUNTER, SHOP, ROAD, CART, LANTERN, FOUNTAIN, BENCH, BANNER, VAN, TRUCK, DELIVERY, CONE]
+## Pontos da praça no plano do hexágono (o servidor usa os mesmos: game.ShopPoint).
+const SHOP_POINT := Vector2(-6.0, 2.6)
+const NPC_REACH := 2.4
 
 var world: WorldData
 var data: ChunkData
@@ -27,6 +39,10 @@ var data: ChunkData
 var list: Array = []
 var by_country := {}
 var _built := {}  # célula → Node3D
+## Papéis dos NPCs (npcs.json do servidor).
+var npc_roles := {}
+## Materiais compartilhados do cenário (cria uma vez).
+var _mats := {}
 var _timer := 0.0
 ## Aviõezinhos da visão afastada: um MultiMesh só (antes, um Sprite3D por aeroporto: 200
 ## draw calls a mais no globo).
@@ -35,10 +51,11 @@ var _marker_mat: StandardMaterial3D
 var _plane_tex: ImageTexture
 
 
-func setup(w: WorldData, d: ChunkData, airports: Array) -> void:
+func setup(w: WorldData, d: ChunkData, airports: Array, roles := {}) -> void:
 	world = w
 	data = d
 	list = airports
+	npc_roles = roles
 	for a: Dictionary in list:
 		a["cell"] = int(a["cell"])
 		by_country[str(a["country"])] = a
@@ -52,6 +69,26 @@ func counter_near(pos: Vector3) -> Dictionary:
 		if counter_point(a).distance_to(pos) < COUNTER_REACH:
 			return a
 	return {}
+
+
+## NPC (o mais perto) a até NPC_REACH do ponto; null se nenhum.
+func npc_near(pos: Vector3) -> Npc:
+	var best: Npc = null
+	var best_d := NPC_REACH
+	for cell: int in _built:
+		for n in (_built[cell] as Node3D).get_meta("npcs", []):
+			var npc := n as Npc
+			if is_instance_valid(npc):
+				var d := npc.global_position.distance_to(pos)
+				if d < best_d:
+					best_d = d
+					best = npc
+	return best
+
+
+## Aeroporto de um país ({} se não houver).
+func airport_of(country: String) -> Dictionary:
+	return by_country.get(country, {})
 
 
 ## Ponto do balcão no mundo.
@@ -153,56 +190,195 @@ func _build(a: Dictionary) -> void:
 	var x := float(a["x"])
 	var y := float(a["y"])
 	var small := bool(a.get("small", false))
-	# Balcão (barraquinha vermelha) virado para quem chega.
+	var npcs: Array = []
+	# Balcão (barraquinha vermelha) virado para quem chega, com o atendente atrás.
 	var face := Vector2(x, y).angle() + PI * 0.5 if small else 0.0
 	_place(root, f, COUNTER, x, y, face, 1.5)
 	_box(body, f, x, y, Vector3(1.4, 1.2, 1.0))
 	_sign(root, f, x, y, 2.4, str(a["name"]))
 	if small:
+		# Balcão compartilhado: atendente e lojista lado a lado, atrás do balcão.
+		var inward := -Vector2(x, y).normalized()
+		var side := Vector2(-inward.y, inward.x)
+		var back := Vector2(x, y) - inward * 0.8
+		npcs.append(_npc(root, f, a, "attendant", back + side * 0.45, Vector2(x, y) + inward))
+		npcs.append(_npc(root, f, a, "shopkeeper", back - side * 0.45, Vector2(x, y) + inward))
 		_windsock(root, f, x + 1.6 * cos(face), y + 1.6 * sin(face), 1.4)
+		root.set_meta("npcs", npcs.filter(func(n: Variant) -> bool: return n != null))
 		return
-	# Terminal: a casa grande, com a porta para a pista (sul). Fica transparente quando
-	# está entre a câmera e o personagem, como as casas dos lotes.
-	var terminal := _place(root, f, TERMINAL, 0.0, 4.3, 0.0, 1.0)
-	_box(body, f, 0.0, 4.3, Vector3(4.6, 3.2, 4.6))
-	if terminal:
-		var center := WorldData.frame_point(f, 0.0, 4.3) + (f["center"] as Vector3) * 2.2
-		root.set_meta("occluders", [{"mi": terminal, "xf": Transform3D(WorldData.frame_basis(f, 0.0), center), "half": Vector3(2.7, 2.4, 2.7)}])
-	# Pista de pedra (leste-oeste) com faixa no meio e luzinhas nas bordas.
+	npcs.append(_npc(root, f, a, "attendant", Vector2(0.0, 2.25), Vector2(0.0, -1.0)))
+	_terminal(root, body, f, str(a.get("city", "")))
+	_tower(root, body, f, 6.6, 6.4)
+	# Pista de pedra (leste-oeste): faixa no meio, faixas de cabeceira e luzinhas nas bordas.
+	for i in 8:
+		_place(root, f, ROAD, -7.0 + i * 2.0, -4.6, 0.0, 2.0)
+	var white := _mat("white", Color("fffaf0"))
+	var lamp := _mesh_lamp()
 	for i in 7:
 		var px := -6.0 + i * 2.0
-		_place(root, f, ROAD, px, -4.6, 0.0, 2.0)
-	var stripe := BoxMesh.new()
-	stripe.size = Vector3(0.9, 0.02, 0.14)
-	var white := StandardMaterial3D.new()
-	white.albedo_color = Color("fffaf0")
-	stripe.material = white
-	var lamp := SphereMesh.new()
-	lamp.radius = 0.08
-	lamp.height = 0.16
-	lamp.radial_segments = 8
-	lamp.rings = 4
-	var yellow := StandardMaterial3D.new()
-	yellow.albedo_color = Color("ffd45a")
-	yellow.emission_enabled = true
-	yellow.emission = Color("ffb84a")
-	yellow.emission_energy_multiplier = 0.6
-	lamp.material = yellow
-	for i in 7:
-		var px := -6.0 + i * 2.0
-		var s := MeshInstance3D.new()
-		s.mesh = stripe
-		s.transform = Transform3D(WorldData.frame_basis(f, 0.0), WorldData.frame_point(f, px, -4.6) + (f["center"] as Vector3) * 0.03)
-		root.add_child(s)
-		for side in [-1.0, 1.0]:
+		_flat(root, f, px, -4.6, Vector3(0.9, 0.02, 0.14), white, 0.03)
+		for sd in [-1.0, 1.0]:
 			var l := MeshInstance3D.new()
 			l.mesh = lamp
-			l.position = WorldData.frame_point(f, px, -4.6 + side * 1.15) + (f["center"] as Vector3) * 0.08
+			l.position = WorldData.frame_point(f, px, -4.6 + sd * 1.15) + (f["center"] as Vector3) * 0.08
 			root.add_child(l)
-	_place(root, f, CART, -2.8, 1.3, 0.3, 1.2)
-	_place(root, f, LANTERN, 3.0, 1.2, 0.0, 1.2)
+	for end in [-7.4, 7.4]:
+		for k in 4:
+			_flat(root, f, end, -5.1 + k * 0.33, Vector3(0.6, 0.02, 0.16), white, 0.03)
+	# Avião parado na cabeceira oeste, apontando para o leste.
+	var plane := MeshInstance3D.new()
+	plane.mesh = PlaneModel.mesh()
+	plane.transform = Transform3D(WorldData.frame_basis(f, -PI * 0.5, 0.8), WorldData.frame_point(f, -3.6, -4.6) + (f["center"] as Vector3) * 0.42)
+	root.add_child(plane)
+	_box(body, f, -3.6, -4.6, Vector3(3.0, 1.2, 1.0))
+	# Portão de embarque, entre o terminal e a pista.
+	_gate(root, f, 3.4, 1.9)
+	# Veículos de pátio do Car Kit, cones e o carrinho de malas.
+	_place_len(root, f, VAN, 5.4, -2.2, 0.5, 1.7)
+	_place_len(root, f, TRUCK, -6.4, -2.4, -0.4, 1.7)
+	_place_len(root, f, DELIVERY, 7.6, 2.6, PI * 0.5, 2.0)
+	for c in [Vector2(4.2, -2.9), Vector2(4.8, -3.1), Vector2(-5.2, -3.0)]:
+		_place_len(root, f, CONE, c.x, c.y, 0.0, 0.35)
+	_place(root, f, CART, -2.6, 1.0, 0.3, 1.2)
+	_windsock(root, f, 7.6, -2.0, 2.2)
+	# Loja da praça: barraca verde com bandeira, o lojista atrás, banquinhos na frente.
+	_place(root, f, SHOP, SHOP_POINT.x, SHOP_POINT.y, 0.0, 1.5)
+	_box(body, f, SHOP_POINT.x, SHOP_POINT.y, Vector3(1.6, 1.2, 1.2))
+	_sign(root, f, SHOP_POINT.x, SHOP_POINT.y, 2.5, "Loja")
+	_place(root, f, BANNER, SHOP_POINT.x - 1.4, SHOP_POINT.y + 0.3, 0.0, 1.5)
+	npcs.append(_npc(root, f, a, "shopkeeper", SHOP_POINT + Vector2(0.0, 0.9), SHOP_POINT + Vector2(0.0, -2.0)))
+	_place(root, f, BENCH, SHOP_POINT.x + 0.2, SHOP_POINT.y - 2.2, 0.0, 1.3)
+	# Ponto de encontro: a fonte, com a guia ao lado e lampiões.
+	_place(root, f, FOUNTAIN, 5.0, 1.8, 0.0, 1.0)
+	_box(body, f, 5.0, 1.8, Vector3(2.4, 0.6, 2.4))
+	npcs.append(_npc(root, f, a, "guide", Vector2(3.3, 0.9), Vector2(3.3, -2.0)))
+	_place(root, f, LANTERN, 2.6, 0.6, 0.0, 1.2)
 	_place(root, f, LANTERN, -3.6, 2.6, 0.0, 1.2)
-	_windsock(root, f, 6.2, -1.8, 2.2)
+	root.set_meta("npcs", npcs.filter(func(n: Variant) -> bool: return n != null))
+
+
+## NPC de um papel num ponto da praça, olhando para `look`.
+func _npc(root: Node3D, f: Dictionary, a: Dictionary, role: String, at: Vector2, look: Vector2) -> Npc:
+	if not npc_roles.has(role):
+		return null
+	var names: Dictionary = a.get("npcs", {})
+	var npc := Npc.create(role, npc_roles[role], str(names.get(role, role)), str(a.get("country", "")))
+	root.add_child(npc)
+	var p := WorldData.frame_point(f, at.x, at.y)
+	npc.global_position = p
+	npc.face(WorldData.frame_point(f, look.x, look.y))
+	return npc
+
+
+func _mat(key: String, c: Color, glass := false) -> StandardMaterial3D:
+	if not _mats.has(key):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = c
+		m.roughness = 0.85
+		if glass:
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.roughness = 0.08
+			m.metallic_specular = 0.9
+		_mats[key] = m
+	return _mats[key]
+
+
+## Caixa no plano da célula: centro (x, y), base `lift` acima do chão.
+func _flat(root: Node3D, f: Dictionary, x: float, y: float, size: Vector3, m: Material, lift := 0.0) -> MeshInstance3D:
+	var b := BoxMesh.new()
+	b.size = size
+	var mi := MeshInstance3D.new()
+	mi.mesh = BorderLines._baked(b, m)
+	mi.transform = Transform3D(WorldData.frame_basis(f, 0.0), WorldData.frame_point(f, x, y) + (f["center"] as Vector3) * (lift + size.y * 0.5))
+	root.add_child(mi)
+	return mi
+
+
+func _mesh_lamp() -> Mesh:
+	if not _mats.has("lamp_mesh"):
+		var lamp := SphereMesh.new()
+		lamp.radius = 0.08
+		lamp.height = 0.16
+		lamp.radial_segments = 8
+		lamp.rings = 4
+		var yellow := StandardMaterial3D.new()
+		yellow.albedo_color = Color("ffd45a")
+		yellow.emission_enabled = true
+		yellow.emission = Color("ffb84a")
+		yellow.emission_energy_multiplier = 0.6
+		_mats["lamp_mesh"] = BorderLines._baked(lamp, yellow)
+	return _mats["lamp_mesh"]
+
+
+## Terminal: paredes creme, vidraça azulada na frente (para a pista), telhado rosado com
+## beiral, letreiro. Fica transparente na frente da câmera (como as casas).
+func _terminal(root: Node3D, body: StaticBody3D, f: Dictionary, city: String) -> void:
+	var cream := _mat("cream", Color("f6ead2"))
+	var glass := _mat("glass", Color(0.62, 0.84, 0.96, 0.45), true)
+	var roof := _mat("roof", Color("e98aa8"))
+	var trim := _mat("trim", Color("c99a6b"))
+	var cx := 0.0
+	var cy := 5.0
+	var walls := _flat(root, f, cx, cy + 0.4, Vector3(7.0, 2.4, 2.2), cream)
+	_flat(root, f, cx, cy - 0.85, Vector3(6.6, 2.1, 0.12), glass, 0.15)
+	for k in 5:
+		_flat(root, f, -3.2 + k * 1.6, cy - 0.9, Vector3(0.14, 2.3, 0.18), trim)
+	_flat(root, f, cx, cy, Vector3(7.6, 0.25, 3.4), roof, 2.4)
+	_flat(root, f, cx, cy - 0.95, Vector3(1.4, 0.12, 0.9), roof, 1.9)  # marquise da porta
+	_sign(root, f, cx, cy - 1.2, 3.0, "Aeroporto" if city.is_empty() else "Aeroporto de " + city)
+	_box(body, f, cx, cy, Vector3(7.0, 2.6, 3.0))
+	var center := WorldData.frame_point(f, cx, cy) + (f["center"] as Vector3) * 1.5
+	root.set_meta("occluders", [{"mi": walls, "xf": Transform3D(WorldData.frame_basis(f, 0.0), center), "half": Vector3(3.8, 1.6, 1.8)}])
+
+
+## Torre de controle: base, haste, cabine de vidro octogonal, teto e antena com luz vermelha.
+func _tower(root: Node3D, body: StaticBody3D, f: Dictionary, x: float, y: float) -> void:
+	var up: Vector3 = f["center"]
+	var base := WorldData.frame_point(f, x, y)
+	var cream := _mat("cream", Color("f6ead2"))
+	var glass := _mat("glass", Color(0.62, 0.84, 0.96, 0.45), true)
+	var roof := _mat("roof", Color("e98aa8"))
+	var red := _mat("red_light", Color("ff5a5a"))
+	var parts := [
+		[0.0, 1.0, 0.75, 0.9, cream], [1.0, 2.6, 0.38, 0.45, cream], [3.6, 0.15, 0.95, 0.95, cream],
+		[3.75, 0.8, 0.9, 0.9, glass], [4.55, 0.35, 0.2, 1.05, roof], [4.9, 0.6, 0.03, 0.03, cream]]
+	for p: Array in parts:
+		var c := CylinderMesh.new()
+		c.top_radius = p[2]
+		c.bottom_radius = p[3]
+		c.height = p[1]
+		c.radial_segments = 8
+		var mi := MeshInstance3D.new()
+		mi.mesh = BorderLines._baked(c, p[4])
+		mi.transform = Transform3D(WorldData.frame_basis(f, 0.0), base + up * (float(p[0]) + float(p[1]) * 0.5))
+		root.add_child(mi)
+	var light := SphereMesh.new()
+	light.radius = 0.08
+	light.height = 0.16
+	var lm := MeshInstance3D.new()
+	lm.mesh = BorderLines._baked(light, red)
+	lm.position = base + up * 5.55
+	root.add_child(lm)
+	_box(body, f, x, y, Vector3(1.6, 4.6, 1.6))
+
+
+## Portão de embarque: dois postes, uma viga com telhadinho e a plaquinha.
+func _gate(root: Node3D, f: Dictionary, x: float, y: float) -> void:
+	var trim := _mat("trim", Color("c99a6b"))
+	var roof := _mat("roof", Color("e98aa8"))
+	_flat(root, f, x - 0.7, y, Vector3(0.14, 1.9, 0.14), trim)
+	_flat(root, f, x + 0.7, y, Vector3(0.14, 1.9, 0.14), trim)
+	_flat(root, f, x, y, Vector3(1.8, 0.16, 0.5), roof, 1.9)
+	_sign(root, f, x, y, 2.4, "Embarque")
+
+
+## Modelo com `length` de comprimento (o maior lado no chão), para os veículos.
+func _place_len(root: Node3D, f: Dictionary, model: String, x: float, y: float, rot: float, length: float) -> void:
+	var lib := ModelLibrary.get_cached(model)
+	if lib.is_empty():
+		return
+	var aabb: AABB = lib["aabb"]
+	_place(root, f, model, x, y, rot, length / maxf(maxf(aabb.size.x, aabb.size.z), 0.01))
 
 
 func _sign(root: Node3D, f: Dictionary, x: float, y: float, height: float, text: String) -> void:

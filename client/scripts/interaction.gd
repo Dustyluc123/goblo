@@ -12,6 +12,8 @@ const REACH := {"tree": 1.7, "rock": 1.6, "bush": 1.4, "flower": 1.1, "pebble": 
 const WORKBENCH_REACH := 1.8
 ## Até onde alcança um animal (a partir da borda dele).
 const ANIMAL_REACH := 1.3
+## Outro jogador a esta distância: E propõe uma troca (fase 3.5).
+const PLAYER_REACH := 1.6
 
 var game: GameMain
 var player: Player
@@ -74,6 +76,25 @@ func _find_target() -> Dictionary:
 			if dist < best_score:
 				best_score = dist
 				best = {"type": "airport", "airport": ap, "pos": airports.counter_point(ap)}
+	# NPCs (praça e o guia da apresentação): ganham do balcão quando estão perto.
+	var npcs: Array = []
+	if airports:
+		npcs.append(airports.npc_near(pos))
+	if game and is_instance_valid(game.intro_guide):
+		npcs.append(game.intro_guide)
+	for npc: Npc in npcs:
+		if npc == null:
+			continue
+		var dist := npc.global_position.distance_to(pos) - 0.6
+		if dist < Airports.NPC_REACH and dist < best_score:
+			best_score = dist
+			best = {"type": "npc", "npc": npc, "pos": npc.global_position}
+	# Outro jogador bem perto: E propõe uma troca.
+	if game:
+		var rid := game.nearest_remote(pos, PLAYER_REACH)
+		if rid >= 0 and best_score > 0.8:
+			best = {"type": "player", "id": rid, "pos": game.remote_position(rid)}
+			best_score = 0.8
 	for kind: String in ["workbench", "sell_box"]:
 		for wb: Vector3 in _own_placements(kind):
 			var dist := wb.distance_to(pos)
@@ -123,6 +144,11 @@ func _prompt_text(t: Dictionary) -> String:
 		return "E: caixa de vendas"
 	if t["type"] == "airport":
 		return "E: balcão do aeroporto (viagens e passaportes)"
+	if t["type"] == "player":
+		return "E: propor troca com %s" % game.remote_nick(int(t["id"]))
+	if t["type"] == "npc":
+		var npc: Npc = t["npc"]
+		return "E: conversar com %s (%s)" % [npc.npc_name, npc.title.to_lower()]
 	if t["type"] == "animal":
 		var an: Dictionary = t["animal"]
 		if _wants_fruit(an):
@@ -176,7 +202,19 @@ func interact() -> Dictionary:
 		return await _animal(target["animal"])
 	if target["type"] == "airport":
 		player.face(target["pos"])
-		ui.travel.open(target["airport"])
+		# Com a atendente ali, o balcão é com ela (diálogo); senão abre direto.
+		var att := airports.npc_near(target["pos"])
+		if att != null and att.role == "attendant":
+			game.talk(att)
+		else:
+			ui.travel.open(target["airport"])
+		return {"ok": true}
+	if target["type"] == "npc":
+		player.face(target["pos"])
+		game.talk(target["npc"])
+		return {"ok": true}
+	if target["type"] == "player":
+		game.propose_trade(int(target["id"]))
 		return {"ok": true}
 	var o: Dictionary = target["obj"]
 	var action := _action(o)
@@ -202,6 +240,7 @@ func interact() -> Dictionary:
 		_pop(o, str(g["item"]))
 	if (res.get("gained", []) as Array).is_empty() and str(res.get("message", "")) != "":
 		ui.toast(str(res["message"]))
+	game.on_intro_task(str(res.get("intro_task", "")), int(res.get("intro_reward", 0)))
 	_timer = 0.0
 	return r
 
