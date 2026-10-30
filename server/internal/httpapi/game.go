@@ -34,6 +34,8 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /lot/house", s.auth(s.house))
 	mux.HandleFunc("POST /sell", s.auth(s.sell))
 	mux.HandleFunc("GET /shop", s.auth(s.shop))
+	mux.HandleFunc("GET /intro", s.auth(s.intro))
+	mux.HandleFunc("POST /intro", s.auth(s.setIntro))
 	mux.HandleFunc("POST /shop/buy", s.auth(s.shopBuy))
 	mux.HandleFunc("POST /shop/sell", s.auth(s.shopSell))
 	mux.HandleFunc("POST /animal/feed", s.auth(s.feed))
@@ -135,6 +137,11 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"currency":        c.Economy.Currency,
 		"sell_prices":     c.Economy.SellPrices,
 		"shop_buy_bonus":  c.Economy.ShopBuyBonus,
+		"npcs":            c.NPCs.Roles,
+		"npc_names":       c.NPCs.Names,
+		"dialogs":         c.Dialogs.Dialogs,
+		"intro":           c.Dialogs.Intro,
+		"shop_fixed":      c.Shop.Fixed,
 		"animals":         c.Animals.Species,
 		"pedia":           c.PediaEntries(),
 		"rules":           c.Rules,
@@ -376,6 +383,33 @@ func (s *Server) sell(w http.ResponseWriter, r *http.Request, p *game.Player) {
 		return
 	}
 	writeJSON(w, http.StatusOK, res)
+}
+
+// intro: progresso da apresentação do guia.
+func (s *Server) intro(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	v, err := s.Game.Intro(r.Context(), p)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
+}
+
+// setIntro: {"done": true} (terminou ou pulou) ou false (rever pelo F6, modo dev).
+func (s *Server) setIntro(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Done bool `json:"done"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	v, err := s.Game.SetIntro(r.Context(), p, body.Done)
+	if err != nil {
+		writeError(w, s, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
 }
 
 // shop: a loja da praça de um país hoje (?country=BRA; sem país, o do jogador).

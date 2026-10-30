@@ -522,6 +522,9 @@ type InteractResult struct {
 	Inventory []StackView    `json:"inventory"`
 	SlotsUsed int            `json:"slots_used"`
 	Message   string         `json:"message"`
+	// Tarefa da apresentação cumprida com esta ação (e a recompensa), se houver.
+	IntroTask   string `json:"intro_task,omitempty"`
+	IntroReward int64  `json:"intro_reward,omitempty"`
 }
 
 // Interact aplica uma ação (shake, chop, mine, pick) num objeto.
@@ -581,6 +584,9 @@ func (s *Service) Interact(ctx context.Context, p *Player, objectID int64, actio
 			return err
 		}
 		res = &InteractResult{Action: action, Gained: gained, Message: s.rewardMessage(obj, action, gained)}
+		if res.IntroTask, res.IntroReward, err = s.introProgress(ctx, tx, p, action, ""); err != nil {
+			return err
+		}
 		cols, err := tx.Collections(ctx, p.ID, day, []int{cell})
 		if err != nil {
 			return err
@@ -755,6 +761,9 @@ type CraftResult struct {
 	Inventory []StackView `json:"inventory"`
 	SlotsUsed int         `json:"slots_used"`
 	Message   string      `json:"message"`
+	// Tarefa da apresentação cumprida (e a recompensa), se houver.
+	IntroTask   string `json:"intro_task,omitempty"`
+	IntroReward int64  `json:"intro_reward,omitempty"`
 }
 
 // resolveCost transforma um custo (com grupos "#tag") em itens concretos do inventário.
@@ -876,6 +885,9 @@ func (s *Service) Craft(ctx context.Context, p *Player, recipeID string, times i
 			return err
 		}
 		res = &CraftResult{Crafted: made, Consumed: used, Message: fmt.Sprintf("Você fabricou %d× %s!", made.Count, s.itemName(made.Item))}
+		if res.IntroTask, res.IntroReward, err = s.introProgress(ctx, tx, p, "", recipeID); err != nil {
+			return err
+		}
 		res.Inventory, res.SlotsUsed = s.inventoryView(inv)
 		return nil
 	})

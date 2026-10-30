@@ -112,6 +112,8 @@ type Content struct {
 	Rules     Rules                   `json:"-"`
 	Countries CountriesEconomy        `json:"-"`
 	Shop      *ShopContent            `json:"-"`
+	NPCs      *NPCContent             `json:"-"`
+	Dialogs   *DialogContent          `json:"-"`
 	Pedia     struct {
 		Extras []PediaEntry `json:"extras"`
 	} `json:"-"`
@@ -157,6 +159,7 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 		{"game/economy.json", &c.Economy}, {"game/animals.json", &c.Animals},
 		{"game/goblopedia.json", &c.Pedia}, {"game/rules.json", &c.Rules},
 		{"game/countries.json", &c.Countries}, {"game/shop.json", &c.Shop},
+		{"game/npcs.json", &c.NPCs}, {"game/dialogs.json", &c.Dialogs},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -224,6 +227,9 @@ func (c *Content) index() error {
 		if c.Economy.SellPrices[it.ID] <= 0 {
 			return fmt.Errorf("economy.json: item %s sem preço de venda (sell_prices)", it.ID)
 		}
+	}
+	if err := c.checkDialogs(); err != nil {
+		return err
 	}
 	if c.Economy.ShopBuyBonus < 1 {
 		return fmt.Errorf("economy.json: shop_buy_bonus precisa ser >= 1")

@@ -1,0 +1,160 @@
+{
+  "_doc": "NPCs da fase 3.5 (todos parados no lugar; ADR 0043). roles: cada papel tem um título, o personagem do Mini Characters (com uma cor de roupa e um acessório do pacote, para não parecerem jogadores), o diálogo que abre ao conversar e onde fica. names: nomes por país (o nome de cada NPC sai de um sorteio fixo pelo país); default vale para os países sem lista.",
+  "roles": {
+    "guide": {
+      "title": "Guia",
+      "character": "character-female-d",
+      "accessory": "aid-glasses",
+      "tint": "#ffd27f",
+      "dialog": "guide_plaza"
+    },
+    "shopkeeper": {
+      "title": "Lojista",
+      "character": "character-male-c",
+      "accessory": "aid-sunglasses",
+      "tint": "#9fe0c0",
+      "dialog": "shop_hello"
+    },
+    "attendant": {
+      "title": "Atendente do aeroporto",
+      "character": "character-female-b",
+      "accessory": "",
+      "tint": "#a9c8ff",
+      "dialog": "airport_hello"
+    }
+  },
+  "names": {
+    "default": {
+      "guide": [
+        "Lia",
+        "Tico",
+        "Nina",
+        "Bento"
+      ],
+      "shopkeeper": [
+        "Dona Rosa",
+        "Seu Toninho",
+        "Mila",
+        "Juca"
+      ],
+      "attendant": [
+        "Bia",
+        "Caio",
+        "Duda",
+        "Lelo"
+      ]
+    },
+    "BRA": {
+      "guide": [
+        "Lia",
+        "Tico"
+      ],
+      "shopkeeper": [
+        "Dona Rosa",
+        "Seu Toninho"
+      ],
+      "attendant": [
+        "Bia",
+        "Caio"
+      ]
+    },
+    "PRT": {
+      "guide": [
+        "Inês",
+        "Tiago"
+      ],
+      "shopkeeper": [
+        "Dona Fátima",
+        "Sr. Joaquim"
+      ],
+      "attendant": [
+        "Rita",
+        "Duarte"
+      ]
+    },
+    "ARG": {
+      "guide": [
+        "Sol",
+        "Nico"
+      ],
+      "shopkeeper": [
+        "Doña Marta",
+        "Don Julio"
+      ],
+      "attendant": [
+        "Flor",
+        "Tomi"
+      ]
+    },
+    "JPN": {
+      "guide": [
+        "Hana",
+        "Ren"
+      ],
+      "shopkeeper": [
+        "Sra. Sato",
+        "Sr. Kenji"
+      ],
+      "attendant": [
+        "Yui",
+        "Sora"
+      ]
+    },
+    "FRA": {
+      "guide": [
+        "Léa",
+        "Hugo"
+      ],
+      "shopkeeper": [
+        "Mme. Colette",
+        "M. Pierre"
+      ],
+      "attendant": [
+        "Chloé",
+        "Louis"
+      ]
+    },
+    "USA": {
+      "guide": [
+        "Ruby",
+        "Sam"
+      ],
+      "shopkeeper": [
+        "Miss Daisy",
+        "Mr. Bill"
+      ],
+      "attendant": [
+        "Ellie",
+        "Jack"
+      ]
+    },
+    "DEU": {
+      "guide": [
+        "Mia",
+        "Finn"
+      ],
+      "shopkeeper": [
+        "Frau Greta",
+        "Herr Otto"
+      ],
+      "attendant": [
+        "Lena",
+        "Paul"
+      ]
+    },
+    "MEX": {
+      "guide": [
+        "Lupita",
+        "Beto"
+      ],
+      "shopkeeper": [
+        "Doña Lola",
+        "Don Chuy"
+      ],
+      "attendant": [
+        "Ana",
+        "Memo"
+      ]
+    }
+  }
+}

@@ -46,6 +46,8 @@ type Airport struct {
 	X           float64 `json:"x"` // balcão, no plano da célula
 	Y           float64 `json:"y"`
 	Small       bool    `json:"small"` // só um ponto de chegada (país pequeno)
+	// Nomes dos NPCs da praça (papel → nome), de npcs.json.
+	NPCs map[string]string `json:"npcs"`
 }
 
 // buildAirports escolhe o hexágono de cada aeroporto. Pula hexágonos que já têm lote (de
@@ -107,7 +109,12 @@ func (s *Service) buildAirports() {
 		s.airports = append(s.airports, a)
 	}
 	for i := range s.airports {
-		s.airportBy[s.airports[i].Country] = &s.airports[i]
+		a := &s.airports[i]
+		a.NPCs = map[string]string{}
+		for role := range s.content.NPCs.Roles {
+			a.NPCs[role] = s.content.NPCName(role, a.Country)
+		}
+		s.airportBy[a.Country] = a
 	}
 }
 

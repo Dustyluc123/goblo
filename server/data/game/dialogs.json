@@ -1,0 +1,166 @@
+{
+  "_doc": "Diálogos (fase 3.5, ADR 0043). Cada diálogo é uma lista de falas; uma fala pode ter options (respostas), e cada opção pode levar para outro diálogo (next) e/ou pedir uma ação ao jogo (action: open_shop, open_shop_sell, open_travel, open_passports, intro_task, end). Na fala, {name} é o nome do NPC, {player} o apelido do jogador, {country} o país, {item_of_day} um item rotativo do estoque de hoje, {currency} o nome do dinheiro (plural), {slang} o apelido que os NPCs usam (goblinhos). Os textos estão em português e vão para a tradução depois (chave = id do diálogo + número da fala).",
+  "dialogs": {
+    "shop_hello": [
+      {
+        "text": "Oi, {player}! Eu sou {name}, a loja da praça é minha. Hoje chegou {item_of_day}, viu?"
+      },
+      {
+        "text": "Quer dar uma olhada? Também compro qualquer coisa que você tiver, pagando um pouquinho mais que a caixa de vendas.",
+        "options": [
+          {
+            "text": "Quero comprar",
+            "action": "open_shop"
+          },
+          {
+            "text": "Quero vender",
+            "action": "open_shop_sell"
+          },
+          {
+            "text": "Só passando, tchau!",
+            "action": "end"
+          }
+        ]
+      }
+    ],
+    "airport_hello": [
+      {
+        "text": "Bem-vindo ao aeroporto! Eu sou {name}. Para onde vamos hoje?",
+        "options": [
+          {
+            "text": "Ver destinos",
+            "action": "open_travel"
+          },
+          {
+            "text": "Comprar um passaporte",
+            "action": "open_passports"
+          },
+          {
+            "text": "Como funciona o passaporte?",
+            "next": "airport_passport"
+          },
+          {
+            "text": "Hoje não, obrigado",
+            "action": "end"
+          }
+        ]
+      }
+    ],
+    "airport_passport": [
+      {
+        "text": "Para entrar num país, a pé ou de avião, você precisa do passaporte dele. O do seu país é de graça!"
+      },
+      {
+        "text": "Cada país novo que você visita ganha um carimbo no livro (tecla P), e o primeiro carimbo ainda rende uns {slang}.",
+        "options": [
+          {
+            "text": "Ver destinos",
+            "action": "open_travel"
+          },
+          {
+            "text": "Entendi, valeu!",
+            "action": "end"
+          }
+        ]
+      }
+    ],
+    "guide_plaza": [
+      {
+        "text": "Oi de novo, {player}! Esta é a praça central de {country}: aeroporto, loja e um cantinho para encontrar os amigos."
+      },
+      {
+        "text": "Se quiser, eu conto tudo do começo outra vez.",
+        "options": [
+          {
+            "text": "Conta de novo!",
+            "action": "intro_restart"
+          },
+          {
+            "text": "Tudo certo, obrigado!",
+            "action": "end"
+          }
+        ]
+      }
+    ],
+    "intro_hello": [
+      {
+        "text": "Oi, oi! Eu sou {name}, a guia do Goblo. Seja muito bem-vindo, {player}!"
+      },
+      {
+        "text": "Isto aqui é a Terra inteirinha, como um globo de sala de aula. Dá para andar por todos os países de verdade!"
+      },
+      {
+        "text": "Este lote é seu. A bancada e a caixa de vendas já estão aqui esperando você."
+      },
+      {
+        "text": "Vamos começar? Chegue perto de uma árvore e aperte E para sacudir. Às vezes cai um galho!",
+        "options": [
+          {
+            "text": "Bora!",
+            "action": "intro_task",
+            "task": "shake"
+          }
+        ]
+      }
+    ],
+    "intro_after_shake": [
+      {
+        "text": "Isso! Com galhos, madeira, pedras e flores você fabrica tudo na bancada."
+      },
+      {
+        "text": "Agora fabrique um machado na bancada: chegue perto dela e aperte E.",
+        "options": [
+          {
+            "text": "Deixa comigo!",
+            "action": "intro_task",
+            "task": "craft_axe"
+          }
+        ]
+      }
+    ],
+    "intro_after_craft": [
+      {
+        "text": "Que machado lindo! Com ele dá para cortar árvores e juntar madeira para a sua casa."
+      },
+      {
+        "text": "A casa você constrói pela bancada; a obra fica pronta no dia seguinte. Aperte B para decorar o lote."
+      },
+      {
+        "text": "Viu um bicho ou uma flor diferente? Fotografe com a câmera e veja tudo na Goblopédia (tecla G)."
+      },
+      {
+        "text": "O dinheiro daqui é o gobolar, mas todo mundo chama de {slang}. Você ganha vendendo coisas na caixa de vendas."
+      },
+      {
+        "text": "Na praça central do país ficam a loja e o aeroporto. Para viajar, você precisa do passaporte do destino (tecla P)."
+      },
+      {
+        "text": "E você não está sozinho: tem outros jogadores por aí! Enter abre o chat, T faz um aceno e J mostra quem está perto."
+      },
+      {
+        "text": "É isso! Qualquer coisa, dá para rever esta conversa nas configurações (F6). Divirta-se, {player}!",
+        "options": [
+          {
+            "text": "Obrigado, {name}!",
+            "action": "intro_done"
+          }
+        ]
+      }
+    ]
+  },
+  "intro": {
+    "tasks": [
+      {
+        "id": "shake",
+        "action": "shake",
+        "after": "intro_after_shake"
+      },
+      {
+        "id": "craft_axe",
+        "recipe": "axe",
+        "after": "intro_after_craft"
+      }
+    ],
+    "start": "intro_hello"
+  }
+}
