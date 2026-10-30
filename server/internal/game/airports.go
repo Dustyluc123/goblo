@@ -268,7 +268,7 @@ func (s *Service) stamp(ctx context.Context, tx Store, p *Player, country string
 
 // BuyPassport compra o passaporte de um país (no aeroporto).
 //
-// TODO(fase 3): conferir se o jogador está num aeroporto.
+// Com o tempo real ligado, a distância é conferida no servidor (ADR 0040).
 func (s *Service) BuyPassport(ctx context.Context, p *Player, country string) (*PassportResult, error) {
 	if !s.validCountry(country) {
 		return nil, ErrCountry
@@ -294,8 +294,7 @@ func (s *Service) BuyPassport(ctx context.Context, p *Player, country string) (*
 // Stamp carimba a entrada a pé num país. Precisa do passaporte dele (ou ser o país de
 // residência). Só a primeira visita a cada país dá carimbo e recompensa.
 //
-// TODO(fase 3): com a posição do jogador no servidor, conferir que ele está mesmo lá (hoje a
-// barreira da fronteira fica no cliente).
+// Com o tempo real ligado, a distância é conferida no servidor (ADR 0040).
 func (s *Service) Stamp(ctx context.Context, p *Player, country string) (*PassportResult, error) {
 	if !s.validCountry(country) {
 		return nil, ErrCountry

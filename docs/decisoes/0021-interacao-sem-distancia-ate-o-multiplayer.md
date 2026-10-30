@@ -11,3 +11,7 @@ Aceitar `POST /interact` e `POST /craft` **sem conferir a distância**. Há `TOD
 ## Consequências
 - Um cliente modificado poderia coletar à distância. Como os limites são por jogador e por objeto, o estrago é pequeno: ele pegaria no máximo o que pegaria andando até lá.
 - Na fase 3, com a posição do jogador no servidor (Nakama ou o próprio servidor), incluir a checagem: distância do jogador até o objeto ≤ alcance + folga de latência.
+
+## Atualização (fase 3)
+
+A distância até o objeto passou a ser conferida no servidor ([ADR 0040](0040-validacoes-no-servidor.md)).

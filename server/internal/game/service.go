@@ -523,8 +523,7 @@ type InteractResult struct {
 
 // Interact aplica uma ação (shake, chop, mine, pick) num objeto.
 //
-// TODO(fase 3): conferir se o jogador está perto do objeto. Hoje o servidor não sabe onde
-// o jogador está, então aceita a interação sem checar a distância (ADR 0021).
+// Com o tempo real ligado, a distância é conferida no servidor (ADR 0040).
 func (s *Service) Interact(ctx context.Context, p *Player, objectID int64, action string) (*InteractResult, error) {
 	cell := ObjectCell(objectID)
 	if objectID < 0 || cell >= len(s.world.Cells) {

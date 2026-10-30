@@ -19,3 +19,7 @@ A fase 2.5 dá motivos para rodar o globo: aeroportos perto das capitais, viagen
 
 - **Fase 3 (multiplayer):** com a posição do jogador no servidor, a barreira e o carimbo a pé passam a ser conferidos lá (`Geography.CountryAt` na posição enviada) e a viagem confere se o jogador está mesmo no balcão. Hoje o servidor valida saldo, passaporte e preços, mas confia no cliente sobre onde ele está (como na coleta, ADR 0021).
 - Hexágonos de aeroporto não recebem lotes; um país grande perde um hexágono de lotes, um país pequeno não perde nenhum.
+
+## Atualização (fase 3)
+
+A barreira da fronteira, o carimbo a pé e o balcão do aeroporto passaram a ser conferidos no servidor, que agora sabe onde o jogador está ([ADR 0040](0040-validacoes-no-servidor.md)). A barreira do cliente continua, para a resposta ser imediata.

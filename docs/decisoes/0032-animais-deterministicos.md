@@ -20,3 +20,7 @@ Os outros jogadores continuam vendo o animal no trajeto comum. Para que vejam ta
 - Lote novo pode mudar os pontos de passeio dos animais da célula (são conferidos contra os lotes), mas o mesmo para todos. Os cachorros dos bairros usam um sorteio separado, então um lote novo não muda os animais do bioma.
 - Os animais não têm colisão: o personagem passa por eles (são poucos e se afastam ou param).
 - Desempenho: só os 12 mais perto (até 45 unidades) ganham modelo, e os mais longe são atualizados menos vezes por segundo. No teste headless, ~0,9 ms de CPU por quadro com 12 animais.
+
+## Atualização (fase 3)
+
+O servidor confere a distância até o animal no carinho e na frutinha, e na foto da Goblopédia, pela posição do trajeto comum mais uma folga de 10 unidades para as reações locais. A amizade continua por jogador ([ADR 0040](0040-validacoes-no-servidor.md)).

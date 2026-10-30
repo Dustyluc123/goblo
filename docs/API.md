@@ -45,6 +45,8 @@ Todo erro de regra responde com um status HTTP e o corpo:
 | `not_for_sale` | 400 | a caixa de vendas não aceita o item |
 | `no_passport` | 403 | sem o passaporte do país (viagem ou carimbo) |
 | `no_coins` | 409 | moedas insuficientes (nada é cobrado) |
+| `too_far` | 403 | o jogador está longe demais do que tentou usar (fase 3: o servidor sabe onde ele está) |
+| `offline` | 409 | ação que precisa da posição sem a conexão em tempo real (`GET /ws`) |
 | `internal` | 500 | erro inesperado (vai para o log do servidor) |
 
 ## Mundo (sem token)
@@ -102,10 +104,10 @@ Sugere o país de um jogador novo:
 
 ### `POST /players`
 
-Cria o jogador e escolhe um lote livre no país dele, com uma bancada.
+Cria o jogador e escolhe um lote livre no país dele, com a bancada e a caixa de vendas. O lote fica inteiro no país e longe da fronteira quando o país tem lugar (ADR 0037). `character` é opcional (um dos 12 de `rules.json`; vazio = o padrão).
 
 ```json
-{"nickname": "Lucas", "country": "BRA"}
+{"nickname": "Lucas", "country": "BRA", "character": "character-female-c"}
 ```
 
 `201`:
@@ -113,6 +115,10 @@ Cria o jogador e escolhe um lote livre no país dele, com uma bancada.
 ```json
 {"token": "c55bac10…", "me": { …igual ao GET /me… }}
 ```
+
+### 🔑 `POST /player/character`
+
+`{"character": "character-male-b"}`: troca o personagem e devolve o `GET /me`. Quem está perto vê na hora (pelo tempo real, mensagem `char`).
 
 ### 🔑 `GET /me`
 
@@ -244,7 +250,7 @@ Começa a obra do próximo nível. Na primeira casa, `x`, `y` e `rot` dizem onde
 | 🔑 `GET /transactions?limit=50` | — | histórico de moedas, mais novas primeiro: `{"transactions": [{"id", "delta", "balance", "reason", "ref", "created_at"}]}`; `reason`: `start`, `sell`, `pedia`, `stamp`, `travel`, `passport`, `dev` |
 | 🔑 `POST /animal/feed` | `{"animal": 123}` | gasta uma frutinha (o animal come e vira amigo; marca a espécie como amiga na Goblopédia) |
 | 🔑 `GET /pedia` | — | páginas da Goblopédia com o progresso: `{"entries": [{"id", "name", "kind", "model", "discovered", "first_at", "country", "country_name", "biome", "sightings", "friend"}]}` |
-| 🔑 `POST /pedia/register` | `{"entry": "cow", "country": "ARG", "biome": "grassland"}` | registra uma foto: `{"entry", "first", "reward", "coins", "sightings", "message"}`; só a primeira foto paga `rewards.pedia_first` |
+| 🔑 `POST /pedia/register` | `{"entry": "cow", "country": "ARG", "biome": "grassland", "look": [x, y, z]}` | registra uma foto: `{"entry", "first", "reward", "coins", "sightings", "message"}`; só a primeira foto paga `rewards.pedia_first`. `look` é a direção da câmera: o servidor confere se o animal (na posição do trajeto comum), a flor azul ou a árvore da estação estava perto e na frente dela (`403 too_far` se não) |
 
 ## Viagem e passaportes
 
@@ -256,7 +262,21 @@ Começa a obra do próximo nível. Na primeira casa, `x`, `y` e `rot` dizem onde
 | 🔑 `POST /passport/buy` | `{"country": "LUX"}` | compra o passaporte de qualquer país |
 | 🔑 `POST /passport/stamp` | `{"country": "PRY"}` | carimba a entrada a pé (precisa do passaporte); só a primeira visita dá carimbo e `rewards.stamp_first` |
 
-`/travel`, `/passport/buy` e `/passport/stamp` respondem `{"passport", "stamp" (o carimbo novo, ou ausente), "reward", "price", "airport" (na viagem), "message"}`. O servidor ainda não sabe onde o jogador está: a barreira da fronteira fica no cliente (ADR 0035, TODO da fase 3).
+`/travel`, `/passport/buy` e `/passport/stamp` respondem `{"passport", "stamp" (o carimbo novo, ou ausente), "reward", "price", "airport" (na viagem), "message"}`.
+
+Desde a fase 3, o servidor sabe onde o jogador está (pelo tempo real) e confere (ADR 0040):
+
+- `/travel`: o jogador precisa estar no balcão do aeroporto `from`;
+- `/passport/stamp`: o jogador precisa estar no país. Com o tempo real ligado, quem carimba a entrada a pé é o próprio servidor (mensagem `stamp`);
+- a barreira da fronteira: a posição que cruza para um país sem passaporte é corrigida.
+
+Também conferem a distância `/interact`, `/sell` (na caixa de vendas do próprio lote), `/animal/feed` e `/pedia/register`. Os alcances ficam em `rules.json` (`reach`).
+
+## Tempo real
+
+### 🔑 `GET /ws`
+
+WebSocket com o token em `Authorization: Bearer …` (ou `?token=`). Movimento, outros jogadores, chat, emotes e eventos do mundo. O protocolo está em [PROTOCOLO.md](PROTOCOLO.md).
 
 ## Modo dev (🔑, só com `GOBLO_DEV=1`)
 
@@ -276,5 +296,9 @@ Sem `GOBLO_DEV=1`, **toda** rota `/dev/…` responde `403 {"error":"dev_only"}` 
 | `POST /dev/pedia` | `{"action": "complete"}` | `complete` (todas as páginas descobertas e amigos, sem moedas) ou `reset` |
 | `POST /dev/passport` | `{"action": "give", "country": "PRY"}` | `give` ou `remove` um passaporte; `complete` (todos os passaportes e um carimbo de cada país com aeroporto, sem moedas) ou `reset`. Responde o livro de passaporte |
 | `POST /dev/travel` | `{"from": "BRA", "to": "JPN"}` | viagem de graça e sem passaporte; mesma resposta de `/travel` |
+| `GET /dev/border-lots` | — | lotes antigos que cruzam a fronteira ou ficam perto demais dela: `{"lots": [{"lot_id", "cell", "owner", "country", "fake", "crossing"}], "near", "crossing"}` (ADR 0037) |
+| `POST /dev/border-lots/move` | — | muda esses lotes para um lote livre longe da fronteira no país do dono, com casa e objetos: `{"moved", "left"}` |
+| `GET /dev/online` | — | quem está conectado em tempo real e os números da rede: `{"online": [{"id", "nickname", "country", "character", "bot", "lat", "lon", "visible"}], "stats": {"clients", "bots", "bytes_in", "bytes_out", "msgs_in", "msgs_out", "uptime_ms"}}` |
+| `POST /dev/bots` | `{"count": 5}` | cria bots perto do jogador (andam, fazem emotes e falam); `count` 0 tira todos: `{"created"}` ou `{"removed"}` |
 
 As respostas trazem o `GET /me` atualizado (menos `fake-neighbors`, que devolve `{"created": n}`, o reset de `player`, que devolve `{"deleted": true}`, e `pedia`, `passport` e `travel`, descritos acima).

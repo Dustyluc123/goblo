@@ -49,8 +49,7 @@ type SellResult struct {
 
 // Sell vende itens do inventário na caixa de vendas e paga na hora.
 //
-// TODO(fase 3): conferir se o jogador está perto de uma caixa de vendas (hoje só o cliente
-// confere, como na bancada).
+// Com o tempo real ligado, a distância é conferida no servidor (ADR 0040).
 func (s *Service) Sell(ctx context.Context, p *Player, items []StackView) (*SellResult, error) {
 	if err := s.requireSellBox(ctx, p); err != nil {
 		return nil, err

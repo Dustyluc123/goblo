@@ -1,6 +1,6 @@
 # 0005 — Nakama será avaliado na fase de multiplayer
 
-**Status:** adiada (decidir na fase 3)
+**Status:** decidida na fase 3: servidor próprio, sem o Nakama ([ADR 0039](0039-tempo-real-no-servidor-proprio.md))
 
 ## Contexto
 A fase 3 traz multiplayer em tempo real com interesse por área (cada jogador recebe só quem está perto). Fases seguintes trazem contas, moeda e troca entre jogadores.

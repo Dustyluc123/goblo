@@ -115,7 +115,7 @@ type PediaResult struct {
 // RegisterPedia registra uma foto de `entry`, tirada em `country` (posição exata) e
 // `biome`. Na primeira foto, guarda onde foi e paga a recompensa (uma vez só).
 //
-// TODO(fase 3): o servidor ainda não sabe se o animal estava mesmo na frente do jogador.
+// Com o tempo real ligado, a distância é conferida no servidor (ADR 0040).
 //
 // look é a direção da câmera no momento da foto (zero = não confere o ângulo). Com a
 // camada em tempo real ligada, o servidor confere se a coisa estava perto e na frente da
