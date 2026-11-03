@@ -14,6 +14,7 @@ extends Node3D
 ##   --utc=HORA          fixa o horário UTC (ex.: 15.5) para testes e screenshots
 ##   --no-cache          ignora o mundo guardado em cache
 ##   --equip=ITEM        segura uma ferramenta (precisa ter no inventário)
+##   --plaza=U,V         (com --ui=airport) põe o personagem no ponto (u, v) da praça
 ##   --smoke-test        anda alguns segundos, imprime onde o personagem está e fecha
 ##   --jump              (com --smoke-test) pula e mede a altura do pulo
 ##   --play-test         testa o ciclo: coleta, fabricação, decoração e casa (servidor dev)
@@ -918,6 +919,7 @@ func _warm_extras() -> Array[Node3D]:
 	out.append(heart)
 	out.append_array(_season_fx.warm_nodes())
 	out.append_array(_border_lines.warm_nodes())
+	out.append_array(_airports.warm_nodes())
 	# Arco do voo (contas num MultiMesh e o pontinho), sem a escala do globo.
 	var arc := _flight_arc(Vector3(0, 0, 1), Vector3(0, 0.02, 1).normalized())
 	for c in arc.get_children():
@@ -1121,7 +1123,7 @@ func _fly(from_airport: Dictionary, dest: Dictionary) -> void:
 
 
 ## Tamanho do avião no voo (o globo fica longe da câmera).
-const FLIGHT_PLANE_SCALE := 10.0
+const FLIGHT_PLANE_SCALE := 16.0
 
 
 ## Arco pontilhado entre dois pontos do globo e o avião (meta "dot").
@@ -1151,7 +1153,7 @@ func _flight_arc(a: Vector3, b: Vector3) -> Node3D:
 	root.add_child(mmi)
 	# O avião (o mesmo do aeroporto, maior).
 	var dot := MeshInstance3D.new()
-	dot.mesh = PlaneModel.mesh()
+	dot.mesh = PlaneModel.flying_mesh()
 	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	dot.scale = Vector3.ONE * FLIGHT_PLANE_SCALE
 	root.add_child(dot)
@@ -1929,6 +1931,11 @@ func _screenshot_setup() -> void:
 		"airport", "travel":
 			var a := _airports.of_country(str(_args.get("country", _tracker.current)))
 			await _teleport(_airports.arrival_point(a))
+			if _args.has("plaza"):
+				# --plaza=U,V: em qualquer ponto da praça (ao lado do avião, dos carros…).
+				var uv := str(_args["plaza"]).split(",")
+				await get_tree().create_timer(0.5).timeout
+				await _teleport(_airports.plaza_point(a, float(uv[0]), float(uv[1])))
 			await get_tree().create_timer(2.5).timeout
 			if ui == "travel":
 				await dev_coins(300)

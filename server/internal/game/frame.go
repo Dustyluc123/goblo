@@ -43,11 +43,18 @@ func CellFrame(w *world.World, cell int) Frame {
 
 // Inside diz se (x, y) está dentro do polígono da célula, a pelo menos margin da borda.
 func (f *Frame) Inside(x, y, margin float64) bool {
+	return f.EdgeDistance(x, y) >= margin
+}
+
+// EdgeDistance é a distância de (x, y) até a borda mais perto do polígono da célula
+// (negativa do lado de fora).
+func (f *Frame) EdgeDistance(x, y float64) float64 {
 	n := len(f.Poly)
 	sign := 1.0
 	if polygonArea(f.Poly) < 0 {
 		sign = -1
 	}
+	out := math.Inf(1)
 	for k := 0; k < n; k++ {
 		a, b := f.Poly[k], f.Poly[(k+1)%n]
 		ex, ey := b[0]-a[0], b[1]-a[1]
@@ -55,11 +62,9 @@ func (f *Frame) Inside(x, y, margin float64) bool {
 		if l == 0 {
 			continue
 		}
-		if sign*(ex*(y-a[1])-ey*(x-a[0]))/l < margin {
-			return false
-		}
+		out = math.Min(out, sign*(ex*(y-a[1])-ey*(x-a[0]))/l)
 	}
-	return true
+	return out
 }
 
 func polygonArea(p [][2]float64) float64 {

@@ -66,12 +66,9 @@ func (c *ShopContent) check(items map[string]*Item) error {
 	return nil
 }
 
-// Os pontos da praça (no plano do hexágono do aeroporto; ver Airport). Nos países pequenos
-// (balcão compartilhado), a loja fica no mesmo balcão.
-const (
-	plazaShopX, plazaShopY = -6.0, 2.6
-	shopDaySalt            = 0x5A0F
-)
+// Semente do sorteio do estoque do dia. A loja fica na praça (Airport.ShopX/ShopY, ver
+// plaza.go); nos países pequenos (balcão compartilhado), no mesmo balcão.
+const shopDaySalt = 0x5A0F
 
 // ShopPoint é onde fica o balcão da loja do país.
 func (s *Service) ShopPoint(country string) (world.Vec3, bool) {
@@ -83,7 +80,7 @@ func (s *Service) ShopPoint(country string) (world.Vec3, bool) {
 	if a.Small {
 		return f.Point(a.X, a.Y), true
 	}
-	return f.Point(plazaShopX, plazaShopY), true
+	return f.Point(a.ShopX, a.ShopY), true
 }
 
 // ShopDay é o dia do jogo da loja do país (vira às 5h no horário do aeroporto). O modo dev

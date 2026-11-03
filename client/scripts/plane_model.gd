@@ -3,7 +3,9 @@ extends RefCounted
 ## Avião low-poly (fase 3.5): não há modelo de avião nos pacotes, então ele é montado em
 ## código no mesmo estilo: formas simples, cantos chanfrados (fuselagem octogonal), cores
 ## pastel e proporções gordinhas. Uma malha só, com cor por vértice (o material dos modelos
-## da ModelLibrary), olhando para -Z. Cerca de 4 unidades de comprimento.
+## da ModelLibrary), olhando para -Z. Cerca de 4 unidades de comprimento e 3,8 de envergadura.
+## Fase 3.6: porta do lado esquerdo (-X), perto do nariz, e trem de pouso; as rodas encostam
+## em y = GROUND.
 
 const BODY := Color("fbf3e4")
 const STRIPE := Color("ff9fb8")
@@ -11,8 +13,15 @@ const WING := Color("a9d8ee")
 const DARK := Color("5b6f8c")
 const ENGINE := Color("d9dde6")
 const TAIL := Color("ff9fb8")
+const DOOR := Color("c9d6e3")
+## Altura (no modelo) de baixo das rodas: o avião parado fica `-GROUND × escala` acima do chão.
+const GROUND := -0.95
+## Porta (no modelo): centro e altura. Na praça, a escadinha encosta nela.
+const DOOR_CENTER := Vector3(-0.53, 0.1, -1.15)
+const DOOR_HEIGHT := 0.48
 
 static var _mesh: ArrayMesh
+static var _flying: ArrayMesh
 ## Centro da peça sendo montada: cada triângulo é virado para fora dele (frente no sentido
 ## horário, como o Godot quer), sem depender da ordem em que os cantos foram escritos.
 static var _ref := Vector3.ZERO
@@ -20,11 +29,18 @@ static var _ref := Vector3.ZERO
 
 static func mesh() -> ArrayMesh:
 	if _mesh == null:
-		_mesh = _build()
+		_mesh = _build(true)
 	return _mesh
 
 
-static func _build() -> ArrayMesh:
+## O mesmo avião com o trem de pouso recolhido (no arco do voo).
+static func flying_mesh() -> ArrayMesh:
+	if _flying == null:
+		_flying = _build(false)
+	return _flying
+
+
+static func _build(gear: bool) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	# Fuselagem: anéis octogonais ao longo de Z (nariz em -Z), gordinha no meio.
@@ -73,6 +89,15 @@ static func _build() -> ArrayMesh:
 	# Motores embaixo das asas.
 	for side in [-1.0, 1.0]:
 		_cyl(st, Vector3(1.05 * side, -0.32, -0.25), 0.17, 0.62, ENGINE)
+	# Porta do lado esquerdo, perto do nariz (com moldura escura).
+	_box(st, DOOR_CENTER + Vector3(-0.005, 0, 0), Vector3(0.05, DOOR_HEIGHT + 0.06, 0.3), DARK)
+	_box(st, DOOR_CENTER + Vector3(-0.03, 0, 0), Vector3(0.03, DOOR_HEIGHT, 0.22), DOOR)
+	# Trem de pouso: perna do nariz e duas pernas principais, com rodas gordinhas.
+	for g: Vector3 in ([Vector3(0, 0, -1.45), Vector3(-0.32, 0, 0.05), Vector3(0.32, 0, 0.05)] if gear else []):
+		var top := -0.36 if g.z < -1.0 else -0.42
+		_box(st, Vector3(g.x, (top + GROUND + 0.14) * 0.5, g.z), Vector3(0.06, top - GROUND - 0.14, 0.06), ENGINE)
+		for side: float in ([-1.0, 1.0] if g.z > -1.0 else [0.0]):
+			_box(st, Vector3(g.x + side * 0.07, GROUND + 0.09, g.z), Vector3(0.09 if side != 0.0 else 0.1, 0.18, 0.18), DARK)
 	# Cauda: leme em pé e estabilizadores.
 	_box(st, Vector3(0, 0.75, 1.65), Vector3(0.08, 0.75, 0.5), TAIL)
 	_wedge(st, Vector3(0, 0.3, 1.75), 0.75, 0.32, 0.22, 0.06, WING)

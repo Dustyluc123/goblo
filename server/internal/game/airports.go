@@ -22,9 +22,6 @@ import (
 // EarthRadiusKm é o raio da Terra, para a distância das passagens.
 const EarthRadiusKm = 6371.0
 
-// Onde fica o balcão no plano da célula do aeroporto (o cliente monta o prédio em volta).
-const airportCounterX, airportCounterY = 0.0, 1.5
-
 // País com menos hexágonos que isso ganha só um ponto de chegada, sem ocupar o hexágono.
 const minAirportCells = 3
 
@@ -45,7 +42,12 @@ type Airport struct {
 	Lon         float64 `json:"lon"`
 	X           float64 `json:"x"` // balcão, no plano da célula
 	Y           float64 `json:"y"`
-	Small       bool    `json:"small"` // só um ponto de chegada (país pequeno)
+	// Praça (aeroporto grande): ângulo da pista no plano da célula e ponto da loja (ADR 0047).
+	Rot   float64 `json:"rot"`
+	ShopX float64 `json:"shop_x"`
+	ShopY float64 `json:"shop_y"`
+	Scale float64 `json:"scale"` // 1, ou menos num hexágono pequeno
+	Small bool    `json:"small"` // só um ponto de chegada (país pequeno)
 	// Nomes dos NPCs da praça (papel → nome), de npcs.json.
 	NPCs map[string]string `json:"npcs"`
 }
@@ -97,7 +99,7 @@ func (s *Service) buildAirports() {
 			label = "Aeroporto de " + city
 		}
 		a := Airport{Country: code, CountryName: name, Name: label, City: city,
-			Cell: best, Lat: c.Lat, Lon: c.Lon, X: airportCounterX, Y: airportCounterY}
+			Cell: best, Lat: c.Lat, Lon: c.Lon, Scale: 1}
 		if len(cells) < minAirportCells {
 			a.Small = true
 			a.Name = "Ponto de chegada de " + name
@@ -105,6 +107,7 @@ func (s *Service) buildAirports() {
 			s.kiosks[best] = [2]float64{a.X, a.Y}
 		} else {
 			s.airportCells[best] = true
+			placePlaza(&a, CellFrame(s.world, best))
 		}
 		s.airports = append(s.airports, a)
 	}
