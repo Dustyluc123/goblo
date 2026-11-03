@@ -153,6 +153,12 @@ Encerrada do jeito que está; o que ficou de fora está em [`docs/BACKLOG.md`](d
 - [x] **Editor de personagem:** as partes dos 12 personagens são separáveis (mesmo esqueleto): cabeça, tronco e pernas de quem quiser, tom de pele, cor do cabelo, penteados e óculos. No primeiro acesso, no **espelho** do lote e no F6. Uma malha só por personagem (mais leve que antes)
 - [x] **Flores:** 15 espécies novas por bioma e estação (girassol, lavanda, ipê-amarelo, edelvais, lótus…), algumas raras; flores decorativas bem mais densas; seção **Flores** na Goblopédia
 
+| Partes, pele, cabelo e roupas misturados | Capa de bandeiras e penteados |
+| --- | --- |
+| ![Personagens com partes misturadas](docs/imagens/personagens-misturados.jpg) | ![Personagens de costas, com a capa](docs/imagens/personagens-costas-capa.jpg) |
+| **Editor de personagem** | **Fogueira, termômetro e necessidades** |
+| ![Editor](docs/imagens/editor-de-personagem.jpg) | ![Fogueira e HUD do corpo](docs/imagens/fogueira-e-corpo.jpg) |
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
