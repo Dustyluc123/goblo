@@ -91,6 +91,13 @@ Todas têm `"t"` com o tipo.
 | `block` | `id`, `on` | bloqueia ou desbloqueia: nenhum dos dois vê mais o chat e os emotes do outro (guardado no banco) |
 | `char` | `c` | troca o personagem (também por `POST /player/character`) |
 | `ping` | `c` (relógio do cliente) | resposta `pong` |
+| `trade_req` | `to` | propõe uma troca (fase 3.5). Recusado com `info` se o outro estiver longe (`reach.trade`), bloqueado, não aceitando pedidos ou já numa troca |
+| `trade_answer` | `from`, `ok` | aceita ou recusa o pedido de `from` (vale por 30 s). Aceito: os dois recebem `trade_open` |
+| `trade_offer` | `items: [{item, count}]`, `coins` | a sua oferta inteira (substitui a anterior). O servidor confere se você tem; **qualquer mudança desfaz os "pronto" e as confirmações dos dois** |
+| `trade_ready` | `on` | marca ou desmarca "pronto" |
+| `trade_confirm` | — | confirmação final (só com os dois prontos). Quando os dois confirmam, o servidor executa a troca de uma vez só |
+| `trade_cancel` | — | cancela; os dois recebem `trade_closed` |
+| `trade_block` | `on` | `true`: recusa todos os pedidos de troca (F6) |
 
 ### Servidor → cliente
 
@@ -109,3 +116,11 @@ Todas têm `"t"` com o tipo.
 | `info` | `text` | aviso (chat rápido demais, erro) |
 | `pong` | `c`, `s` (relógio do servidor) | resposta do `ping` (o cliente acerta o relógio e mede o atraso) |
 | `kick` | `reason` | outra conexão do mesmo jogador entrou; esta vai fechar |
+| `trade_req` | `from`, `nick` | alguém quer trocar com você (responda com `trade_answer`) |
+| `trade_open` / `trade_update` | `id`, `with`, `nick`, `mine`, `theirs` (`{items, coins}`), `my_ready`, `their_ready`, `my_confirm`, `their_confirm`, `both_ready` | a troca abriu / mudou (cada lado recebe a sua visão) |
+| `trade_done` | `id`, `inventory`, `slots_used`, `coins`, `message` | a troca foi feita; o bolso e o saldo novos |
+| `trade_closed` | `id`, `reason` | a troca acabou sem acontecer (cancelada, alguém saiu) |
+
+### Troca entre jogadores (fase 3.5, ADR 0044)
+
+A negociação fica só na memória do servidor; o banco só muda na execução (`Service.ExecuteTrade`, uma transação: confere bolso, espaço, distância e bloqueio de novo). Se algo mudou entre a confirmação e a execução (alguém gastou o item, se afastou), nada acontece: os dois recebem `info` e um `trade_update` com os "pronto" desmarcados. Saiu do jogo no meio: `trade_closed` para o outro. No modo dev, os bots de número par aceitam pedidos e acompanham a troca (oferecem 3 madeiras).

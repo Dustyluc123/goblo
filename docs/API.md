@@ -75,8 +75,14 @@ Tudo o que o cliente precisa saber do conteúdo do jogo, lido de `server/data/ga
   "object_models": ["BirchTree_1", …],
   "tile_size": 0.5, "lot_tiles": 14, "inventory_slots": 20, "rollover_hour": 5,
   "dev": false,
-  "currency": {"singular": "gobolar", "plural": "gobolares"},
-  "sell_prices": {"wood": 3, "stone": 2, …},
+  "currency": {"singular": "gobolar", "plural": "gobolares", "symbol": "G$", "slang": "goblinhos"},
+  "sell_prices": {"wood": 3, "stone": 2, "axe": 12, …},
+  "shop_buy_bonus": 1.25,
+  "shop_fixed": ["axe", "pickaxe", "camera", "seeds"],
+  "npcs": {"shopkeeper": {"title": "Lojista", "character": "character-male-c", "accessory": "aid-sunglasses", "tint": "#9fe0c0", "dialog": "shop_hello"}, …},
+  "npc_names": {"default": {"guide": ["Lia", …], …}, "BRA": {…}, …},
+  "dialogs": {"shop_hello": [{"text": "Oi, {player}! …"}, {"text": "…", "options": [{"text": "Quero comprar", "action": "open_shop"}, …]}], …},
+  "intro": {"start": "intro_hello", "tasks": [{"id": "shake", "action": "shake", "after": "intro_after_shake"}, {"id": "craft_axe", "recipe": "axe", "after": "intro_after_craft"}]},
   "animals": {"cow": {"name": "Vaca", "model": "Cow", "height": 1.35, "shy": false, "walk": 0.8, "run": 4, "roam": 5.5, "leg": 16, "jump": "Jump_toIdle"}, …},
   "pedia": [{"id": "alpaca", "name": "Alpaca", "kind": "animal", "model": "Alpaca"}, …, {"id": "tree_snow", "name": "Árvore com neve", "kind": "tree", "season": "snow", "model": "PineTree_Snow_1"}]
 }
@@ -189,11 +195,12 @@ Objetos interativos das células (até 512 por pedido), com o que **este** jogad
   "gained": [{"item": "branch", "count": 2}],
   "state": {"shake": 1},
   "inventory": [ … ], "slots_used": 3,
-  "message": "Você pegou 2× Galho!"
+  "message": "Você pegou 2× Galho!",
+  "intro_task": "shake", "intro_reward": 15
 }
 ```
 
-> O servidor ainda não sabe onde o jogador está (isso vem no multiplayer), então **não confere a distância** até o objeto. Veja o [ADR 0021](decisoes/0021-interacao-sem-distancia-ate-o-multiplayer.md).
+`intro_task` e `intro_reward` só vêm quando a ação cumpre uma tarefa da apresentação do guia (uma vez por conta). Desde a fase 3 o servidor confere a distância até o objeto (ADR 0040).
 
 ## Fabricação
 
@@ -208,7 +215,7 @@ Objetos interativos das células (até 512 por pedido), com o que **este** jogad
  "inventory": [ … ], "slots_used": 4, "message": "Você fabricou 1× machado!"}
 ```
 
-Ingredientes `#flower` aceitam qualquer flor (gasta primeiro a cor que o jogador tem mais).
+Ingredientes `#flower` aceitam qualquer flor (gasta primeiro a cor que o jogador tem mais). Como no `/interact`, a resposta traz `intro_task` e `intro_reward` quando a fabricação cumpre uma tarefa da apresentação (o machado). O jogador precisa estar perto da bancada do próprio lote.
 
 ## Lote
 
@@ -246,8 +253,25 @@ Começa a obra do próximo nível. Na primeira casa, `x`, `y` e `rot` dizem onde
 
 | Rota | Corpo | Faz |
 | --- | --- | --- |
-| 🔑 `POST /sell` | `{"items": [{"item": "wood", "count": 3}]}` | vende na caixa de vendas (preços em `economy.json`): `{"sold", "earned", "coins", "inventory", "slots_used", "message"}` |
-| 🔑 `GET /transactions?limit=50` | — | histórico de gobolares, mais novas primeiro: `{"transactions": [{"id", "delta", "balance", "reason", "ref", "created_at"}]}`; `reason`: `start`, `sell`, `pedia`, `stamp`, `travel`, `passport`, `dev` |
+| 🔑 `POST /sell` | `{"items": [{"item": "wood", "count": 3}]}` | vende **qualquer item** na caixa de vendas (preços em `economy.json`, pelo `Service.Price`): `{"sold", "earned", "coins", "inventory", "slots_used", "message"}` |
+| 🔑 `GET /transactions?limit=50` | — | histórico de gobolares, mais novas primeiro: `{"transactions": [{"id", "delta", "balance", "reason", "ref", "country", "price", "tax", "created_at"}]}`; `reason`: `start`, `sell`, `shop_buy`, `shop_sell`, `pedia`, `stamp`, `travel`, `passport`, `trade`, `intro`, `dev`. `country` é onde aconteceu; `price` é o preço sem imposto e `tax` o imposto (hoje zero), que vai para o cofre do país (ADR 0041) |
+
+## Loja da praça (fase 3.5)
+
+| Rota | Corpo | Faz |
+| --- | --- | --- |
+| 🔑 `GET /shop?country=BRA` | — | estoque de hoje da loja do país (sem `country`, o do jogador): `{"country", "country_name", "day", "next_rollover" (ms), "stock": [{"item", "name", "kind" (fixed, rotating, regional), "price": {"base", "tax", "total"}}], "buy_bonus"}`. O mesmo para todos os jogadores do país; muda às 5h do horário do aeroporto |
+| 🔑 `POST /shop/buy` | `{"country": "BRA", "item": "seeds", "count": 2}` | compra do estoque de hoje: `{"coins", "inventory", "slots_used", "message", "total"}`. Fora do estoque: `404 not_in_stock`; sem gobolares: `409 no_coins`; bolso cheio: `409 inventory_full` |
+| 🔑 `POST /shop/sell` | `{"country": "BRA", "items": [{"item": "wood", "count": 3}]}` | vende para a loja (paga `shop_buy_bonus` × a caixa de vendas, arredondado para cima): mesma resposta |
+
+As três conferem que o jogador está perto da loja da praça daquele país (`reach.shop`; em países pequenos, o balcão do aeroporto).
+
+## Apresentação do guia (fase 3.5)
+
+| Rota | Corpo | Faz |
+| --- | --- | --- |
+| 🔑 `GET /intro` | — | `{"done": false, "tasks": ["shake"]}`: se a apresentação já foi vista (ou pulada) e as tarefas cumpridas. Contas criadas antes da fase 3.5 começam com `done: true` |
+| 🔑 `POST /intro` | `{"done": true}` | marca como vista (terminou ou pulou) ou não vista (`false`: rever pelo F6, modo dev). As tarefas já pagas continuam pagas |
 | 🔑 `POST /animal/feed` | `{"animal": 123}` | gasta uma frutinha (o animal come e vira amigo; marca a espécie como amiga na Goblopédia) |
 | 🔑 `GET /pedia` | — | páginas da Goblopédia com o progresso: `{"entries": [{"id", "name", "kind", "model", "discovered", "first_at", "country", "country_name", "biome", "sightings", "friend"}]}` |
 | 🔑 `POST /pedia/register` | `{"entry": "cow", "country": "ARG", "biome": "grassland", "look": [x, y, z]}` | registra uma foto: `{"entry", "first", "reward", "coins", "sightings", "message"}`; só a primeira foto paga `rewards.pedia_first`. `look` é a direção da câmera: o servidor confere se o animal (na posição do trajeto comum), a flor azul ou a árvore da estação estava perto e na frente dela (`403 too_far` se não) |
@@ -296,6 +320,8 @@ Sem `GOBLO_DEV=1`, **toda** rota `/dev/…` responde `403 {"error":"dev_only"}` 
 | `POST /dev/pedia` | `{"action": "complete"}` | `complete` (todas as páginas descobertas e amigos, sem gobolares) ou `reset` |
 | `POST /dev/passport` | `{"action": "give", "country": "PRY"}` | `give` ou `remove` um passaporte; `complete` (todos os passaportes e um carimbo de cada país com aeroporto, sem gobolares) ou `reset`. Responde o livro de passaporte |
 | `POST /dev/travel` | `{"from": "BRA", "to": "JPN"}` | viagem de graça e sem passaporte; mesma resposta de `/travel` |
+| `POST /dev/shop/restock` | `{"country": "BRA"}` | adianta a loja do país para o estoque do dia seguinte (só neste servidor, até reiniciar) |
+| `POST /dev/trade-bot` | — | cria um bot parado do lado do jogador e já abre uma troca com ele (ele oferece 3 madeiras e acompanha o pronto e a confirmação): `{"bot"}` |
 | `GET /dev/border-lots` | — | lotes antigos que cruzam a fronteira ou ficam perto demais dela: `{"lots": [{"lot_id", "cell", "owner", "country", "fake", "crossing"}], "near", "crossing"}` (ADR 0037) |
 | `POST /dev/border-lots/move` | — | muda esses lotes para um lote livre longe da fronteira no país do dono, com casa e objetos: `{"moved", "left"}` |
 | `GET /dev/online` | — | quem está conectado em tempo real e os números da rede: `{"online": [{"id", "nickname", "country", "character", "bot", "lat", "lon", "visible"}], "stats": {"clients", "bots", "bytes_in", "bytes_out", "msgs_in", "msgs_out", "uptime_ms"}}` |

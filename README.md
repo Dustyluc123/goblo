@@ -119,6 +119,17 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 - [x] **Ferramentas:** bots no modo dev (F1 → Rede), simulação de atraso e perda, ping no F2, bots em Go e teste de carga
 - [x] **Para jogar com amigos (sem publicar):** Dockerfile, [docs/DEPLOY.md](docs/DEPLOY.md), exportação para macOS e Windows e endereço do servidor configurável
 
+**Fase 3.5: economia viva e os primeiros personagens** ✅
+
+- [x] **Gobolar (G$):** o dinheiro ganha nome e moedinha própria com um "G"; os NPCs chamam de "goblinhos". Nome, símbolo e apelido ficam em `economy.json`
+- [x] **Preço por país:** um cálculo só de preço (`Service.Price`) com modificadores por país em `countries.json` (hoje todos neutros); o histórico guarda o país, o preço e o imposto, e cada país tem um cofre (zerado, sem tela). É a base para os governos de jogadores no futuro ([ADR 0041](docs/decisoes/0041-economia-por-pais.md))
+- [x] **Tudo pode ser vendido:** a caixa de vendas aceita qualquer item, com quantidade e "tudo deste tipo"; ferramentas e itens raros pedem confirmação. A loja paga 25% a mais
+- [x] **Praça central em cada país** ([ADR 0042](docs/decisoes/0042-loja-e-praca-central.md)): aeroporto novo (terminal de vidro, torre de controle, pista com faixas e luzes, biruta, portão de embarque, carros e um **avião pastel** feito em código, que também aparece no arco do voo), **loja** com estoque do dia igual para o país inteiro (ferramentas, câmera e sementes sempre; itens do dia e exclusivos regionais trocam às 5h do país), chafariz e bancos. Países pequenos usam o balcão compartilhado
+- [x] **NPCs e diálogos** ([ADR 0043](docs/decisoes/0043-npcs-dialogos-e-apresentacao.md)): guia, lojista e atendente do aeroporto, com nome por país, chapeuzinho, acessório e balãozinho; caixa de diálogo com retrato, texto letra por letra e respostas. Os diálogos ficam em `dialogs.json`
+- [x] **Apresentação do guia:** na primeira vez, o guia aparece no lote, conta como o mundo funciona e passa duas tarefas com seta e recompensa (sacudir uma árvore e fabricar um machado). Botão **Pular apresentação** sempre à vista; **F6 → Rever a apresentação**. O progresso fica no servidor; contas antigas não veem
+- [x] **Troca entre jogadores** ([ADR 0044](docs/decisoes/0044-troca-entre-jogadores.md)): **E** perto de outro jogador ou **J → Propor troca**; os dois montam a oferta (itens e gobolares) vendo tudo na hora, marcam **Pronto** (qualquer mudança desfaz) e confirmam. O servidor executa de uma vez só, conferindo bolso, distância e bloqueio. F6 liga e desliga os pedidos
+- [x] **Pronto para traduzir** ([ADR 0045](docs/decisoes/0045-textos-prontos-para-traducao.md)): os textos em português são as chaves; `client/tools/extrair_textos.py` gera `client/i18n/goblo.pot` com a interface e os dados do servidor
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -193,6 +204,20 @@ Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto:
 4. **Personagem:** **F6** → Personagem. Quem está perto vê a troca na hora.
 5. **Validações do servidor:** tente coletar uma árvore pelo F1 → Mundo teleportando para longe e voltando: o servidor só aceita de perto. Sem passaporte, mesmo com a barreira do cliente desligada (F1 → Viagem), o servidor segura você na fronteira.
 6. **Teste de carga:** `cd server && scripts/teste-de-carga.sh 100 60` (servidor de teste na porta 8090, banco temporário).
+
+## Como testar a fase 3.5
+
+Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto. No modo dev a apresentação é pulada sozinha; o resto é igual ao jogo normal.
+
+1. **Apresentação do guia:** F1 → **Loja e NPCs** → **Mostrar a apresentação agora**. O guia aparece do seu lado; clique ou **E** completa a fala e passa para a próxima. Responda "Bora!", sacuda a árvore com a seta amarela em cima (+15 gobolares) e o guia volta a falar; depois fabrique o machado na bancada (mais 15). Teste também o **Pular apresentação** (na caixa ou em cima da tela, com Alt + clique) e o **F6 → Rever a apresentação**. Para ver como uma conta nova: **Marcar como não vista** e abra o jogo de novo (nesse login o modo dev não pula).
+2. **Gobolares e venda:** **E** na caixa de vendas do lote: cada item tem preço, dá para escolher a quantidade ou vender tudo de um tipo; o machado e a flor azul pedem confirmação. F1 → Itens → **Dar gobolares** se precisar.
+3. **Praça e loja:** F1 → Mundo → teleporte para a capital (ou **H**, F1 → Viagem → voar de graça). Converse com o **lojista** (**E**): ele comenta o item do dia; "Quero comprar" abre a loja e "Quero vender" vende por um pouco mais. F1 → Loja e NPCs → **Repor o estoque agora** troca os itens do dia. Compare dois países: os exclusivos mudam (moinho na Holanda, fardo de feno no Brasil, lanterna no Japão…).
+4. **Aeroporto:** **E** no balcão ou na **atendente**: ela pergunta o destino, oferece o passaporte e explica como funciona. Viaje e veja o avião no arco do voo.
+5. **Troca com bot:** F1 → Loja e NPCs → **Abrir uma troca com um bot**. Ele oferece 3 madeiras; ponha algo do seu lado, marque **Pronto** (ele fica pronto junto) e **Confirmar troca**. Mude a oferta depois de pronto e veja os dois "Pronto" caírem. Os bots da aba Rede também servem: **J → Propor troca** (os de número par aceitam, os ímpares recusam).
+6. **Troca entre dois jogos:** `godot --path . -- --profile=jogador1` e `--profile=jogador2`, os dois no mesmo lugar, **E** um no outro.
+7. **Diálogos soltos:** F1 → Loja e NPCs → escolha um diálogo e **Abrir diálogo**.
+
+Automações sem janela: `godot --headless --path . -- --npc-test --profile=t14` (apresentação, loja, atendente e troca com bot).
 
 ## Medições
 
@@ -392,7 +417,7 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | W A S D / setas | andar (relativo à câmera) |
 | Shift | correr |
 | Espaço | pular |
-| **E** | interagir: sacudir, cortar, quebrar, colher, pegar, abrir a bancada, a caixa de vendas e o balcão do aeroporto, fazer carinho ou dar frutinha a um animal |
+| **E** | interagir: sacudir, cortar, quebrar, colher, pegar, abrir a bancada, a caixa de vendas e o balcão do aeroporto, conversar com NPCs, propor troca a um jogador do lado, fazer carinho ou dar frutinha a um animal; no diálogo, completa a fala e passa para a próxima (1 a 4 escolhem a resposta) |
 | **Tab** ou **I** | bolso (inventário) |
 | **1** a **5** | segurar / guardar uma ferramenta |
 | **B** | modo construção (no seu lote) |
@@ -402,7 +427,7 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | **P** | livro de passaporte |
 | **Enter** | chat: abre, Enter manda, Esc fecha |
 | **T** | emotes: acenar, sim, não, sentar, comemorar (1 a 5) |
-| **J** | jogadores por perto (silenciar e bloquear) |
+| **J** | jogadores por perto (propor troca, silenciar e bloquear) |
 | Botão direito (câmera na mão) | modo foto em primeira pessoa; **F** alterna com o selfie; **roda** dá zoom, **clique** fotografa, botão direito ou Esc sai |
 | Mover o mouse | girar a câmera (o cursor fica capturado e escondido durante o jogo) |
 | **Alt** (Option) segurado | soltar o cursor enquanto segura |
@@ -412,7 +437,7 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | **F1** | painel do modo dev (servidor com `GOBLO_DEV=1`) |
 | F2 | painel de desempenho, com a rede (ping, pacotes, jogadores visíveis) e as últimas travadas |
 | F3 / F4 | acelerar o tempo do céu / voltar ao horário real |
-| F6 | configurações: personagem, qualidade (baixa, média, alta), limite de fps (30, 60, sem limite), tamanho da interface, sensibilidade do mouse, inverter eixo vertical, tela cheia |
+| F6 | configurações: personagem, qualidade (baixa, média, alta), limite de fps (30, 60, sem limite), tamanho da interface, sensibilidade do mouse, inverter eixo vertical, tela cheia, pedidos de troca, rever a apresentação |
 | F11 | tela cheia |
 
 ## Testes
@@ -468,6 +493,8 @@ godot --headless --path . -- --photo-test --profile=teste6                # câm
 godot --headless --path . -- --season-test --profile=teste7               # estações nos dois hemisférios e nos trópicos
 godot --headless --path . -- --travel-test --profile=teste8               # barreira, passaporte, carimbo, aeroporto e voo
 godot --headless --path . -- --dev-test --profile=teste9                  # botões novos do painel dev
+godot --headless --path . -- --npc-test --profile=teste14                 # apresentação, loja, atendente e troca com bot (fase 3.5)
+python3 tools/extrair_textos.py                                           # (da raiz: client/tools/…) gera client/i18n/goblo.pot
 godot --headless --path . -- --cursor-test --profile=teste10              # cursor volta depois do voo, H, teleporte, menus
 godot --headless --path . -- --hitch-test --profile=teste11               # passeio com o registro de travadas (travadas.log)
 godot --headless --path . -- --crowd-test --profile=teste12               # custo de CPU de 0 a 40 jogadores por perto (bots do modo dev)
@@ -509,7 +536,8 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 3. **Fase 2: coletar e construir.** Jogador e país, lotes, coleta, inventário, bancada, decoração, casa em níveis, bairro, banco de dados e modo dev. ✅
 4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, gobolares e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
 5. **Fase 3: fronteiras vivas e multiplayer.** Lotes longe das fronteiras, fronteira que abre com o passaporte, outros jogadores em tempo real no nosso servidor (sem Nakama, [ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md)), chat, emotes, validações no servidor e preparo para jogar com amigos. ✅
-6. **Fase 4: economia.** Loja de itens e troca entre jogadores (as gobolares e os passaportes já existem desde a fase 2.5).
+6. **Fase 3.5: economia viva e os primeiros personagens.** Gobolar, preço por país, vender tudo, praça central com loja e aeroporto novo, NPCs com diálogo, apresentação do guia e troca entre jogadores. ✅
+7. **Fase 4.0:** temperatura, sede, roupas e mais flores. **Fase 4.5:** cavernas e folclore. **Fase 5.0:** redesenho da interface, música e sons.
 
 ## Sobre mim
 

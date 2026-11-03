@@ -8,7 +8,11 @@ Tudo o que dá para ajustar sem mexer em código fica em arquivos JSON. Depois d
 | `server/data/game/recipes.json` | servidor | receitas da bancada |
 | `server/data/game/houses.json` | servidor | níveis da casa: custo, footprint e cena |
 | `server/data/game/objects.json` | servidor | árvores, pedras, flores, arbustos e enfeites de cada bioma (os que dão material), com a flor rara |
-| `server/data/game/economy.json` | servidor | nome do gobolar, saldo inicial, preços da caixa de vendas, recompensas, preço da passagem e do passaporte |
+| `server/data/game/economy.json` | servidor | nome do gobolar, saldo inicial, preços da caixa de vendas, bônus da loja, recompensas, preço da passagem e do passaporte |
+| `server/data/game/countries.json` | servidor | modificadores de preço por país (impostos, preço do passaporte, margem da loja); hoje todos neutros |
+| `server/data/game/shop.json` | servidor | estoque da loja da praça: itens fixos, do dia e exclusivos regionais, com os preços de compra |
+| `server/data/game/npcs.json` | servidor | NPCs (guia, lojista, atendente): personagem, acessório, cor, diálogo e nomes por país |
+| `server/data/game/dialogs.json` | servidor | falas dos NPCs, respostas e ações, e a apresentação do guia (tarefas) |
 | `server/data/game/animals.json` | servidor | espécies de animais, quais vivem em cada bioma e os cachorros dos bairros |
 | `server/data/game/goblopedia.json` | servidor | páginas da Goblopédia além dos animais (flor rara, árvores em estação) |
 | `client/data/decoracao.json` | cliente | grama e plantinhas decorativas de cada bioma, e o tom dos objetos por bioma |
@@ -112,18 +116,69 @@ Grama e plantinhas, sem interação nem colisão, espalhadas pelo cliente com se
 
 ## Dinheiro (`economy.json`)
 
-A gobolar tem **nome provisório "gobolares"** (`currency`: singular e plural; troque à vontade). O saldo fica no servidor e cada mudança vai para o histórico (`GET /transactions`).
+O dinheiro é o **gobolar** (plural gobolares, símbolo **G$**); os NPCs chamam de "goblinhos" (`currency`: `singular`, `plural`, `symbol`, `slang`; troque à vontade). O saldo fica no servidor e cada mudança vai para o histórico (`GET /transactions`), com o país, o preço e o imposto.
 
 | Campo | Valor atual | Para quê |
 | --- | --- | --- |
 | `starting_coins` | 30 | saldo de quem começa agora |
-| `sell_prices` | madeira 3, pedra 2, flor 2 (azul rara: 6), galho 1, frutinhas 1, coco 4 | quanto a caixa de vendas paga por unidade; itens fora da lista não são vendidos |
+| `sell_prices` | materiais: madeira 3, pedra 2, flor 2 (azul rara: 6), galho 1, frutinhas 1, coco 4, sementes 1; ferramentas: machado e picareta 12, câmera 20; decoração: de 2 (caminho) a 60 (moinho) | quanto a caixa de vendas paga por unidade. **Todo item precisa ter preço** (o servidor não sobe sem, e há teste) |
+| `shop_buy_bonus` | 1,25 | a loja da praça paga isso × a caixa de vendas (arredondado para cima) |
 | `rewards.pedia_first` | 25 | primeira foto de cada página da Goblopédia (uma vez só) |
 | `rewards.stamp_first` | 10 | primeiro carimbo de cada país no passaporte (uma vez só) |
+| `rewards.intro_task` | 15 | cada tarefa da apresentação do guia (uma vez por conta) |
 | `travel` | base 20 + 8 por 1.000 km, mínimo 25 | passagem de avião entre dois aeroportos (distância pela superfície da Terra). Brasil → Paraguai: ~31; Brasil → Japão: ~162 |
 | `passport.default` | 60 | preço de um passaporte; `passport.countries` aceita exceções por país (`{"JPN": 90}`) |
 
 O passaporte do país de residência é grátis e já vem com o jogador.
+
+## Preço por país (`countries.json`)
+
+Todo preço do jogo passa por uma função só no servidor, `Service.Price(contexto, item, país)` ([ADR 0041](decisoes/0041-economia-por-pais.md)). Os contextos são `sell_box` (caixa de vendas), `shop_sell` (vender na loja), `shop_buy` (comprar na loja), `passport` e `travel`. A resposta separa o preço (`base`), o imposto (`tax`) e o total; o imposto vai para o cofre do país (tabela `treasuries`, sem tela por enquanto).
+
+| Campo (em `default` ou em `countries.XXX`) | Valor atual | Para quê |
+| --- | --- | --- |
+| `goods_tax` | 0 | imposto sobre compra e venda de itens (fração, 0 a 1) |
+| `passport_tax`, `travel_tax` | 0 | imposto sobre passaporte e passagem |
+| `passport_price` | 0 | preço do passaporte do país (0 = o de `economy.json`) |
+| `shop_markup` | 1,0 | multiplica o preço de compra na loja do país |
+
+Hoje nenhum país muda nada. No futuro, quem governar um país poderá mexer nos números dele.
+
+## Loja da praça (`shop.json`)
+
+Cada país tem uma loja na praça central, ao lado do aeroporto ([ADR 0042](decisoes/0042-loja-e-praca-central.md)). O estoque do dia é o mesmo para todo mundo no país e muda às **5h do horário do aeroporto** (sorteio pelo país e pelo dia).
+
+| Campo | Valor atual | Para quê |
+| --- | --- | --- |
+| `fixed` | machado, picareta, câmera, sementes de flores | sempre à venda |
+| `rotating` + `rotating_count` | 13 decorações (bandeiras, poste, banco de jardim, roda de carroça, cerca viva alta, vasos de flores, cone, lampião, banco, fonte), 4 por dia | os "itens do dia" |
+| `regional` | moinho (Holanda, Bélgica, Alemanha, Dinamarca, França, Polônia), fardo de feno (Brasil, Argentina, Uruguai, Paraguai, EUA, Canadá, Austrália, Nova Zelândia), chafariz da praça (Itália, Espanha, Portugal, França, Marrocos, México), coluna de pedra (Grécia, Turquia, Itália, Egito, Peru), lanterna de vidro (Japão, China, Coreia, Vietnã, Tailândia, Taiwan) | exclusivos: aparecem em dias alternados só nesses países |
+| `prices` | machado 40, picareta 40, câmera 60, sementes 4, decorações de 10 (cone) a 180 (moinho) | preço de compra (antes de `shop_markup` e imposto) |
+
+As sementes (receita `flowerbed_seeds`: 2 sementes + 1 madeira) viram um canteiro na bancada.
+
+## NPCs (`npcs.json`)
+
+Três papéis, sempre parados no lugar ([ADR 0043](decisoes/0043-npcs-dialogos-e-apresentacao.md)): **guia** (na praça e na apresentação), **lojista** (na loja) e **atendente** (no balcão do aeroporto). Cada papel tem `title`, `character` (um dos Mini Characters), `accessory` (do mesmo pacote; vazio = nenhum), `tint` (cor do chapeuzinho e do retrato) e `dialog` (o diálogo que abre ao conversar). `names` dá a lista de nomes por país (`default` para os outros); o nome de cada NPC sai de um sorteio fixo pelo país.
+
+## Diálogos (`dialogs.json`)
+
+Cada diálogo é uma lista de falas; uma fala pode ter `options` (até 4 respostas). Cada resposta pode levar para outro diálogo (`next`) e/ou pedir uma ação ao jogo (`action`):
+
+| Ação | Faz |
+| --- | --- |
+| `open_shop` / `open_shop_sell` | abre a loja (comprar / vender) do país do NPC |
+| `open_travel` / `open_passports` | abre o balcão do aeroporto (destinos / passaportes) |
+| `intro_task` (+ `task`) | começa uma tarefa da apresentação (seta em cima do alvo) |
+| `intro_done` | termina a apresentação |
+| `intro_restart` | começa a apresentação de novo |
+| `end` | só fecha |
+
+Nas falas, `{name}` vira o nome do NPC, `{player}` o apelido do jogador, `{country}` o país, `{item_of_day}` um item do dia da loja, `{currency}` o nome do dinheiro (plural) e `{slang}` o apelido (goblinhos). O servidor confere ao subir que todo `next`, ação e tarefa existem.
+
+**Apresentação do guia** (`intro`): `start` é o primeiro diálogo; `tasks` são as tarefas guiadas, cada uma com uma ação de coleta (`action`: `shake`, `chop`, `mine`, `pick`) ou uma receita (`recipe`) e o diálogo que o guia fala depois (`after`). Hoje: sacudir uma árvore e fabricar um machado, com 15 gobolares cada.
+
+Os textos estão em português e são as chaves da tradução: depois de mudar, rode `python3 client/tools/extrair_textos.py` ([ADR 0045](decisoes/0045-textos-prontos-para-traducao.md)).
 
 ## Animais (`animals.json`)
 
