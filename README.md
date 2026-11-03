@@ -31,6 +31,7 @@
 - [Como testar a fase 2.5](#como-testar-a-fase-25)
 - [Como testar a fase 2.6](#como-testar-a-fase-26)
 - [Como testar a fase 3](#como-testar-a-fase-3)
+- [Como testar a fase 4.1](#como-testar-a-fase-41)
 - [Medições](#medições)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
@@ -159,6 +160,23 @@ Encerrada do jeito que está; o que ficou de fora está em [`docs/BACKLOG.md`](d
 | **Editor de personagem** | **Fogueira, termômetro e necessidades** |
 | ![Editor](docs/imagens/editor-de-personagem.jpg) | ![Fogueira e HUD do corpo](docs/imagens/fogueira-e-corpo.jpg) |
 
+**Fase 4.1: desempenho e acabamento do personagem** ✅ ([ADR 0052](docs/decisoes/0052-roupas-por-regiao-cabelo-separado-e-desempenho.md))
+
+- [x] **Desempenho:** luz das fogueiras sem sombra e só nas mais perto, fogo e partículas por qualidade, flores decorativas com distância própria (somem antes da grama), objetos pequenos sem sombra, tela zonza sem cópia da tela. Menos chamadas de desenho que na Fase 3 (tabela em [Medições](#medições))
+- [x] **Roupa substitui a original:** cada espaço vestido troca a parte da roupa do personagem (regata deixa os braços com a pele, short deixa a canela); espaço vazio = roupa original. **Capa** não pinta mais o personagem inteiro. Teste automático das 14 peças (`tests/test_roupas.gd`)
+- [x] **Editor:** obrigatório no primeiro acesso (a escolha de personagem pronto saiu); rosto, **cabelo** (separado da cabeça nas 12), penteado, tom de pele, cor do cabelo, tronco, pernas e acessório independentes; o quepe virou acessório
+- [x] **Chapéus** encaixados no alto da cabeça (ajuste por cabeça em `client/data/cabecas.json`), com o cabelo achatado embaixo
+- [x] **Guarda-roupa:** personagem parado de frente; gira com o mouse ou A/D, aproxima com a roda, botões de costas e de frente
+- [x] **Ícones** de tintas, cantil (com os goles que restam) e bebidas mostrando o líquido
+
+| 12 cabeças × chapéus | Roupas no lugar da original |
+| --- | --- |
+| ![Grade de cabeças e chapéus](docs/imagens/cabecas-e-chapeus.jpg) | ![Personagens com roupas](docs/imagens/roupas-por-regiao.jpg) |
+| **Editor no primeiro acesso** | **Guarda-roupa** |
+| ![Editor no primeiro acesso](docs/imagens/editor-primeiro-acesso.jpg) | ![Guarda-roupa](docs/imagens/guarda-roupa-4-1.jpg) |
+
+![Ícones de tintas, cantil e bebidas](docs/imagens/icones-liquidos.png)
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -269,6 +287,19 @@ Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto. O painel F1 ganhou as abas **
 
 Automações sem janela: `--body-test` (corpo, comida, fogueira, roupas, editor, modo tranquilo).
 
+## Como testar a fase 4.1
+
+Servidor em modo dev (`GOBLO_DEV=1`).
+
+1. **Editor no primeiro acesso:** abra com um perfil novo (`godot --path client -- --profile=novo`): depois do apelido e do país, o editor aparece antes do mundo e só sai com **Começar a jogar** (Esc não fecha). Troque o **rosto** e veja o cabelo ficar; troque o **cabelo** (12 cabeças, "Sem cabelo"), o **tom de pele** e a **cor do cabelo**: cada um muda só a sua parte. Acessório **Quepe azul**.
+2. **Roupas no lugar da original:** F1 → Visual → **Dar todas as roupas e tintas**; **C**. Vista a regata (braços com a pele, sem a camiseta por baixo), o short (canela com a pele), a sandália (pé com a pele), o casaco, a calça e a bota. Tire cada uma: volta a roupa original. Vista a **capa**: o personagem continua com as cores dele.
+3. **Chapéus:** vista cada chapéu com cabeças e cabelos diferentes: o chapéu fica no alto da cabeça, sem flutuar, e o cabelo não atravessa.
+4. **Guarda-roupa:** o personagem fica parado de frente. Arraste com o mouse ou use A/D para girar, a roda aproxima até o rosto, **Ver de costas** e **De frente**.
+5. **Ícones:** no bolso, tintas (cada uma com a cor), cantil (cheio: dois riscos azuis; pela metade: um; vazio: nenhum), suco e chá.
+6. **Desempenho:** `client/tools/medir_fps.sh` (janela na frente, ~4 min). À noite, perto de várias fogueiras (F1 → Corpo), só as mais perto iluminam.
+
+Sem janela: `godot --headless --path client -s tests/test_roupas.gd` (as 14 peças só mudam o próprio espaço). Capturas sem foco: `tools/foto_cabecas.gd` (12 cabeças × chapéus), `tools/foto_personagens.gd`, `tools/foto_icones.gd`.
+
 ## Medições
 
 Medido neste Mac (MacBook Pro 2019, Intel Core i7-9750H, AMD Radeon Pro 5300M, tela Retina), Godot 4.7.2 com o renderizador Mobile.
@@ -319,6 +350,27 @@ Números do autor antes da fase (janela grande): alta no bairro 28 fps (872 draw
 **Fase 3: travadas.log do autor** (2 min, alta, janela 3584 × 2240, floresta tropical): não eram picos, e sim o jogo inteiro em 23 a 39 fps, caindo conforme os bots chegavam. A CPU dos outros jogadores é quase zero (`--crowd-test`: 40 jogadores somam menos de 0,1 ms por quadro); o peso estava na placa de vídeo. Correções: o 3D tem no máximo 1000, 1300 e 1450 linhas (baixa, média e alta), igual à tela de referência, então numa tela maior a placa trabalha o mesmo tanto; os outros jogadores só fazem sombra nos 6 mais perto, com nome até 30 unidades e personagem até 70. Falta medir de novo com a janela.
 
 **Fase 2.6: travadas** (`--hitch-test`, sem janela, só CPU, qualidade alta): de 28 para 11 quadros acima de 25 ms no mesmo passeio. Pior caso antes: 320 ms (linhas de fronteira de um pedaço), 200 ms (uma dúzia de aeroportos no mesmo quadro), 46 ms (JSON de um pedaço). Os que sobram são de teleporte e da estação forçada pelo modo dev. Com janela (em segundo plano, então só vale o custo de cada parte), a montagem de um lote de vizinho caiu de 3–23 ms para ~1 ms e a de árvores e grama de um pedaço de ~16 ms para até 3 ms por quadro. A compilação de shaders na hora de desenhar ainda aparece algumas vezes: o registro de uma partida de verdade (`travadas.log`) vai dizer quais.
+
+**Fase 4.1: Fase 3 × antes da 4.1 × depois da 4.1** (`--perf-test=15`, janela na frente, 3136 × 2116, Mac Intel com Radeon Pro 5300M; as três versões rodando no mesmo momento, cada uma com o próprio servidor, o mesmo lote com 20 vizinhos, alternando a versão em cada cena para o aquecimento da placa pesar igual; uma rodada por cena). Média de fps, 1% piores quadros, GPU por quadro e draw calls ([ADR 0052](docs/decisoes/0052-roupas-por-regiao-cabelo-separado-e-desempenho.md)):
+
+| Cena | Qualidade | Fase 3 | Antes da 4.1 | Depois da 4.1 |
+| --- | --- | ---: | ---: | ---: |
+| Bairro (20 vizinhos) | Alta | 50,4 · 17,7 · 15,4 ms · 787 | 47,2 · 14,9 · 14,9 ms · 848 | **48,9** · 16,6 · 14,3 ms · 687 |
+| Bairro (20 vizinhos) | Média | 58,4 · 20,8 · 11,0 ms · 511 | 57,5 · 20,3 · 11,1 ms · 548 | **58,7** · 29,0 · 10,6 ms · 474 |
+| Bairro + 20 bots | Alta | (falhou) | 42,2 · 12,9 · 15,4 ms · 881 | **46,2** · 16,1 · 14,5 ms · 724 |
+| Bairro + 20 bots | Média | 58,7 · 25,6 · 10,9 ms · 573 | 55,0 · 16,9 · 11,0 ms · 632 | **56,6** · 19,3 · 10,8 ms · 524 |
+| Floresta tropical | Alta | 54,7 · 18,3 · 15,5 ms · 717 | 49,4 · 16,2 · 15,0 ms · 783 | **50,0** · 15,9 · 14,7 ms · 644 |
+| Floresta tropical | Média | 57,8 · 23,4 · 11,4 ms · 539 | 55,1 · 18,2 · 11,3 ms · 587 | **54,2** · 16,0 · 11,3 ms · 523 |
+| Pampa florido | Alta | 59,6 · 40,2 · 10,7 ms · 619 | 59,3 · 28,8 · 11,0 ms · 726 | **59,7** · 40,3 · 10,2 ms · 545 |
+| Pampa florido | Média | 59,9 · 48,0 · 9,8 ms · 429 | 59,9 · 45,6 · 9,7 ms · 499 | **59,9** · 51,6 · 9,7 ms · 405 |
+
+O que isso mostra:
+
+- **A 4.0 custou pouco na placa** (GPU por quadro quase igual à Fase 3) **e mais em chamadas de desenho** (+60 a +110 por cena, dos modelos pequenos novos: flores para colher e ingredientes) **e em picos**: o pior quadro chegava a 125–134 ms no bairro. Na 4.1 as chamadas de desenho ficaram **abaixo da Fase 3** em todas as cenas, a GPU caiu um pouco e o pior quadro no bairro voltou para 39–77 ms. Com 20 bots vestidos na alta: 42,2 → 46,2 fps.
+- **Meta da alta (mínimo 45 fps): atingida** em todas as cenas (46,2 a 59,7).
+- **Meta da média (60 estáveis): atingida no pampa florido, quase no bairro (58,7) e não na floresta tropical (54,2) nem no bairro com bots (56,6).** O que falta não é a placa: a GPU fica em 10–11 ms por quadro (cabe nos 16,7 ms dos 60 fps). A média cai pelos picos (1% piores em 16–29 fps) que o `--perf-test` pega andando sem parar e carregando pedaços novos do mundo, e eles **já existiam na Fase 3** (57,8 na floresta tropical). Próximo passo: o `--hitch-test` com janela para ver o que cada pico estava fazendo (pedaços de grama, colisão, shaders) e espalhar esse trabalho entre quadros.
+- Uma rodada por cena: diferenças de 1 a 2 fps estão dentro da variação entre rodadas. A rodada da Fase 3 com bots na alta não imprimiu resultado (o jogo não fechou a tempo).
+- Sem janela (`--profile-scene`, alta, bairro com 20 bots e 4 fogueiras), as partes da 4.0 somavam ~2 ms de GPU: outros personagens 0,7, fogueiras 0,5, flores 0,3; os scripts gastam menos de 0,15 ms de CPU cada (`--cpu-test`).
 
 **Fase 2.5: custo do que entrou** (sem janela, só CPU; os fps com janela ficam para `client/tools/medir_fps.sh`): os animais custam ~0,9 ms por quadro com 12 animais carregados (o máximo; os mais longe são atualizados menos vezes por segundo). As partículas das estações são 160 (média) ou 320 (alta), nenhuma na baixa. O chão calcula a estação no próprio shader, sem malha nova; árvores de outono e com neve só trocam o modelo do MultiMesh.
 
@@ -592,7 +644,7 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, gobolares e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
 5. **Fase 3: fronteiras vivas e multiplayer.** Lotes longe das fronteiras, fronteira que abre com o passaporte, outros jogadores em tempo real no nosso servidor (sem Nakama, [ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md)), chat, emotes, validações no servidor e preparo para jogar com amigos. ✅
 6. **Fase 3.5: economia viva e os primeiros personagens.** Gobolar, preço por país, vender tudo, praça central com loja e aeroporto novo, NPCs com diálogo, apresentação do guia e troca entre jogadores. ✅ **Fase 3.6: polimento.** Aeroporto na escala do personagem, chão sem frestas e bandeiras nas fronteiras. ✅
-7. **Fase 4.0: clima, necessidades, roupas, personagem e flores.** ✅ **Fase 4.5:** cavernas e folclore. **Fase 5.0:** redesenho da interface, música e sons.
+7. **Fase 4.0: clima, necessidades, roupas, personagem e flores.** ✅ Ajustes da 4.1: desempenho, roupas no lugar da original, cabelo separado, editor no primeiro acesso, guarda-roupa e ícones. ✅ **Fase 4.5:** cavernas e folclore. **Fase 5.0:** redesenho da interface, música e sons.
 
 ## Sobre mim
 
