@@ -144,19 +144,19 @@ func _selected() -> Dictionary:
 func _show() -> void:
 	var a := _selected()
 	if a.is_empty():
-		_detail.text = "Escolha um destino na lista.\n\nVocê tem %s." % session.coins_text(session.coins)
+		_detail.text = tr("Escolha um destino na lista.\n\nVocê tem %s.") % session.coins_text(session.coins)
 		_go.disabled = true
 		return
 	var fare := int(a["fare"])
 	var pass_tab := 0 if bool(a["has_passport"]) else int(a["passport_price"])
 	var total := fare + pass_tab
-	var lines := ["%s" % a["name"], "", "Passagem: %s" % session.coins_text(fare)]
+	var lines := ["%s" % a["name"], "", tr("Passagem: %s") % session.coins_text(fare)]
 	if pass_tab > 0:
-		lines.append("Passaporte de %s: %s" % [a["country_name"], session.coins_text(pass_tab)])
+		lines.append(tr("Passaporte de %s: %s") % [a["country_name"], session.coins_text(pass_tab)])
 		lines.append("(sem ele não dá para entrar no país)")
 	lines.append("")
-	lines.append("Total: %s" % session.coins_text(total))
-	lines.append("Você tem %s." % session.coins_text(session.coins))
+	lines.append(tr("Total: %s") % session.coins_text(total))
+	lines.append(tr("Você tem %s.") % session.coins_text(session.coins))
 	_detail.text = "\n".join(lines)
 	_go.disabled = session.coins < total
 	_go.text = "Viajar" if pass_tab == 0 else "Comprar passaporte e viajar"
@@ -191,8 +191,8 @@ func _show_passport() -> void:
 		return
 	var c: Dictionary = _p_list.get_item_metadata(sel[0])
 	var owned := session.passports().has(str(c["country"]))
-	_p_detail.text = "Passaporte de %s\n\n%s\n\nVocê tem %s." % [c["name"],
-		"Você já tem este passaporte." if owned else "Preço: %s" % session.coins_text(int(c["price"])), session.coins_text(session.coins)]
+	_p_detail.text = tr("Passaporte de %s\n\n%s\n\nVocê tem %s.") % [c["name"],
+		"Você já tem este passaporte." if owned else tr("Preço: %s") % session.coins_text(int(c["price"])), session.coins_text(session.coins)]
 	_p_buy.disabled = owned or session.coins < int(c["price"])
 
 

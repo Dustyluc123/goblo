@@ -134,8 +134,8 @@ func _record(ms: float) -> void:
 ## Texto curto das últimas travadas, para o painel F2.
 static func summary(count := 5) -> String:
 	if recent.is_empty():
-		return "Travadas (> %d ms): nenhuma" % int(LIMIT_MS)
-	var lines := PackedStringArray(["Travadas (> %d ms): %d nesta sessão" % [int(LIMIT_MS), total]])
+		return TranslationServer.translate("Travadas (> %d ms): nenhuma") % int(LIMIT_MS)
+	var lines := PackedStringArray([TranslationServer.translate("Travadas (> %d ms): %d nesta sessão") % [int(LIMIT_MS), total]])
 	for i in range(recent.size() - 1, maxi(-1, recent.size() - 1 - count), -1):
 		var e: Dictionary = recent[i]
 		var what: PackedStringArray = e["what"]

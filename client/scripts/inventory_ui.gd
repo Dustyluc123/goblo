@@ -62,7 +62,7 @@ func refresh() -> void:
 		while left > 0:
 			slots.append([s["item"], mini(left, stack)])
 			left -= stack
-	_title.text = "Bolso  ·  %d/%d" % [slots.size(), session.slots_max]
+	_title.text = tr("Bolso  ·  %d/%d") % [slots.size(), session.slots_max]
 	for i in session.slots_max:
 		_grid.add_child(_slot(slots[i] if i < slots.size() else []))
 

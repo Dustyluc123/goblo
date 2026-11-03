@@ -484,7 +484,7 @@ func _build_house(root: Node3D, body: StaticBody3D, f: Dictionary, l: Dictionary
 		if level == 0:
 			_add_box(body, f, l, tile, fp, x, y, rot, 1.5)
 		var sign := Label3D.new()
-		sign.text = "Em obras: %s\npronta amanhã às 5h" % str(hp.get("name", "casa"))
+		sign.text = tr("Em obras: %s\npronta amanhã às 5h") % str(hp.get("name", "casa"))
 		sign.font_size = 36
 		sign.pixel_size = 0.005
 		sign.outline_size = 10

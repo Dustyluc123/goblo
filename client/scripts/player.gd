@@ -29,7 +29,7 @@ const CHARACTERS := ["character-female-a", "character-female-b", "character-fema
 ## Nome curto do personagem para as listas ("Personagem 7").
 static func character_label(id: String) -> String:
 	var i := CHARACTERS.find(id)
-	return "Personagem %d" % (i + 1) if i >= 0 else id
+	return TranslationServer.translate("Personagem %d") % (i + 1) if i >= 0 else id
 
 ## Qual dos 12 personagens do Mini Characters usar.
 @export_enum(

@@ -80,7 +80,7 @@ func _draw_frame() -> void:
 	_frame.draw_line(center + Vector2(0, 16), center + Vector2(0, 24), c, 2.0)
 	var box := Rect2(center - Vector2(s.x * CENTER_W, s.y * CENTER_H) * 0.5, Vector2(s.x * CENTER_W, s.y * CENTER_H))
 	_frame.draw_rect(box, Color(1, 1, 1, 0.22), false, 1.5)
-	_frame.draw_string(ThemeDB.fallback_font, Vector2(m + 8, s.y - m - 12), "zoom %d°" % int(camera.photo_fov), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.85))
+	_frame.draw_string(ThemeDB.fallback_font, Vector2(m + 8, s.y - m - 12), tr("zoom %d°") % int(camera.photo_fov), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.85))
 
 
 func _process(_delta: float) -> void:
@@ -108,7 +108,7 @@ func set_selfie(on: bool) -> void:
 
 
 func _update_hint() -> void:
-	_hint.text = "clique: tirar foto  ·  roda: zoom  ·  F: %s  ·  botão direito ou Esc: sair" % ("primeira pessoa" if selfie() else "selfie")
+	_hint.text = tr("clique: tirar foto  ·  roda: zoom  ·  F: %s  ·  botão direito ou Esc: sair") % ("primeira pessoa" if selfie() else "selfie")
 
 
 func _unhandled_input(event: InputEvent) -> void:

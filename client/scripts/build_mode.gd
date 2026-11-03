@@ -295,7 +295,7 @@ func remove_at_cursor() -> void:
 		ui.toast(str(res["message"]))
 		return
 	game.apply_lot_result(res["data"])
-	ui.toast("Guardado: %s" % session.item_name(target["item"]), target["item"])
+	ui.toast(tr("Guardado: %s") % session.item_name(target["item"]), target["item"])
 	if item.is_empty():
 		item = str(target["item"])
 	_refresh_bar()

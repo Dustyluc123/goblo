@@ -123,7 +123,7 @@ func refresh() -> void:
 			MouseSettings.set_sensitivity(v)
 			refresh())
 		_mouse_row.add_child(b)
-	_invert.text = "Inverter eixo vertical: %s" % ("sim" if MouseSettings.invert_y() else "não")
+	_invert.text = tr("Inverter eixo vertical: %s") % ("sim" if MouseSettings.invert_y() else "não")
 	for q: String in Quality.NAMES:
 		var b := UiStyle.button(str(Quality.LABELS[q]).capitalize(), q == Quality.current_name())
 		b.custom_minimum_size = Vector2(150, 0)
@@ -137,7 +137,7 @@ func refresh() -> void:
 	var win := DisplayServer.window_get_size()
 	var vp := get_viewport()
 	var s := vp.scaling_3d_scale
-	_info.text = "Janela %d × %d · 3D em %d × %d (%d%%%s) · a interface fica sempre na resolução cheia." % [
+	_info.text = tr("Janela %d × %d · 3D em %d × %d (%d%%%s) · a interface fica sempre na resolução cheia.") % [
 		win.x, win.y, int(win.x * s), int(win.y * s), roundi(s * 100.0), ", FSR" if vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_FSR else ""]
 
 

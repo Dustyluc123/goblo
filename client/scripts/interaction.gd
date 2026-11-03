@@ -145,22 +145,22 @@ func _prompt_text(t: Dictionary) -> String:
 	if t["type"] == "airport":
 		return "E: balcão do aeroporto (viagens e passaportes)"
 	if t["type"] == "player":
-		return "E: propor troca com %s" % game.remote_nick(int(t["id"]))
+		return tr("E: propor troca com %s") % game.remote_nick(int(t["id"]))
 	if t["type"] == "npc":
 		var npc: Npc = t["npc"]
-		return "E: conversar com %s (%s)" % [npc.npc_name, npc.title.to_lower()]
+		return tr("E: conversar com %s (%s)") % [npc.npc_name, npc.title.to_lower()]
 	if t["type"] == "animal":
 		var an: Dictionary = t["animal"]
 		if _wants_fruit(an):
-			return "%s  ·  E: dar frutinha" % an["name"]
-		return "%s  ·  E: fazer carinho" % an["name"]
+			return tr("%s  ·  E: dar frutinha") % an["name"]
+		return tr("%s  ·  E: fazer carinho") % an["name"]
 	var o: Dictionary = t["obj"]
 	var st: Dictionary = o.get("state", {}) if o.get("state") is Dictionary else {}
 	match str(o["kind"]):
 		"tree":
 			if session.equipped == "axe" and o.get("chop", false):
 				var left := 3 - int(st.get("chop", 0))
-				return "E: cortar (%d hoje)" % left if left > 0 else "Esta árvore já deu madeira hoje"
+				return tr("E: cortar (%d hoje)") % left if left > 0 else "Esta árvore já deu madeira hoje"
 			if int(st.get("shake", 0)) >= 1:
 				return "Já sacudida hoje" + ("  ·  segure o machado (1–5) para cortar" if session.count("axe") > 0 and o.get("chop", false) else "")
 			return "E: sacudir"
@@ -168,7 +168,7 @@ func _prompt_text(t: Dictionary) -> String:
 			if session.equipped != "pickaxe":
 				return "Pedra grande  ·  precisa de uma picareta" if session.count("pickaxe") == 0 else "Pedra grande  ·  segure a picareta (1–5)"
 			var left := 3 - int(st.get("mine", 0))
-			return "E: quebrar (%d hoje)" % left if left > 0 else "Esta pedra já deu tudo hoje"
+			return tr("E: quebrar (%d hoje)") % left if left > 0 else "Esta pedra já deu tudo hoje"
 		"bush":
 			return "E: colher frutinhas" if int(st.get("shake", 0)) == 0 else "Já colhido hoje"
 		"flower":

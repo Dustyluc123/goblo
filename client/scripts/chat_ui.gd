@@ -83,7 +83,7 @@ func add_line(nick: String, text: String, own := false) -> void:
 	if nick.is_empty():
 		l.text = "[i]%s[/i]" % safe
 	else:
-		l.text = "[b][color=%s]%s[/color][/b]: %s" % ["#ffe08a" if own else "#b8f0d8", nick.replace("[", "[lb]"), safe]
+		l.text = tr("[b][color=%s]%s[/color][/b]: %s") % ["#ffe08a" if own else "#b8f0d8", nick.replace("[", "[lb]"), safe]
 	_log.add_child(l)
 	_ages.append(0.0)
 	while _log.get_child_count() > KEEP:

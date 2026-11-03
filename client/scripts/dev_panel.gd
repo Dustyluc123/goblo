@@ -399,7 +399,7 @@ func _net_tab() -> Control:
 	var bots := HBoxContainer.new()
 	bots.add_theme_constant_override("separation", 6)
 	for n: int in [1, 5, 20]:
-		var b := UiStyle.button("Criar %d bot%s perto" % [n, "s" if n > 1 else ""], n == 5)
+		var b := UiStyle.button(tr("Criar %d bot%s perto") % [n, "s" if n > 1 else ""], n == 5)
 		b.pressed.connect(func() -> void: game.dev_bots(n))
 		bots.add_child(b)
 	var rm := UiStyle.button("Tirar os bots", false)
@@ -415,7 +415,7 @@ func _net_tab() -> Control:
 	lat.step = 10
 	lat.focus_mode = Control.FOCUS_NONE
 	lat.value_changed.connect(func(v: float) -> void:
-		_latency.text = "Atraso: %d ms" % int(v)
+		_latency.text = tr("Atraso: %d ms") % int(v)
 		game.set_net_sim(int(v), -1.0))
 	box.add_child(lat)
 	_loss = UiStyle.label("Perda de pacotes de movimento: 0%", 16)
@@ -426,7 +426,7 @@ func _net_tab() -> Control:
 	loss.step = 1
 	loss.focus_mode = Control.FOCUS_NONE
 	loss.value_changed.connect(func(v: float) -> void:
-		_loss.text = "Perda de pacotes de movimento: %d%%" % int(v)
+		_loss.text = tr("Perda de pacotes de movimento: %d%%") % int(v)
 		game.set_net_sim(-1, v / 100.0))
 	box.add_child(loss)
 	var refresh := UiStyle.button("Atualizar quem está conectado", false)

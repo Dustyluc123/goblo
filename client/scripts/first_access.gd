@@ -73,9 +73,9 @@ func setup(countries: Dictionary, detected: String, source: String) -> void:
 	_selected = detected
 	match source:
 		"ip":
-			_detected.text = "Achamos que você está em %s (pela sua conexão). Confirme ou escolha outro." % countries.get(detected, detected)
+			_detected.text = tr("Achamos que você está em %s (pela sua conexão). Confirme ou escolha outro.") % countries.get(detected, detected)
 		"locale":
-			_detected.text = "Pelo idioma do seu computador, sugerimos %s. Confirme ou escolha outro." % countries.get(detected, detected)
+			_detected.text = tr("Pelo idioma do seu computador, sugerimos %s. Confirme ou escolha outro.") % countries.get(detected, detected)
 		_:
 			_detected.text = "Não conseguimos descobrir seu país. Escolha na lista."
 	_fill()

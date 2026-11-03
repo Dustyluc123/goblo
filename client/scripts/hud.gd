@@ -197,7 +197,7 @@ func show_cell(world: WorldData, id: int) -> void:
 	if not code.is_empty():
 		title += "  ·  " + code
 	_country.text = title
-	_coords.text = "%s  ·  %s  ·  célula %d" % [world.biome_label(id), WorldData.format_lat_lon(world.lats[id], world.lons[id]), id]
+	_coords.text = tr("%s  ·  %s  ·  célula %d") % [world.biome_label(id), WorldData.format_lat_lon(world.lats[id], world.lons[id]), id]
 
 
 ## Estação onde o personagem está ("" entre os trópicos), ao lado da hora.

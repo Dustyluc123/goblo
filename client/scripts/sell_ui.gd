@@ -137,8 +137,8 @@ func _ask(items: Array) -> void:
 		_do_sell(items)
 		return
 	_pending = items
-	var names: Array = special.map(func(x: Dictionary) -> String: return "%d× %s" % [int(x["count"]), session.item_name(x["item"])])
-	_confirm_text.text = "Tem certeza? Você vai vender %s (ferramenta ou item raro)." % ", ".join(names)
+	var names: Array = special.map(func(x: Dictionary) -> String: return tr("%d× %s") % [int(x["count"]), session.item_name(x["item"])])
+	_confirm_text.text = tr("Tem certeza? Você vai vender %s (ferramenta ou item raro).") % ", ".join(names)
 	_confirm.visible = true
 
 
@@ -175,7 +175,7 @@ func refresh() -> void:
 		coin.diameter = 18.0
 		coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(coin)
-		row.add_child(UiStyle.label("%s cada" % session.price_text(price), 16, UiStyle.INK_SOFT))
+		row.add_child(UiStyle.label(tr("%s cada") % session.price_text(price), 16, UiStyle.INK_SOFT))
 		var qty := SpinBox.new()
 		qty.min_value = 1
 		qty.max_value = n
@@ -191,4 +191,4 @@ func refresh() -> void:
 		row.add_child(every)
 		_rows.add_child(row)
 	_empty.visible = total == 0
-	_total.text = "Tudo vale %s" % session.coins_text(total) if total > 0 else ""
+	_total.text = tr("Tudo vale %s") % session.coins_text(total) if total > 0 else ""

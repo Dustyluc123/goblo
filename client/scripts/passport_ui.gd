@@ -88,7 +88,7 @@ func _render(book: Dictionary) -> void:
 	var shown := names.slice(0, MAX_NAMES)
 	var text := "%d %s: %s" % [names.size(), "passaporte" if names.size() == 1 else "passaportes", ", ".join(shown)]
 	if names.size() > MAX_NAMES:
-		text += " e mais %d" % (names.size() - MAX_NAMES)
+		text += tr(" e mais %d") % (names.size() - MAX_NAMES)
 	_passports.text = text
 	for c in _grid.get_children():
 		c.queue_free()

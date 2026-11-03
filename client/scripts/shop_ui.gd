@@ -53,7 +53,7 @@ func setup(g: GameMain, s: Session, i: ItemIcons) -> void:
 	game = g
 	session = s
 	icons = i
-	session.coins_changed.connect(func(_d: int) -> void: _coins.text = "Você tem %s" % session.coins_text(session.coins))
+	session.coins_changed.connect(func(_d: int) -> void: _coins.text = tr("Você tem %s") % session.coins_text(session.coins))
 
 
 func open(c: String) -> void:
@@ -63,7 +63,7 @@ func open(c: String) -> void:
 	_hint.text = "Carregando o estoque…"
 	for ch in _rows.get_children():
 		ch.queue_free()
-	_coins.text = "Você tem %s" % session.coins_text(session.coins)
+	_coins.text = tr("Você tem %s") % session.coins_text(session.coins)
 	var r := await game.api_request("GET", "/shop?country=" + c)
 	if not r["ok"]:
 		_hint.text = str(r["message"])
@@ -72,9 +72,9 @@ func open(c: String) -> void:
 
 
 func _fill(d: Dictionary) -> void:
-	_title.text = "Loja da praça · %s" % str(d.get("country_name", country))
+	_title.text = tr("Loja da praça · %s") % str(d.get("country_name", country))
 	var left := int(d.get("next_rollover", 0)) - int(Time.get_unix_time_from_system())
-	_hint.text = "Estoque de hoje (chega coisa nova em %dh%02d, às 5h daqui). Os itens do dia e os exclusivos daqui mudam todo dia!" % [maxi(0, left) / 3600, (maxi(0, left) % 3600) / 60]
+	_hint.text = tr("Estoque de hoje (chega coisa nova em %dh%02d, às 5h daqui). Os itens do dia e os exclusivos daqui mudam todo dia!") % [maxi(0, left) / 3600, (maxi(0, left) % 3600) / 60]
 	for ch in _rows.get_children():
 		ch.queue_free()
 	for st: Dictionary in d.get("stock", []):

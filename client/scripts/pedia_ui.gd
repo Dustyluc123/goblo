@@ -104,7 +104,7 @@ func _fill() -> void:
 		found += 1 if on else 0
 		friends += 1 if bool(e.get("friend", false)) else 0
 		_grid.add_child(_card(e))
-	_progress.text = "%d de %d páginas descobertas  ·  %d amigos" % [found, _entries.size(), friends]
+	_progress.text = tr("%d de %d páginas descobertas  ·  %d amigos") % [found, _entries.size(), friends]
 	if _selected.is_empty() and not _entries.is_empty():
 		_selected = str(_entries[0]["id"])
 	_show(_selected)
@@ -174,10 +174,10 @@ func _show(id: String) -> void:
 			if not biome.is_empty():
 				var i := Array(WorldData.Biome.keys()).find(biome.to_upper())
 				biome = WorldData.BIOME_LABELS.get(i, biome)
-			lines.append("Primeira foto: %02d/%02d/%04d" % [when["day"], when["month"], when["year"]])
+			lines.append(tr("Primeira foto: %02d/%02d/%04d") % [when["day"], when["month"], when["year"]])
 			if not where.is_empty() or not biome.is_empty():
-				lines.append("Onde: %s" % "  ·  ".join(PackedStringArray([where, biome].filter(func(x: String) -> bool: return not x.is_empty()))))
-			lines.append("Fotografado %d %s" % [int(e["sightings"]), "vez" if int(e["sightings"]) == 1 else "vezes"])
+				lines.append(tr("Onde: %s") % "  ·  ".join(PackedStringArray([where, biome].filter(func(x: String) -> bool: return not x.is_empty()))))
+			lines.append(tr("Fotografado %d %s") % [int(e["sightings"]), "vez" if int(e["sightings"]) == 1 else "vezes"])
 			if PediaPhotos.first_thumbnail(session.profile, id) == null:
 				lines.append("(a foto ficou em outro computador)")
 		else:

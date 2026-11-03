@@ -119,7 +119,7 @@ func _show_recipe() -> void:
 	var item: Dictionary = session.items.get(r["result"], {})
 	var kind := {"tool": "ferramenta", "placeable": "para colocar no lote", "material": "material"}
 	names.add_child(UiStyle.label(str(kind.get(item.get("category", ""), "")), 15, UiStyle.INK_SOFT))
-	names.add_child(UiStyle.label("Você tem: %d" % session.count(r["result"]), 15, UiStyle.INK_SOFT))
+	names.add_child(UiStyle.label(tr("Você tem: %d") % session.count(r["result"]), 15, UiStyle.INK_SOFT))
 	head.add_child(names)
 	_detail.add_child(head)
 	_detail.add_child(UiStyle.label("Precisa de:", 17))
@@ -165,14 +165,14 @@ func _show_house() -> void:
 	var now_name := "nenhuma (só o terreno)" if level == 0 else str(session.house_level(level).get("name", "?"))
 	_house_box.add_child(UiStyle.label("Sua casa: " + now_name, 22))
 	if pending > 0:
-		_house_box.add_child(UiStyle.label("Em obras: %s. Fica pronta na próxima virada do dia (5h no seu horário)." % session.house_level(pending).get("name", "?"), 17, UiStyle.INK_SOFT))
+		_house_box.add_child(UiStyle.label(tr("Em obras: %s. Fica pronta na próxima virada do dia (5h no seu horário).") % session.house_level(pending).get("name", "?"), 17, UiStyle.INK_SOFT))
 		return
 	var next := session.house_level(level + 1)
 	if next.is_empty():
 		_house_box.add_child(UiStyle.label("Sua casa já está no nível máximo. Que linda!", 17, UiStyle.INK_SOFT))
 		return
 	var fp: Array = next["footprint"]
-	_house_box.add_child(UiStyle.label("Próximo nível: %s (%d × %d quadradinhos)" % [next["name"], fp[0], fp[1]], 18))
+	_house_box.add_child(UiStyle.label(tr("Próximo nível: %s (%d × %d quadradinhos)") % [next["name"], fp[0], fp[1]], 18))
 	_house_box.add_child(_cost_list(next["cost"]))
 	if not _blockers.is_empty():
 		var warn := UiStyle.label(_blockers_message, 17, UiStyle.WARN)

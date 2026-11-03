@@ -239,7 +239,7 @@ func _ready() -> void:
 # --- Carga do mundo -----------------------------------------------------------------------
 
 func _request_world() -> void:
-	_hud.show_status("Baixando o mundo de %s…" % _server_url)
+	_hud.show_status(tr("Baixando o mundo de %s…") % _server_url)
 	var headers := PackedStringArray()
 	if not _cached_version.is_empty():
 		headers.append('If-None-Match: "%s"' % _cached_version)
@@ -325,7 +325,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 		wait += get_process_delta_time()
 	_send_spawn()
 	var win := DisplayServer.window_get_size()
-	_hitches.start("qualidade %s · janela %d × %d · limite %s · V-Sync %s · %s" % [Quality.label(), win.x, win.y,
+	_hitches.start(tr("qualidade %s · janela %d × %d · limite %s · V-Sync %s · %s") % [Quality.label(), win.x, win.y,
 		FpsLimit.label(), "ligado" if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else "desligado",
 		"automação" if _is_automation() else "jogo"])
 	# Cursor capturado durante o jogo (mover o mouse gira a câmera); nunca nas automações
@@ -360,7 +360,7 @@ func _identify() -> bool:
 		if _is_automation():
 			_fail("Servidor não respondeu ao /me: %s" % r["message"])
 			return false
-		_hud.show_status("Sem resposta do servidor (%s).\nTentando de novo…" % r["message"])
+		_hud.show_status(tr("Sem resposta do servidor (%s).\nTentando de novo…") % r["message"])
 		await get_tree().create_timer(RETRY_SECONDS).timeout
 
 	var geo := await _api.request("GET", "/geo?locale=" + OS.get_locale().uri_encode())
@@ -592,7 +592,7 @@ func _setup_net() -> void:
 	_net.trade_finished.connect(_ui.trade.on_done)
 	_net.trade_closed.connect(_ui.trade.on_closed)
 	_net.kicked.connect(func(reason: String) -> void:
-		_hud.show_status("%s\nFeche este jogo ou entre de novo." % reason))
+		_hud.show_status(tr("%s\nFeche este jogo ou entre de novo.") % reason))
 	_remotes.muted = _load_mutes()
 	_net.start(_server_url, _api.token)
 
@@ -649,7 +649,7 @@ func _on_stamped(res: Dictionary) -> void:
 	if res.has("passport"):
 		_session.set_passport_book(res["passport"])
 	var reward := int(res.get("reward", 0))
-	_ui.toast("Carimbo novo no passaporte!  +%s" % _session.coins_text(reward))
+	_ui.toast(tr("Carimbo novo no passaporte!  +%s") % _session.coins_text(reward))
 
 
 ## Emote do jogador: toca aqui e manda para quem está perto.
@@ -755,7 +755,7 @@ func dev_bots(n: int) -> void:
 	var r := await _dev("/dev/bots", {"count": n}, "")
 	if r["ok"]:
 		var d: Dictionary = r["data"]
-		_ui.dev.status("%d bots criados perto de você." % int(d["created"]) if d.has("created") else "%d bots tirados." % int(d.get("removed", 0)))
+		_ui.dev.status(tr("%d bots criados perto de você.") % int(d["created"]) if d.has("created") else "%d bots tirados." % int(d.get("removed", 0)))
 
 
 ## Modo dev: quem está conectado e os números da rede.
@@ -766,12 +766,12 @@ func dev_online() -> void:
 		return
 	var lines := PackedStringArray()
 	for o: Dictionary in r["data"].get("online", []):
-		lines.append("%s%s · %s · %s · vê %d" % [o["nickname"], " (bot)" if o["bot"] else "", o["country"],
+		lines.append(tr("%s%s · %s · %s · vê %d") % [o["nickname"], " (bot)" if o["bot"] else "", o["country"],
 			WorldData.format_lat_lon(float(o["lat"]), float(o["lon"])), int(o["visible"])])
 	var st: Dictionary = r["data"].get("stats", {})
 	if not st.is_empty():
 		var secs := maxf(1.0, float(st["uptime_ms"]) / 1000.0)
-		lines.insert(0, "%d conectados, %d bots · servidor mandou %.1f KB/s e recebeu %.1f KB/s em média" % [
+		lines.insert(0, tr("%d conectados, %d bots · servidor mandou %.1f KB/s e recebeu %.1f KB/s em média") % [
 			int(st["clients"]), int(st["bots"]), float(st["bytes_out"]) / 1024.0 / secs, float(st["bytes_in"]) / 1024.0 / secs])
 	_ui.dev.show_online("\n".join(lines))
 
@@ -817,7 +817,7 @@ func _fail(message: String) -> void:
 		printerr("Goblo: " + message)
 		get_tree().quit(1)
 		return
-	_hud.show_status(message + "\nTentando de novo em %d s…" % int(RETRY_SECONDS))
+	_hud.show_status(message + tr("\nTentando de novo em %d s…") % int(RETRY_SECONDS))
 	if world == null and not _ui.server_setup.visible and not _server_asked:
 		# Sem mundo: talvez o servidor seja outro (jogar com amigos).
 		_server_asked = true
@@ -825,7 +825,7 @@ func _fail(message: String) -> void:
 		_ui.server_setup.chosen.connect(func(url: String) -> void:
 			_server_url = url
 			_api.base_url = url
-			_hud.show_status("Conectando a %s…" % url))
+			_hud.show_status(tr("Conectando a %s…") % url))
 	await get_tree().create_timer(RETRY_SECONDS).timeout
 	if world == null:
 		_request_world()
@@ -883,7 +883,7 @@ func _on_country_changed(code: String, walked: bool) -> void:
 		var r := await _api.request("POST", "/passport/stamp", {"country": code})
 		if r["ok"] and r["data"].get("stamp") != null:
 			_session.set_passport_book(r["data"]["passport"])
-			subtitle = "Carimbo novo no passaporte!  +%s" % _session.coins_text(int(r["data"]["reward"]))
+			subtitle = tr("Carimbo novo no passaporte!  +%s") % _session.coins_text(int(r["data"]["reward"]))
 			if not walked:
 				_ui.toast(subtitle)
 	if walked:
@@ -953,7 +953,7 @@ func hitch_where() -> String:
 	if world == null or _player.cell_id < 0:
 		return "carregando"
 	var ll := WorldData.vec_to_lat_lon(_player.global_position)
-	return "%s · célula %d (%s) · %s · %d fps · qualidade %s" % [WorldData.format_lat_lon(ll.x, ll.y), _player.cell_id,
+	return tr("%s · célula %d (%s) · %s · %d fps · qualidade %s") % [WorldData.format_lat_lon(ll.x, ll.y), _player.cell_id,
 		world.biome_label(_player.cell_id), _tracker.current if _tracker else "?", Engine.get_frames_per_second(), Quality.label()]
 
 
@@ -963,12 +963,12 @@ func hitch_context() -> PackedStringArray:
 	if _flying:
 		out.append("voando")
 	if _camera.far_amount > 0.05:
-		out.append("câmera afastada %.0f%%" % (_camera.far_amount * 100.0))
+		out.append(tr("câmera afastada %.0f%%") % (_camera.far_amount * 100.0))
 	if _photo.active:
 		out.append("modo foto")
 	if _api.in_flight > 0:
-		out.append("%d pedidos ao servidor em andamento" % _api.in_flight)
-	out.append("%d animais carregados" % _animals.active_count)
+		out.append(tr("%d pedidos ao servidor em andamento") % _api.in_flight)
+	out.append(tr("%d animais carregados") % _animals.active_count)
 	if not get_window().has_focus() and DisplayServer.get_name() != "headless":
 		out.append("janela sem foco (o Mac desacelera)")
 	return out
@@ -1025,7 +1025,7 @@ func _border_guard(from: Vector3, probe: Vector3) -> Vector3:
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _barrier_msg_at > 4.0:
 		_barrier_msg_at = now
-		_ui.toast("Para entrar aqui, você precisa do passaporte deste país: %s. Ele pode ser comprado em qualquer aeroporto." % country_name(target))
+		_ui.toast(tr("Para entrar aqui, você precisa do passaporte deste país: %s. Ele pode ser comprado em qualquer aeroporto.") % country_name(target))
 		_ui.restore_control()
 	_border_touch(from, target)
 	var bn := _data.borders.border_normal(from, _player.cell_id, world.surface_radius(_player.cell_id), target)
@@ -1068,7 +1068,7 @@ func _arrive(from_airport: Dictionary, res: Dictionary) -> void:
 	await _fly(origin, dest)
 	var subtitle := str(dest["name"])
 	if res.get("stamp") != null:
-		subtitle += "\nCarimbo novo no passaporte!  +%s" % _session.coins_text(int(res["reward"]))
+		subtitle += tr("\nCarimbo novo no passaporte!  +%s") % _session.coins_text(int(res["reward"]))
 	_hud.welcome(country_name(str(dest["country"])), subtitle)
 	_ui.restore_control(true)
 
@@ -1168,7 +1168,7 @@ func _on_equipped() -> void:
 		return
 	var lib := ModelLibrary.get_model(str(_session.items.get(id, {}).get("model", "")))
 	_player.set_tool(lib.get("mesh"))
-	_ui.toast("Na mão: %s" % _session.item_name(id), id)
+	_ui.toast(tr("Na mão: %s") % _session.item_name(id), id)
 
 
 func _process(delta: float) -> void:
@@ -1207,12 +1207,12 @@ func _process(delta: float) -> void:
 		_home_marker.modulate.a = smoothstep(0.25, 0.6, far)
 	_send_movement(delta)
 	if _hud.perf_visible():
-		_hud.show_perf("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d animais · %d pedidos\nqualidade %s" % [
+		_hud.show_perf(tr("%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d animais · %d pedidos\nqualidade %s") % [
 			Engine.get_frames_per_second(), 1000.0 / maxf(1.0, Engine.get_frames_per_second()),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000,
 			_vegetation.instance_count, _data.all_lots().size(), _animals.active_count, _api.in_flight, Quality.label()]
-			+ "\nrede: %s · ping %d ms · ↓%d ↑%d pacotes/s · %d jogadores visíveis" % [_net.state, _net.ping_ms, _net.pps_in, _net.pps_out, _remotes.visible_count]
+			+ tr("\nrede: %s · ping %d ms · ↓%d ↑%d pacotes/s · %d jogadores visíveis") % [_net.state, _net.ping_ms, _net.pps_in, _net.pps_out, _remotes.visible_count]
 			+ "\n\n" + HitchLog.summary())
 	if _highlight.mesh:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
@@ -1401,13 +1401,13 @@ func teleport_country(code: String) -> void:
 			best_score = score
 			best = c
 	await _teleport_to_cell(best)
-	_ui.dev.status("Você está em %s." % world.countries.get(code, code))
+	_ui.dev.status(tr("Você está em %s.") % world.countries.get(code, code))
 
 
 func teleport_lat_lon(lat: float, lon: float) -> void:
 	var cell := world.nearest_land(world.find_cell(WorldData.lat_lon_to_vec(lat, lon)))
 	await _teleport_to_cell(cell)
-	_ui.dev.status("Teleportado para %s." % WorldData.format_lat_lon(world.lats[cell], world.lons[cell]))
+	_ui.dev.status(tr("Teleportado para %s.") % WorldData.format_lat_lon(world.lats[cell], world.lons[cell]))
 
 
 func set_noclip(on: bool) -> void:
@@ -1419,7 +1419,7 @@ func set_noclip(on: bool) -> void:
 
 func time_faster() -> void:
 	_day_night.faster()
-	_hud.flash("Tempo ×%d" % int(_day_night.speed))
+	_hud.flash(tr("Tempo ×%d") % int(_day_night.speed))
 
 
 func time_real() -> void:
@@ -1502,7 +1502,7 @@ func dev_force_season(season: String) -> void:
 		var year := int(Time.get_datetime_dict_from_unix_time(int(season_now()))["year"])
 		var md: Array = {"spring": [4, 25], "summer": [7, 25], "autumn": [10, 28], "winter": [1, 25]}[season]
 		Seasons.override_unix = float(Time.get_unix_time_from_datetime_dict({"year": year, "month": md[0], "day": md[1], "hour": 12, "minute": 0, "second": 0}))
-		_ui.dev.status("Data forçada: %02d/%02d (%s no norte, %s no sul)." % [md[1], md[0],
+		_ui.dev.status(tr("Data forçada: %02d/%02d (%s no norte, %s no sul).") % [md[1], md[0],
 			Seasons.LABELS[season].to_lower(), Seasons.LABELS[Seasons.NAMES[(Seasons.NAMES.find(season) + 2) % 4]].to_lower()])
 	await apply_season(Seasons.north_phase(season_now()))
 
@@ -1615,7 +1615,7 @@ func store_blockers_and_upgrade(ids: Array) -> void:
 			return
 		apply_lot_result(r["data"])
 	_ui.craft.clear_blockers()
-	_ui.toast("Guardei %d objeto%s no bolso." % [ids.size(), "" if ids.size() == 1 else "s"])
+	_ui.toast(tr("Guardei %d objeto%s no bolso.") % [ids.size(), "" if ids.size() == 1 else "s"])
 	await upgrade_house()
 
 
@@ -1624,7 +1624,7 @@ func store_blockers_and_upgrade(ids: Array) -> void:
 func _dev(path: String, body: Dictionary, done: String) -> Dictionary:
 	var r := await _api.request("POST", path, body)
 	if not r["ok"]:
-		_ui.dev.status("Erro: %s" % r["message"])
+		_ui.dev.status(tr("Erro: %s") % r["message"])
 		_ui.toast(str(r["message"]))
 		return r
 	if r["data"] is Dictionary and (r["data"] as Dictionary).has("inventory"):
@@ -1634,7 +1634,7 @@ func _dev(path: String, body: Dictionary, done: String) -> Dictionary:
 
 
 func dev_give(item: String, count: int) -> void:
-	await _dev("/dev/give", {"item": item, "count": count}, "Você ganhou %d× %s." % [count, _session.item_name(item)])
+	await _dev("/dev/give", {"item": item, "count": count}, tr("Você ganhou %d× %s.") % [count, _session.item_name(item)])
 
 
 func dev_starter_kit() -> void:
@@ -1644,18 +1644,18 @@ func dev_starter_kit() -> void:
 
 
 func dev_coins(amount: int) -> void:
-	await _dev("/dev/coins", {"amount": amount}, "Saldo: %s." % _session.coins_text(_session.coins + amount))
-	_ui.dev.status("Saldo: %s." % _session.coins_text(_session.coins))
+	await _dev("/dev/coins", {"amount": amount}, tr("Saldo: %s.") % _session.coins_text(_session.coins + amount))
+	_ui.dev.status(tr("Saldo: %s.") % _session.coins_text(_session.coins))
 
 
 func dev_passport(action: String, code: String) -> void:
 	var r := await _api.request("POST", "/dev/passport", {"action": action, "country": code})
 	if not r["ok"]:
-		_ui.dev.status("Erro: %s" % r["message"])
+		_ui.dev.status(tr("Erro: %s") % r["message"])
 		return
 	_session.set_passport_book(r["data"])
-	var done := {"give": "Passaporte de %s entregue." % country_name(code), "remove": "Passaporte de %s retirado." % country_name(code),
-		"complete": "Passaporte completo: %d passaportes, %d carimbos." % [(r["data"]["passports"] as Array).size(), (r["data"]["stamps"] as Array).size()],
+	var done := {"give": tr("Passaporte de %s entregue.") % country_name(code), "remove": tr("Passaporte de %s retirado.") % country_name(code),
+		"complete": tr("Passaporte completo: %d passaportes, %d carimbos.") % [(r["data"]["passports"] as Array).size(), (r["data"]["stamps"] as Array).size()],
 		"reset": "Passaportes e carimbos zerados (fica o do seu país)."}
 	_ui.dev.status(str(done.get(action, "Pronto.")))
 
@@ -1672,7 +1672,7 @@ func dev_travel(code: String) -> void:
 
 func set_barrier(on: bool) -> void:
 	barrier_on = on
-	_ui.dev.status("Barreira da fronteira %s." % ("ligada" if on else "desligada"))
+	_ui.dev.status(tr("Barreira da fronteira %s.") % ("ligada" if on else "desligada"))
 
 
 ## Modo dev: fronteiras todas abertas, todas fechadas ou pelos passaportes ("").
@@ -1684,13 +1684,13 @@ func set_border_view(mode: String) -> void:
 
 func set_border_lines(lines: bool, debug: bool) -> void:
 	_border_lines.set_mode(lines, debug)
-	_ui.dev.status("Linhas de fronteira %s%s." % ["ligadas" if lines else "desligadas", ", com os polígonos de debug" if debug else ""])
+	_ui.dev.status(tr("Linhas de fronteira %s%s.") % ["ligadas" if lines else "desligadas", ", com os polígonos de debug" if debug else ""])
 
 
 func dev_spawn_animal(species: String) -> void:
 	var fwd := -_player.global_basis.z
 	var ok := _animals.spawn_debug(species, _player.global_position + fwd * 3.0)
-	_ui.dev.status("%s criado aqui perto (só neste computador)." % _session.animal_species[species]["name"] if ok else "Não coube aqui (lote ou borda do hexágono).")
+	_ui.dev.status(tr("%s criado aqui perto (só neste computador).") % _session.animal_species[species]["name"] if ok else "Não coube aqui (lote ou borda do hexágono).")
 
 
 func dev_list_animals() -> void:
@@ -1700,7 +1700,7 @@ func dev_list_animals() -> void:
 func dev_pedia(action: String) -> void:
 	var r := await _api.request("POST", "/dev/pedia", {"action": action})
 	if not r["ok"]:
-		_ui.dev.status("Erro: %s" % r["message"])
+		_ui.dev.status(tr("Erro: %s") % r["message"])
 		return
 	if action == "reset":
 		PediaPhotos.clear(_session.profile)
@@ -1727,19 +1727,19 @@ func dev_real_time() -> void:
 func dev_fake_neighbors(count: int) -> void:
 	var r := await _dev("/dev/fake-neighbors", {"cell": _player.cell_id, "count": count}, "")
 	if r["ok"]:
-		_ui.dev.status("%d vizinhos falsos criados aqui perto." % int(r["data"]["created"]))
+		_ui.dev.status(tr("%d vizinhos falsos criados aqui perto.") % int(r["data"]["created"]))
 		_data.refresh_all()
 
 
 func dev_set_country(code: String) -> void:
-	var r := await _dev("/dev/country", {"country": code}, "Agora você mora em %s." % world.countries.get(code, code))
+	var r := await _dev("/dev/country", {"country": code}, tr("Agora você mora em %s.") % world.countries.get(code, code))
 	if r["ok"]:
 		_data.refresh_all()
 		await go_home()
 
 
 func dev_reset(what: String) -> void:
-	var r := await _dev("/dev/reset", {"what": what}, "Pronto: %s resetado." % what)
+	var r := await _dev("/dev/reset", {"what": what}, tr("Pronto: %s resetado.") % what)
 	if not r["ok"]:
 		return
 	if what == "player":
@@ -1926,7 +1926,7 @@ func _screenshot_setup() -> void:
 				_animals.pet(int(a["id"]))
 				await get_tree().create_timer(0.7).timeout
 		"welcome":
-			_hud.welcome(country_name(_tracker.current), "Carimbo novo no passaporte!  +%s" % _session.coins_text(10))
+			_hud.welcome(country_name(_tracker.current), tr("Carimbo novo no passaporte!  +%s") % _session.coins_text(10))
 			await get_tree().create_timer(0.6).timeout
 		"airport", "travel":
 			var a := _airports.of_country(str(_args.get("country", _tracker.current)))
@@ -3435,7 +3435,7 @@ func _check_intro() -> void:
 
 ## Arquivo local que faz o modo dev mostrar a apresentação no próximo login.
 func _intro_flag() -> String:
-	return "user://%s_intro.flag" % _session.profile
+	return tr("user://%s_intro.flag") % _session.profile
 
 
 ## Modo dev: marca a apresentação como não vista (aparece no próximo login).
@@ -3450,7 +3450,7 @@ func dev_intro_unseen() -> void:
 ## Modo dev: repõe o estoque da loja do país onde o jogador está.
 func dev_shop_restock() -> void:
 	var c := _tracker.current if _tracker else str(_session.me.get("country", ""))
-	var r := await _dev("/dev/shop/restock", {"country": c}, "Estoque de %s reposto." % country_name(c))
+	var r := await _dev("/dev/shop/restock", {"country": c}, tr("Estoque de %s reposto.") % country_name(c))
 	if r["ok"] and _ui.shop.visible:
 		_ui.shop.open(c)
 
@@ -3459,7 +3459,7 @@ func dev_shop_restock() -> void:
 func dev_trade_bot() -> void:
 	var r := await _dev("/dev/trade-bot", {}, "")
 	if r["ok"]:
-		_ui.dev.status("Troca aberta com %s." % str(r["data"]["bot"]))
+		_ui.dev.status(tr("Troca aberta com %s.") % str(r["data"]["bot"]))
 
 
 func _set_intro(done: bool) -> void:
@@ -3614,7 +3614,7 @@ func on_intro_task(task: String, reward: int) -> void:
 	_session.intro["tasks"] = tasks
 	if reward > 0:
 		_session.set_coins(_session.coins + reward)
-		_ui.toast("Tarefa da apresentação!  +%s" % _session.coins_text(reward))
+		_ui.toast(tr("Tarefa da apresentação!  +%s") % _session.coins_text(reward))
 	if _intro_task == task:
 		_intro_task = ""
 		_clear_intro_arrow()

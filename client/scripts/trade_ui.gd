@@ -171,7 +171,7 @@ func show_request(from: int, nick: String) -> void:
 	_req_from = from
 	_req_at = Time.get_ticks_msec() / 1000.0
 	_title.text = "Pedido de troca"
-	_req_text.text = "%s quer trocar com você." % nick
+	_req_text.text = tr("%s quer trocar com você.") % nick
 	_req_box.visible = true
 	_trade_box.visible = false
 	visible = true
@@ -194,8 +194,8 @@ func show_view(v: Dictionary) -> void:
 		_fill_pick()
 	_req_box.visible = false
 	_trade_box.visible = true
-	_title.text = "Troca com %s" % str(v.get("nick", "?"))
-	_their_title.text = "%s oferece" % str(v.get("nick", "?"))
+	_title.text = tr("Troca com %s") % str(v.get("nick", "?"))
+	_their_title.text = tr("%s oferece") % str(v.get("nick", "?"))
 	var mine: Dictionary = v.get("mine", {})
 	_offer_items = (mine.get("items", []) if mine.get("items") is Array else []).map(
 		func(x: Dictionary) -> Dictionary: return {"item": str(x["item"]), "count": int(x["count"])})
@@ -210,7 +210,7 @@ func show_view(v: Dictionary) -> void:
 	_ready_btn.text = "Pronto ✓" if me_ready else "Pronto"
 	_confirm_btn.disabled = not bool(v.get("both_ready", false)) or bool(v.get("my_confirm", false))
 	if bool(v.get("my_confirm", false)):
-		_status.text = "Você confirmou. Esperando %s confirmar…" % str(v.get("nick", "?"))
+		_status.text = tr("Você confirmou. Esperando %s confirmar…") % str(v.get("nick", "?"))
 	elif bool(v.get("both_ready", false)):
 		_status.text = "Os dois estão prontos. Confira tudo e confirme a troca."
 	else:

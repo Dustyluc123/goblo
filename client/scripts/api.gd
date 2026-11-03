@@ -84,9 +84,9 @@ func request(method: String, path: String, body: Variant = null) -> Dictionary:
 	out["ok"] = code >= 200 and code < 300
 	if not out["ok"] and data is Dictionary:
 		out["error"] = str(data.get("error", "http"))
-		out["message"] = str(data.get("message", "Erro %d." % code))
+		out["message"] = str(data.get("message", tr("Erro %d.") % code))
 		out["details"] = data.get("details")
 	elif not out["ok"]:
 		out["error"] = "http"
-		out["message"] = "Erro %d no servidor." % code
+		out["message"] = tr("Erro %d no servidor.") % code
 	return out

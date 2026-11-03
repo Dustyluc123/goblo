@@ -444,4 +444,4 @@ func describe() -> String:
 		var d := (e["node"] as Node3D).global_position.distance_to(player.global_position)
 		lines.append("%s #%d · %.0f m · %s%s" % [species[sp]["name"], id, d, e["anim"], " · amigo" if is_friend(id) else ""])
 	lines.sort()
-	return "%d animais carregados (até %d):\n%s" % [_active.size(), MAX_ACTIVE, "\n".join(lines)]
+	return tr("%d animais carregados (até %d):\n%s") % [_active.size(), MAX_ACTIVE, "\n".join(lines)]
