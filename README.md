@@ -144,6 +144,15 @@ Encerrada do jeito que está; o que ficou de fora está em [`docs/BACKLOG.md`](d
 | **Carros e pista** | **Bandeiras na fronteira (do Brasil, vendo o Paraguai e a Argentina)** |
 | ![Carros e pista de perto](docs/imagens/aeroporto-carros-pista.jpg) | ![Bandeiras na fronteira](docs/imagens/fronteira-bandeiras.jpg) |
 
+**Fase 4.0: clima, necessidades, roupas, personagem e flores** ✅
+
+- [x] **Temperatura do mundo** ([ADR 0050](docs/decisoes/0050-corpo-clima-e-necessidades.md)): o servidor calcula pela latitude, estação, bioma, altura e hora local; fogueira aquece, sombra de árvore e beira do mar refrescam. Termômetro no HUD; o personagem treme no frio, sua e se abana no calor e solta vapor da respiração no gelado
+- [x] **Necessidades gentis:** sede, conforto e fome só dão vantagem: tudo em dia = um pouco mais rápido; alguma no mínimo = um pouco mais devagar (com fome, a tela fica zonza). Nada de dano, morte ou itens perdidos, e nada cai com o jogo fechado. **Modo tranquilo** no F6
+- [x] **Comida:** frutinhas, coco e cantil; fogueira (no lote ou acesa no chão) com 6 receitas que dão bônus por alguns minutos; ingredientes novos (cogumelo, ervas, grãos)
+- [x] **Roupas** ([ADR 0051](docs/decisoes/0051-visual-roupas-e-editor.md)): 14 peças em cinco espaços, com proteção contra frio e calor; fabricar ou comprar (algumas típicas de cada região); **tinta de flores** muda a cor; guarda-roupa na tecla **C**; todo mundo vê. **Capa de bandeiras** com os países carimbados
+- [x] **Editor de personagem:** as partes dos 12 personagens são separáveis (mesmo esqueleto): cabeça, tronco e pernas de quem quiser, tom de pele, cor do cabelo, penteados e óculos. No primeiro acesso, no **espelho** do lote e no F6. Uma malha só por personagem (mais leve que antes)
+- [x] **Flores:** 15 espécies novas por bioma e estação (girassol, lavanda, ipê-amarelo, edelvais, lótus…), algumas raras; flores decorativas bem mais densas; seção **Flores** na Goblopédia
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -240,6 +249,19 @@ Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto.
 1. **Aeroporto:** F1 → Mundo → teleporte para o país (ou F1 → Viagem → voar de graça). O avião fica na pista, com a escadinha na porta; os carros estão no pátio. Ande em volta, passe embaixo da asa e veja a pista de perto (não pisca mais). Viaje para ver o avião no arco do voo. Captura: `tools/sem_foco.sh -- --ui=airport --country=BRA --plaza=2.6,-0.6 --look=150 --zoom=0.12 --screenshot=/tmp/a.png`.
 2. **Fresta do Chile:** F1 → Mundo → lat **-52.19**, lon **-72.99** → Teleportar (célula 20575, montanha ao lado do mar e de hexágonos mais baixos). Ande e pule pelas beiradas e desça os degraus: nada de cair por dentro. Sem servidor: `godot --headless --path . -s tests/test_frestas.gd`.
 3. **Bandeiras:** F1 → Mundo → lat **-25.5**, lon **-54.47** (Brasil, perto do Paraguai e da Argentina). De longe dá para ver as bandeiras do outro lado; atravesse (F1 → Viagem → passaporte) e olhe para trás: agora aparece a do Brasil. `--border-test` confere os lados.
+
+## Como testar a fase 4.0
+
+Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto. O painel F1 ganhou as abas **Corpo** e **Visual**.
+
+1. **Temperatura e necessidades:** veja o termômetro e as barras no canto de cima. F1 → Corpo → força −15 °C (treme, vapor, conforto caindo) ou 45 °C (suor, sede caindo mais rápido). **Encher** todas: "Tudo em dia" e um pouco mais rápido; **Zerar** a fome: mais devagar e a tela zonza. **Congelar** para testar sem pressa. Viaje para lugares diferentes (Saara ao meio-dia e de madrugada, Patagônia, Antártida) e compare.
+2. **Comida:** F1 → Corpo → **Dar ingredientes, fogueira e cantil**. Fora do lote, clique na fogueira no bolso (acende no chão); **E** nela abre a fogueira para cozinhar. Clique numa comida no bolso para comer: o bônus aparece no HUD com o tempo. Encha o cantil no chafariz da praça ou num poço (fabrique na bancada) com **E**.
+3. **Roupas:** F1 → Visual → **Dar todas as roupas e tintas**; **C** abre o guarda-roupa (passe o mouse numa peça para ver antes de vestir), clique para vestir; pinte com as tintas. Vestido de casaco, F1 → Corpo → −15 °C: o conforto não cai.
+4. **Capa de bandeiras:** compre na loja da praça (ou F1 → Visual), vista e viaje: os retalhos aumentam a cada carimbo.
+5. **Editor:** F6 → **Editar personagem** (ou o espelho do lote, ou F1 → Visual). Uma conta nova vê o editor antes da apresentação do guia.
+6. **Flores:** F1 → Visual → **Mostrar todas as flores do bioma aqui**; fotografe para a Goblopédia (G → Flores). Mude a estação (F1 → Natureza) para ver as flores de cada época.
+
+Automações sem janela: `--body-test` (corpo, comida, fogueira, roupas, editor, modo tranquilo).
 
 ## Medições
 
@@ -440,7 +462,8 @@ No macOS, o token do jogador fica em `~/Library/Application Support/Godot/app_us
 | Shift | correr |
 | Espaço | pular |
 | **E** | interagir: sacudir, cortar, quebrar, colher, pegar, abrir a bancada, a caixa de vendas e o balcão do aeroporto, conversar com NPCs, propor troca a um jogador do lado, fazer carinho ou dar frutinha a um animal; no diálogo, completa a fala e passa para a próxima (1 a 4 escolhem a resposta) |
-| **Tab** ou **I** | bolso (inventário) |
+| **Tab** ou **I** | bolso (inventário): clique numa comida para comer, numa roupa para vestir, na fogueira para acender fora do lote |
+| **C** | guarda-roupa (vestir, tirar, pintar) |
 | **1** a **5** | segurar / guardar uma ferramenta |
 | **B** | modo construção (no seu lote) |
 | **R** / clique / **X** | no modo construção: girar, colocar, guardar |
@@ -516,6 +539,7 @@ godot --headless --path . -- --season-test --profile=teste7               # esta
 godot --headless --path . -- --travel-test --profile=teste8               # barreira, passaporte, carimbo, aeroporto e voo
 godot --headless --path . -- --dev-test --profile=teste9                  # botões novos do painel dev
 godot --headless --path . -- --npc-test --profile=teste14                 # apresentação, loja, atendente e troca com bot (fase 3.5)
+godot --headless --path . -- --body-test --profile=teste15                # corpo, comida, fogueira, roupas, editor e modo tranquilo (fase 4.0)
 godot --headless --path . -s tests/test_frestas.gd                        # sem frestas entre hexágonos e resgate de quem cai (fase 3.6; sem servidor, mundo em cache)
 python3 tools/extrair_textos.py                                           # (da raiz: client/tools/…) gera client/i18n/goblo.pot
 godot --headless --path . -- --cursor-test --profile=teste10              # cursor volta depois do voo, H, teleporte, menus
@@ -562,7 +586,7 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, gobolares e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
 5. **Fase 3: fronteiras vivas e multiplayer.** Lotes longe das fronteiras, fronteira que abre com o passaporte, outros jogadores em tempo real no nosso servidor (sem Nakama, [ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md)), chat, emotes, validações no servidor e preparo para jogar com amigos. ✅
 6. **Fase 3.5: economia viva e os primeiros personagens.** Gobolar, preço por país, vender tudo, praça central com loja e aeroporto novo, NPCs com diálogo, apresentação do guia e troca entre jogadores. ✅ **Fase 3.6: polimento.** Aeroporto na escala do personagem, chão sem frestas e bandeiras nas fronteiras. ✅
-7. **Fase 4.0:** temperatura, sede, roupas e mais flores. **Fase 4.5:** cavernas e folclore. **Fase 5.0:** redesenho da interface, música e sons.
+7. **Fase 4.0: clima, necessidades, roupas, personagem e flores.** ✅ **Fase 4.5:** cavernas e folclore. **Fase 5.0:** redesenho da interface, música e sons.
 
 ## Sobre mim
 

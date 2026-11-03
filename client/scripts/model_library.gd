@@ -348,6 +348,11 @@ static func _primitive(kind: String) -> Dictionary:
 			s.radial_segments = 8
 			s.rings = 4
 			parts.append([s, Transform3D(Basis(), Vector3(0, 0.11, 0)), Color("6b4a2f")])
+		_:
+			parts.append_array(_primitive_40(kind))
+	if parts.is_empty():
+		# Nunca uma malha vazia: um cubinho neutro.
+		parts.append([_box(Vector3(0.2, 0.2, 0.2)), Transform3D(Basis(), Vector3(0, 0.1, 0)), Color("c8b8a0")])
 	var groups := {"baked": {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(),
 		"c": PackedColorArray(), "i": PackedInt32Array(), "mat": null}}
 	var g: Dictionary = groups["baked"]
@@ -376,6 +381,224 @@ static func _primitive(kind: String) -> Dictionary:
 		g["c"] = gc
 		g["i"] = gi
 	return _build(groups)
+
+
+# --- Modelos da fase 4.0 (flores, ingredientes, fogueira, poço, espelho, comidas, roupas) ---
+
+static func _cy(top: float, bottom: float, h: float, seg := 8) -> CylinderMesh:
+	var c := CylinderMesh.new()
+	c.top_radius = top
+	c.bottom_radius = bottom
+	c.height = h
+	c.radial_segments = seg
+	c.rings = 1
+	return c
+
+
+static func _sp(r: float, h: float, seg := 8) -> SphereMesh:
+	var s := SphereMesh.new()
+	s.radius = r
+	s.height = h
+	s.radial_segments = seg
+	s.rings = 4
+	return s
+
+
+static func _at(x: float, y: float, z: float, basis := Basis()) -> Transform3D:
+	return Transform3D(basis, Vector3(x, y, z))
+
+
+## Haste verde de altura h.
+static func _stem(parts: Array, h: float, x := 0.0, z := 0.0, lean := 0.0) -> void:
+	parts.append([_cy(0.012, 0.016, h, 5), _at(x, h * 0.5, z, Basis(Vector3.FORWARD, lean)), Color("5f9e4b")])
+
+
+## Pétalas em volta de um centro: n caixinhas achatadas inclinadas.
+static func _petals(parts: Array, center: Vector3, n: int, length: float, width: float, tilt: float, col: Color) -> void:
+	for k in n:
+		var a := TAU * k / n
+		var b := Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, tilt)
+		parts.append([_box(Vector3(width, 0.012, length)), Transform3D(b, center + b * Vector3(0, 0, length * 0.5)), col])
+
+
+static func _primitive_40(kind: String) -> Array:
+	var parts: Array = []
+	match kind:
+		"flower_sunflower":
+			_stem(parts, 0.55)
+			parts.append([_cy(0.13, 0.13, 0.03, 12), _at(0, 0.58, 0.02, Basis(Vector3.RIGHT, 1.2)), Color("f5c518")])
+			parts.append([_cy(0.07, 0.07, 0.04, 10), _at(0, 0.585, 0.04, Basis(Vector3.RIGHT, 1.2)), Color("6b4226")])
+			parts.append([_box(Vector3(0.1, 0.01, 0.05)), _at(0.04, 0.25, 0, Basis(Vector3.FORWARD, 0.5)), Color("6fb04f")])
+		"flower_lavender":
+			for k in 4:
+				var x := (k - 1.5) * 0.04
+				_stem(parts, 0.32, x, (k % 2) * 0.03, x * 1.5)
+				parts.append([_cy(0.018, 0.022, 0.12, 5), _at(x * 1.5, 0.38, (k % 2) * 0.03), Color("9b7fd4")])
+		"flower_poppy":
+			_stem(parts, 0.32)
+			parts.append([_cy(0.08, 0.035, 0.07, 8), _at(0, 0.36, 0), Color("e8453c")])
+			parts.append([_sp(0.025, 0.04), _at(0, 0.39, 0), Color("2b2b2b")])
+		"flower_daisy":
+			_stem(parts, 0.26)
+			_petals(parts, Vector3(0, 0.27, 0), 10, 0.06, 0.022, -0.2, Color("fbfbf2"))
+			parts.append([_sp(0.025, 0.03), _at(0, 0.28, 0), Color("f5c518")])
+		"flower_tulip":
+			_stem(parts, 0.28)
+			parts.append([_cy(0.055, 0.035, 0.09, 6), _at(0, 0.32, 0), Color("f07aa8")])
+			parts.append([_box(Vector3(0.03, 0.14, 0.012)), _at(0.03, 0.1, 0, Basis(Vector3.FORWARD, -0.3)), Color("6fb04f")])
+		"flower_bluebell":
+			_stem(parts, 0.3, 0, 0, 0.25)
+			for k in 3:
+				parts.append([_cy(0.012, 0.03, 0.045, 6), _at(-0.05 - k * 0.02, 0.28 - k * 0.06, 0, Basis(Vector3.RIGHT, PI)), Color("6d8fe8")])
+		"flower_snowdrop":
+			_stem(parts, 0.2, 0, 0, 0.3)
+			parts.append([_cy(0.01, 0.03, 0.05, 6), _at(-0.05, 0.19, 0, Basis(Vector3.RIGHT, PI)), Color("f2f6ff")])
+		"flower_heather":
+			for k in 5:
+				var a := TAU * k / 5.0
+				parts.append([_sp(0.05, 0.12, 6), _at(cos(a) * 0.05, 0.08, sin(a) * 0.05), Color("c46fb3")])
+			parts.append([_sp(0.07, 0.08, 6), _at(0, 0.03, 0), Color("5f8a4b")])
+		"flower_gentian":
+			_stem(parts, 0.12)
+			parts.append([_cy(0.045, 0.015, 0.08, 6), _at(0, 0.16, 0), Color("3c62d6")])
+		"flower_edelweiss":
+			_stem(parts, 0.1)
+			_petals(parts, Vector3(0, 0.11, 0), 7, 0.05, 0.025, -0.1, Color("f4f1e4"))
+			parts.append([_sp(0.02, 0.025), _at(0, 0.12, 0), Color("e8e2c8")])
+		"flower_cactus_flower":
+			parts.append([_cy(0.06, 0.07, 0.3, 8), _at(0, 0.15, 0), Color("5f9e4b")])
+			parts.append([_sp(0.06, 0.06, 8), _at(0, 0.3, 0), Color("5f9e4b")])
+			_petals(parts, Vector3(0, 0.33, 0), 6, 0.05, 0.03, -0.5, Color("ff6fa3"))
+		"flower_hibiscus":
+			_stem(parts, 0.3)
+			_petals(parts, Vector3(0, 0.31, 0), 5, 0.09, 0.07, -0.35, Color("ff4d6d"))
+			parts.append([_cy(0.006, 0.006, 0.08, 4), _at(0, 0.35, 0.02, Basis(Vector3.RIGHT, 0.5)), Color("ffd23f")])
+		"flower_orchid":
+			_stem(parts, 0.32, 0, 0, 0.2)
+			_petals(parts, Vector3(-0.05, 0.33, 0.02), 5, 0.06, 0.045, -1.2, Color("d68fe8"))
+			parts.append([_sp(0.02, 0.03), _at(-0.05, 0.33, 0.04), Color("f7e14a")])
+		"flower_ipe":
+			# Arvorezinha florida: tronco e copa amarela.
+			parts.append([_cy(0.05, 0.08, 1.2, 6), _at(0, 0.6, 0), Color("7a5233")])
+			for k in 4:
+				var a := TAU * k / 4.0
+				parts.append([_sp(0.38, 0.5, 8), _at(cos(a) * 0.22, 1.35 + (k % 2) * 0.15, sin(a) * 0.22), Color("ffd23f")])
+			parts.append([_sp(0.42, 0.55, 8), _at(0, 1.55, 0), Color("ffcf2e")])
+		"flower_lotus":
+			parts.append([_cy(0.16, 0.16, 0.015, 10), _at(0, 0.01, 0), Color("4f9a60")])
+			_petals(parts, Vector3(0, 0.03, 0), 8, 0.07, 0.04, -0.7, Color("ffb3c8"))
+			parts.append([_sp(0.03, 0.03), _at(0, 0.06, 0), Color("ffd23f")])
+		"mushroom":
+			for k in 2:
+				var x := k * 0.07 - 0.03
+				parts.append([_cy(0.02, 0.025, 0.08 - k * 0.02, 6), _at(x, 0.04, k * 0.04), Color("f2e8d5")])
+				parts.append([_sp(0.06 - k * 0.015, 0.06, 8), _at(x, 0.09 - k * 0.02, k * 0.04), Color("d9583b")])
+		"herbs":
+			for k in 6:
+				var a := TAU * k / 6.0
+				parts.append([_box(Vector3(0.03, 0.16, 0.012)), _at(cos(a) * 0.03, 0.08, sin(a) * 0.03, Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, 0.35)), Color("7cbf5a")])
+		"grain":
+			for k in 5:
+				var x := (k - 2) * 0.03
+				_stem(parts, 0.32, x, (k % 2) * 0.02, x)
+				parts.append([_cy(0.012, 0.02, 0.09, 5), _at(x * 1.4, 0.36, (k % 2) * 0.02), Color("e9c46a")])
+		"canteen":
+			parts.append([_cy(0.1, 0.1, 0.06, 12), _at(0, 0.11, 0, Basis(Vector3.RIGHT, PI / 2)), Color("6d8fe8")])
+			parts.append([_cy(0.025, 0.025, 0.05, 6), _at(0, 0.23, 0), Color("7a5233")])
+			parts.append([_box(Vector3(0.02, 0.2, 0.065)), _at(0.1, 0.13, 0), Color("a8754a")])
+		"campfire":
+			for k in 7:
+				var a := TAU * k / 7.0
+				parts.append([_sp(0.07, 0.07, 6), _at(cos(a) * 0.28, 0.03, sin(a) * 0.28), Color("9a9a9a")])
+			for k in 3:
+				parts.append([_cy(0.03, 0.03, 0.42, 6), _at(0, 0.12, 0, Basis(Vector3.UP, k * PI / 3) * Basis(Vector3.RIGHT, 1.2)), Color("7a5233")])
+			parts.append([_cy(0.0, 0.11, 0.26, 6), _at(0, 0.2, 0), Color("ff9a3c")])
+			parts.append([_cy(0.0, 0.06, 0.18, 6), _at(0, 0.2, 0), Color("ffd45a")])
+		"well":
+			parts.append([_cy(0.55, 0.6, 0.55, 12), _at(0, 0.27, 0), Color("a7a39b")])
+			parts.append([_cy(0.45, 0.45, 0.02, 12), _at(0, 0.5, 0), Color("4d8fe8")])
+			for x in [-0.5, 0.5]:
+				parts.append([_box(Vector3(0.07, 1.0, 0.07)), _at(x, 0.95, 0), Color("7a5233")])
+			parts.append([_box(Vector3(1.3, 0.06, 0.8)), _at(0, 1.5, 0, Basis(Vector3.FORWARD, 0.0)), Color("c0645a")])
+			parts.append([_cy(0.04, 0.04, 1.0, 6), _at(0, 1.2, 0, Basis(Vector3.FORWARD, PI / 2)), Color("a8754a")])
+			parts.append([_cy(0.1, 0.08, 0.14, 8), _at(0.1, 0.85, 0), Color("a8754a")])
+		"mirror":
+			parts.append([_box(Vector3(0.62, 1.12, 0.06)), _at(0, 0.66, 0), Color("a8754a")])
+			parts.append([_box(Vector3(0.5, 1.0, 0.02)), _at(0, 0.66, 0.035), Color("cfe8f3")])
+			parts.append([_box(Vector3(0.7, 0.08, 0.3)), _at(0, 0.04, 0), Color("7a5233")])
+		"roasted_berries":
+			parts.append([_cy(0.008, 0.008, 0.3, 4), _at(0, 0.15, 0, Basis(Vector3.FORWARD, 0.3)), Color("a8754a")])
+			for k in 3:
+				parts.append([_sp(0.035, 0.07, 6), _at(-0.02 - k * 0.025, 0.12 + k * 0.06, 0), Color("8b2d4a")])
+		"mushroom_skewer":
+			parts.append([_cy(0.008, 0.008, 0.32, 4), _at(0, 0.16, 0), Color("a8754a")])
+			for k in 3:
+				parts.append([_sp(0.04, 0.04, 6), _at(0, 0.12 + k * 0.07, 0), Color("c47a4a")])
+		"herb_soup", "berry_juice", "herb_tea":
+			var col: Color = {"herb_soup": Color("c9a24a"), "berry_juice": Color("c2185b"), "herb_tea": Color("8bc34a")}[kind]
+			if kind == "herb_soup":
+				parts.append([_cy(0.12, 0.08, 0.08, 10), _at(0, 0.04, 0), Color("f4f1e4")])
+				parts.append([_cy(0.11, 0.11, 0.01, 10), _at(0, 0.075, 0), col])
+			else:
+				parts.append([_cy(0.06, 0.05, 0.14, 10), _at(0, 0.07, 0), Color(0.9, 0.95, 1.0)])
+				parts.append([_cy(0.055, 0.055, 0.01, 10), _at(0, 0.12, 0), col])
+		"grain_bread":
+			parts.append([_sp(0.11, 0.12, 8), _at(0, 0.05, 0, Basis().scaled(Vector3(1.3, 1, 1))), Color("d9a05b")])
+		"cloth":
+			for k in 3:
+				parts.append([_box(Vector3(0.26, 0.03, 0.2)), _at(0, 0.02 + k * 0.032, 0, Basis(Vector3.UP, k * 0.2)), [Color("e86a6a"), Color("f4f1e4"), Color("6d8fe8")][k]])
+		"paint":
+			parts.append([_cy(0.07, 0.07, 0.1, 10), _at(0, 0.05, 0), Color("f4f1e4")])
+			parts.append([_cy(0.065, 0.065, 0.01, 10), _at(0, 0.1, 0), Color("e86a6a")])
+		_:
+			if kind.begins_with("wear_"):
+				parts.append_array(_wear_icon(kind.substr(5)))
+	return parts
+
+
+## Peça de roupa para o ícone e para quando ela está no chão.
+static func _wear_icon(item: String) -> Array:
+	var parts: Array = []
+	var col := {"beanie": "e86a6a", "straw_hat": "e9c46a", "cap": "6d8fe8", "scarf": "e86a6a", "coat": "6d8fe8",
+		"tank_top": "f4f1e4", "pants": "5b6f8c", "shorts": "e9c46a", "boots": "7a5233", "sandals": "c99a6b",
+		"poncho": "c0392b", "sun_hat": "f4f1e4", "fur_hat": "8d6e63", "flag_cape": "f4f1e4"}
+	var c := Color(str(col.get(item, "c8b8a0")))
+	match item:
+		"beanie", "fur_hat":
+			var h := SphereMesh.new()
+			h.radius = 0.16
+			h.height = 0.16
+			h.is_hemisphere = true
+			parts.append([h, _at(0, 0.0, 0), c])
+		"straw_hat", "sun_hat":
+			parts.append([_cy(0.24 if item == "straw_hat" else 0.3, 0.24 if item == "straw_hat" else 0.3, 0.02, 12), _at(0, 0.01, 0), c])
+			parts.append([_cy(0.11, 0.12, 0.1, 10), _at(0, 0.07, 0), c])
+		"cap":
+			var h := SphereMesh.new()
+			h.radius = 0.14
+			h.height = 0.14
+			h.is_hemisphere = true
+			parts.append([h, _at(0, 0.0, 0), c])
+			parts.append([_box(Vector3(0.18, 0.02, 0.12)), _at(0, 0.01, 0.15), c])
+		"scarf":
+			var t := TorusMesh.new()
+			t.inner_radius = 0.09
+			t.outer_radius = 0.14
+			parts.append([t, _at(0, 0.03, 0), c])
+		"coat", "tank_top", "poncho", "flag_cape":
+			parts.append([_box(Vector3(0.3, 0.34, 0.08)), _at(0, 0.17, 0), c])
+			if item == "coat":
+				for x in [-0.2, 0.2]:
+					parts.append([_box(Vector3(0.09, 0.28, 0.08)), _at(x, 0.19, 0), c])
+		"pants", "shorts":
+			var h := 0.32 if item == "pants" else 0.18
+			for x in [-0.07, 0.07]:
+				parts.append([_box(Vector3(0.11, h, 0.09)), _at(x, h * 0.5, 0), c])
+			parts.append([_box(Vector3(0.26, 0.06, 0.1)), _at(0, h, 0), c])
+		"boots", "sandals":
+			for x in [-0.08, 0.08]:
+				parts.append([_box(Vector3(0.11, 0.16 if item == "boots" else 0.03, 0.18)), _at(x, 0.08 if item == "boots" else 0.015, 0), c])
+	return parts
 
 
 static func _box(size: Vector3) -> BoxMesh:

@@ -276,6 +276,28 @@ As três conferem que o jogador está perto da loja da praça daquele país (`re
 | 🔑 `GET /pedia` | — | páginas da Goblopédia com o progresso: `{"entries": [{"id", "name", "kind", "model", "discovered", "first_at", "country", "country_name", "biome", "sightings", "friend"}]}` |
 | 🔑 `POST /pedia/register` | `{"entry": "cow", "country": "ARG", "biome": "grassland", "look": [x, y, z]}` | registra uma foto: `{"entry", "first", "reward", "coins", "sightings", "message"}`; só a primeira foto paga `rewards.pedia_first`. `look` é a direção da câmera: o servidor confere se o animal (na posição do trajeto comum), a flor azul ou a árvore da estação estava perto e na frente dela (`403 too_far` se não) |
 
+## Corpo, comida, roupas e visual (fase 4.0)
+
+O corpo (BodyView) é `{"thirst", "hunger", "comfort", "max", "level" (optimal, neutral, critical ou quiet), "speed" (multiplicador da velocidade), "air", "felt" (°C, com fogueira, sombra e água), "comfort_min", "comfort_max" (faixa confortável com as roupas e os bônus), "cold", "hot", "dizzy", "quiet", "sources" (fire, shade, water), "buffs": [{"id", "name", "left" (s)}], "cold_protection", "heat_protection"}`. As necessidades só caem com o jogador conectado em tempo real (mensagem `body`, ADR 0050). O visual (LookView) é `{"look": {"head", "body", "legs" (partes dos personagens, ex. "female-a"), "skin", "hair" ("" = original, ou "#rrggbb"), "hairstyle", "accessory"}, "wear": {"head": {"item", "color"}, …}, "cape": ["ARG", …] (com a capa vestida: os carimbos)}` (ADR 0051).
+
+| Rota | Corpo | Faz |
+| --- | --- | --- |
+| 🔑 `GET /body` | — | o corpo |
+| 🔑 `POST /body/consume` | `{"item": "coconut"}` | come ou bebe do bolso (`items.json → food`): `{"body", "inventory", "slots_used", "message"}`. Não é comida: `400 not_food` |
+| 🔑 `POST /body/cook` | `{"recipe": "grain_bread", "times": 1}` | receita de fogueira (`station: fire`), perto de uma fogueira (do lote ou acesa no chão; senão `403 no_fire`). Mesma resposta de `/craft` |
+| 🔑 `POST /body/fill` | — | enche o cantil (vazio ou pela metade) perto de uma fonte, de um poço ou do chafariz da praça (`fill_reach`; senão `403 no_water`) |
+| 🔑 `POST /body/fire` | — | acende a fogueira do bolso no chão, na frente do jogador, por `sources.fire.minutes` (uma por jogador): resposta com `"fire": {"id", "owner", "cell", "x", "y", "left"}` |
+| 🔑 `GET /fires?cells=1,2` | — | fogueiras acesas no chão nas células (também em `GET /objects` → `fires`) |
+| 🔑 `POST /body/quiet` | `{"on": true}` | modo tranquilo (sem necessidades, sem bônus e sem cansaço); fica salvo. Responde o corpo |
+| `GET /temperature?lat=-3.1&lon=-60` | — | temperatura do ar agora num ponto: `{"temperature", "cell"}` |
+| 🔑 `GET /look` | — | o visual do jogador |
+| 🔑 `POST /look` | Look | salva o editor (partes, pele, cabelo, penteado e acessório, das opções de `body.json → look`) |
+| 🔑 `POST /wear` | `{"item": "coat"}` | veste uma roupa do bolso; a do mesmo espaço volta para o bolso: `{"look", "body", "inventory", "slots_used", "message"}` |
+| 🔑 `POST /wear/remove` | `{"slot": "body"}` | tira e guarda no bolso |
+| 🔑 `POST /wear/dye` | `{"slot": "body", "paint": "paint_red"}` | pinta a peça vestida (gasta uma tinta) |
+
+`GET /content` traz também `body` (o `body.json` inteiro) e, nos itens, `food`, `wear`, `color` e `rarity`; nas receitas, `station`.
+
 ## Viagem e passaportes
 
 | Rota | Corpo | Faz |
@@ -325,6 +347,8 @@ Sem `GOBLO_DEV=1`, **toda** rota `/dev/…` responde `403 {"error":"dev_only"}` 
 | `GET /dev/border-lots` | — | lotes antigos que cruzam a fronteira ou ficam perto demais dela: `{"lots": [{"lot_id", "cell", "owner", "country", "fake", "crossing"}], "near", "crossing"}` (ADR 0037) |
 | `POST /dev/border-lots/move` | — | muda esses lotes para um lote livre longe da fronteira no país do dono, com casa e objetos: `{"moved", "left"}` |
 | `GET /dev/online` | — | quem está conectado em tempo real e os números da rede: `{"online": [{"id", "nickname", "country", "character", "bot", "lat", "lon", "visible"}], "stats": {"clients", "bots", "bytes_in", "bytes_out", "msgs_in", "msgs_out", "uptime_ms"}}` |
+| `POST /dev/body` | `{"need": "hunger", "value": 0}`, `{"freeze": true}`, `{"temp": -10}`, `{"unforce": true}`, `{"buff": "fast", "minutes": 5}` | mexe nas necessidades, congela, força a temperatura do ar ou dá um bônus (fase 4.0). Responde o corpo |
+| `POST /dev/wear` | — | dá uma de cada roupa e duas de cada tinta |
 | `POST /dev/bots` | `{"count": 5}` | cria bots perto do jogador (andam, fazem emotes e falam); `count` 0 tira todos: `{"created"}` ou `{"removed"}` |
 
 As respostas trazem o `GET /me` atualizado (menos `fake-neighbors`, que devolve `{"created": n}`, o reset de `player`, que devolve `{"deleted": true}`, e `pedia`, `passport` e `travel`, descritos acima).

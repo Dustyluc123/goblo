@@ -169,10 +169,10 @@ func targets_near(pos: Vector3) -> Array:
 	for f: Dictionary in fires.values():
 		var d := (f["pos"] as Vector3).distance_to(pos)
 		if d < fire_r:
-			out.append({"type": "fire", "pos": f["pos"], "dist": d})
+			out.append({"type": "fire", "pos": f["pos"], "dist": d - 0.8})
 	for p: Vector3 in placements_with("fire"):
 		if p.distance_to(pos) < fire_r:
-			out.append({"type": "fire", "pos": p, "dist": p.distance_to(pos)})
+			out.append({"type": "fire", "pos": p, "dist": p.distance_to(pos) - 0.8})
 	var reach := float(session.body.get("fill_reach", 3.0))
 	var has_canteen := session.count("canteen") > 0 or session.count("canteen_half") > 0
 	if has_canteen:

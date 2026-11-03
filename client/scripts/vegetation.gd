@@ -84,6 +84,12 @@ func _load_decor() -> void:
 				"scale": e["scale"], "tint": Color(t[0], t[1], t[2])})
 			for m: String in e["models"]:
 				ModelLibrary.get_model(m)  # carrega já (no thread principal)
+		# Flores decorativas (fase 4.0): depois da grama, para a grama não mudar de lugar.
+		for e: Dictionary in parsed.get("flowers", {}).get(name, []):
+			entries.append({"models": e["models"], "per_cell": float(e["per_cell"]), "scale": e["scale"],
+				"tint": Color.WHITE, "seasons": e.get("seasons", [])})
+			for m: String in e["models"]:
+				ModelLibrary.get_model(m)
 		_decor[i] = entries
 		var ot: Array = parsed.get("object_tint", {}).get(name, [1, 1, 1])
 		_object_tint[i] = Color(ot[0], ot[1], ot[2])
@@ -417,11 +423,29 @@ func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary, nort
 	var autumn := 0.0
 	var winter := 0.0
 	var spring := 0.0
-	if north >= 0.0 and Seasons.cell_has_seasons(world, cell):
+	var summer := 0.0
+	var seasonal := north >= 0.0 and Seasons.cell_has_seasons(world, cell)
+	if seasonal:
 		var ph := Seasons.phase_at(north, world.lats[cell])
 		autumn = Seasons.weight(ph, 2)
 		winter = Seasons.weight(ph, 3)
 		spring = Seasons.weight(ph, 0)
+		summer = Seasons.weight(ph, 1)
+	# Flores decorativas: quantas pela estação de agora (none = trópicos e biomas sem estação).
+	var weights := {"spring": spring, "summer": summer, "autumn": autumn, "winter": winter}
+	var scaled: Array = []
+	for e: Dictionary in entries:
+		if not e.has("seasons"):
+			scaled.append(e)
+			continue
+		var w := 0.0
+		for se: String in e["seasons"]:
+			w += float(weights.get(se, 0.0)) if seasonal else (1.0 if se == "none" else 0.0)
+		var e2 := e.duplicate()
+		e2["per_cell"] = float(e["per_cell"]) * minf(w, 1.0)
+		e2["flower"] = true
+		scaled.append(e2)
+	entries = scaled
 	if spring > 0.0:
 		entries = entries + [{"models": SPRING_FLOWERS, "per_cell": SPRING_PER_CELL * spring, "scale": [0.32, 0.48],
 			"tint": Color.WHITE, "spring": true}]
@@ -442,7 +466,7 @@ func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary, nort
 		# Semente separada para as flores da primavera: a grama de sempre não muda.
 		var rng := DecorRng.new(cell * 16 + (15 if e.has("spring") else e_i))
 		var tint: Color = e["tint"]
-		if not e.has("spring"):
+		if not e.has("spring") and not e.has("flower"):
 			tint = tint * Color.WHITE.lerp(AUTUMN_TINT, autumn * 0.85)
 			tint = tint.lerp(tint * WINTER_TINT, winter * 0.8)
 		var expected: float = e["per_cell"]

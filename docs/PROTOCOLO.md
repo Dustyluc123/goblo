@@ -116,6 +116,9 @@ Todas têm `"t"` com o tipo.
 | `info` | `text` | aviso (chat rápido demais, erro) |
 | `pong` | `c`, `s` (relógio do servidor) | resposta do `ping` (o cliente acerta o relógio e mede o atraso) |
 | `kick` | `reason` | outra conexão do mesmo jogador entrou; esta vai fechar |
+| `body` | `body` (BodyView, docs/API.md) | o corpo do jogador (fase 4.0): quando algo que a tela mostra muda e a cada 5 s. `speed` é o multiplicador que o servidor aceita na validação do movimento (o maior dos últimos 3 s) |
+| `look` | `id`, `look` (LookView) | o visual de alguém (ou o seu) mudou: roupa, tinta, editor ou carimbo novo com a capa. `enter` também traz `look` |
+| `fire` | `by`, `fire` (`id`, `owner`, `cell`, `x`, `y`, `left`) | alguém acendeu uma fogueira no chão perto |
 | `trade_req` | `from`, `nick` | alguém quer trocar com você (responda com `trade_answer`) |
 | `trade_open` / `trade_update` | `id`, `with`, `nick`, `mine`, `theirs` (`{items, coins}`), `my_ready`, `their_ready`, `my_confirm`, `their_confirm`, `both_ready` | a troca abriu / mudou (cada lado recebe a sua visão) |
 | `trade_done` | `id`, `inventory`, `slots_used`, `coins`, `message` | a troca foi feita; o bolso e o saldo novos |
@@ -124,3 +127,7 @@ Todas têm `"t"` com o tipo.
 ### Troca entre jogadores (fase 3.5, ADR 0044)
 
 A negociação fica só na memória do servidor; o banco só muda na execução (`Service.ExecuteTrade`, uma transação: confere bolso, espaço, distância e bloqueio de novo). Se algo mudou entre a confirmação e a execução (alguém gastou o item, se afastou), nada acontece: os dois recebem `info` e um `trade_update` com os "pronto" desmarcados. Saiu do jogo no meio: `trade_closed` para o outro. No modo dev, os bots de número par aceitam pedidos e acompanham a troca (oferecem 3 madeiras).
+
+### Corpo (fase 4.0, ADR 0050)
+
+Uma vez por segundo, para quem está conectado e já nasceu, o hub chama `Service.BodyTick` (com a posição validada e se o jogador está correndo, pela animação 2) e manda `body` se algo mudou. O corpo é gravado a cada 30 s e quando o jogador sai; com a conexão fechada, nada cai. A velocidade máxima aceita em `move` é `max_speed × max(1, speed)`.

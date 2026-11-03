@@ -266,7 +266,8 @@ static func _prepare_object_in(o: Dictionary, f: Dictionary) -> void:
 	o["id"] = int(o["id"])
 	o["cell"] = int(o["cell"])
 	# Flores usam o modelo com as pétalas na cor do item (flower_red → "flower:red").
-	if str(o["kind"]) == "flower" and str(o.get("item", "")).begins_with("flower_"):
+	# As espécies novas (fase 4.0) já vêm com o modelo próprio ("primitive:flower_…").
+	if str(o["kind"]) == "flower" and str(o.get("item", "")).begins_with("flower_") and not str(o.get("model", "")).begins_with("primitive:"):
 		o["model"] = "flower:" + str(o["item"]).substr(7)
 	o["pos"] = WorldData.frame_point(f, float(o["x"]), float(o["y"]))
 	o["basis"] = WorldData.frame_basis(f, float(o["yaw"]), float(o["scale"]))
@@ -278,7 +279,7 @@ static func _is_hidden(o: Dictionary) -> bool:
 	var st: Variant = o.get("state")
 	if not (st is Dictionary):
 		return false
-	return str(o["kind"]) in ["flower", "pebble", "branch"] and int((st as Dictionary).get("pick", 0)) >= 1
+	return str(o["kind"]) in ["flower", "pebble", "branch", "forage"] and int((st as Dictionary).get("pick", 0)) >= 1
 
 
 func _unload(key: int) -> void:

@@ -19,4 +19,7 @@ run "alta, bairro" --perf-test=15 --quality=high
 run "média, bairro" --perf-test=15 --quality=medium
 run "alta, floresta tropical" --perf-test=15 --quality=high --spawn=-3,-60
 run "média, floresta tropical" --perf-test=15 --quality=medium --spawn=-3,-60
+# Fase 4.0: campo florido na primavera do sul (flores decorativas) e personagens com roupas.
+run "alta, pampa florido" --perf-test=15 --quality=high --spawn=-34.5,-61
+run "média, pampa florido" --perf-test=15 --quality=medium --spawn=-34.5,-61
 run "média, globo afastado" --perf-test=12 --quality=medium --zoom=1

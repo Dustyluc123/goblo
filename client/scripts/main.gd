@@ -826,6 +826,58 @@ func open_look_editor() -> void:
 	look_editor.open()
 
 
+## Modo dev (fase 4.0): necessidades, temperatura, bônus.
+func dev_body(req: Dictionary) -> void:
+	var r := await _dev("/dev/body", req, "")
+	if r["ok"]:
+		body.set_body(r["data"])
+		_ui.dev.status(tr("Corpo: sede %d, conforto %d, fome %d · %.0f °C (%s)") % [int(r["data"]["thirst"]), int(r["data"]["comfort"]),
+			int(r["data"]["hunger"]), float(r["data"]["felt"]), str(r["data"]["level"])])
+
+
+func dev_body_kit() -> void:
+	for pair: Array in [["mushroom", 4], ["herbs", 4], ["grain", 6], ["berries", 6], ["coconut", 2], ["campfire", 2], ["canteen", 1], ["branch", 4]]:
+		await _dev("/dev/give", {"item": pair[0], "count": pair[1]}, "")
+	var r := await _api.request("GET", "/me")
+	if r["ok"]:
+		_session.set_me(r["data"])
+	_ui.dev.status("Ingredientes, fogueiras e cantil no bolso.")
+
+
+func dev_wear() -> void:
+	var r := await _dev("/dev/wear", {}, "Todas as roupas e tintas no bolso.")
+	if r["ok"]:
+		_session.set_me(r["data"])
+
+
+## Põe uma flor decorativa de cada espécie do bioma em volta do personagem (só no cliente).
+func dev_show_flowers() -> void:
+	var biome := world.biome_names[int(world.biomes[_player.cell_id])]
+	var list: Array = []
+	for it: String in _session.item_order:
+		var d: Dictionary = _session.items[it]
+		if (d.get("tags", []) as Array).has("flower"):
+			list.append(str(d.get("model", "")))
+	var holder := Node3D.new()
+	holder.name = "DevFlores"
+	add_child(holder)
+	var up := _player.global_position.normalized()
+	var east := Vector3.UP.cross(up).normalized()
+	var north := up.cross(east)
+	for i in list.size():
+		var lib := ModelLibrary.get_model(str(list[i]))
+		if lib.is_empty():
+			continue
+		var mi := MeshInstance3D.new()
+		mi.mesh = lib["mesh"]
+		var a := TAU * i / list.size()
+		var p := _player.global_position + (east * cos(a) + north * sin(a)) * 2.5
+		mi.transform = Transform3D(Basis(east, up, -north), p)
+		holder.add_child(mi)
+	get_tree().create_timer(60.0).timeout.connect(holder.queue_free)
+	_ui.dev.status(tr("%d flores em volta de você por 1 minuto (bioma: %s).") % [list.size(), biome])
+
+
 ## Clique num item do bolso que se usa (comer, beber, vestir, tinta, fogueira, cantil).
 func use_item(item: String) -> void:
 	var it: Dictionary = _session.items.get(item, {})
@@ -1857,7 +1909,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test", "npc-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test", "npc-test", "body-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1912,6 +1964,9 @@ func _run_automation() -> void:
 	if _args.has("npc-test"):
 		await _npc_test()
 		return
+	if _args.has("body-test"):
+		await _body_test()
+		return
 	if _args.has("profile-scene"):
 		await _profile_scene()
 		return
@@ -1949,6 +2004,7 @@ func _run_automation() -> void:
 		print("Goblo: smoke-test célula %d → %d, %s, %s (%s), raio do personagem %.2f (superfície %.2f), no chão: %s, animação %.2f" % [
 			start_cell, id, world.country_name(id), world.biome_label(id),
 			WorldData.format_lat_lon(world.lats[id], world.lons[id]), r, expected, _player.is_on_floor(), _player.anim_blend])
+		print("Goblo: smoke-test vegetação: %d instâncias (grama, plantas e flores decorativas e objetos do servidor)" % _vegetation.instance_count)
 		var ok := world.is_land(id) and absf(r - expected) < 0.5 and _player.is_on_floor()
 		print("Goblo: smoke-test %s" % ("OK" if ok else "FALHOU"))
 		get_tree().quit(0 if ok else 1)
@@ -2033,6 +2089,23 @@ func _screenshot_setup() -> void:
 		"welcome":
 			_hud.welcome(country_name(_tracker.current), tr("Carimbo novo no passaporte!  +%s") % _session.coins_text(10))
 			await get_tree().create_timer(0.6).timeout
+		"wardrobe", "editor", "cook", "body":
+			# Fase 4.0: guarda-roupa, editor, fogueira e o HUD do corpo.
+			await dev_wear()
+			await wear("coat")
+			await wear("beanie")
+			await dev_body({"temp": -8})
+			await get_tree().create_timer(1.5).timeout
+			match ui:
+				"wardrobe":
+					wardrobe.toggle()
+				"editor":
+					open_look_editor()
+				"cook":
+					await dev_body_kit()
+					await body.light_fire()
+					body.open_cook()
+			await get_tree().create_timer(1.5).timeout
 		"airport", "travel":
 			var a := _airports.of_country(str(_args.get("country", _tracker.current)))
 			await _teleport(_airports.arrival_point(a))
@@ -2453,8 +2526,14 @@ func _photo_test() -> void:
 	check.call("cow" in entries, "vaca enquadrada: %s" % str(entries))
 	var coins := _session.coins
 	var reg := await _photo.take_photo()
-	var first: Dictionary = reg[0] if not reg.is_empty() else {}
-	check.call(first.get("entry", "") == "cow" and bool(first.get("first", false)) and _session.coins == coins + int(first.get("reward", 0)) and int(first.get("reward", 0)) > 0,
+	# Outro bicho pode sair na mesma foto: procura o registro da vaca e soma todas as recompensas.
+	var first := {}
+	var paid := 0
+	for x: Dictionary in reg:
+		paid += int(x.get("reward", 0))
+		if str(x.get("entry", "")) == "cow":
+			first = x
+	check.call(first.get("entry", "") == "cow" and bool(first.get("first", false)) and _session.coins == coins + paid and int(first.get("reward", 0)) > 0,
 		"primeira foto da vaca registra e paga (%d → %d gobolares)" % [coins, _session.coins])
 	var reg2 := await _photo.take_photo()
 	check.call(not reg2.is_empty() and not bool(reg2[0]["first"]) and int(reg2[0]["reward"]) == 0, "segunda foto não paga de novo")
@@ -3553,6 +3632,10 @@ func _check_intro() -> void:
 		await _set_intro(true)
 		return
 	await get_tree().create_timer(1.2).timeout
+	# Conta nova (fase 4.0): primeiro o editor de personagem, depois a apresentação do guia.
+	open_look_editor()
+	while look_editor.visible:
+		await look_editor.visibility_changed
 	start_intro()
 
 
@@ -3877,4 +3960,80 @@ func _npc_test() -> void:
 		print("Goblo: npc-test OK")
 	else:
 		print("Goblo: npc-test FALHOU: %s" % ", ".join(fails))
+	get_tree().quit(0 if fails.is_empty() else 1)
+
+
+## Automação da fase 4.0 (servidor dev): corpo, temperatura, velocidade, fogueira, comida,
+## roupas, editor e modo tranquilo.
+func _body_test() -> void:
+	var fails: Array[String] = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: body-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	var t := 0.0
+	while body.body.is_empty() and t < 5.0:
+		await get_tree().process_frame
+		t += get_process_delta_time()
+	check.call(not body.body.is_empty(), "corpo chegou do servidor (%.0f °C, nível %s)" % [float(body.body.get("felt", 0)), body.body.get("level", "?")])
+	await dev_body({"need": "all", "value": 100})
+	await dev_body({"temp": 20})
+	check.call(str(body.body.get("level", "")) == "optimal" and _player.speed_mult > 1.0, "tudo cheio: ótimo, mais rápido (×%.2f)" % _player.speed_mult)
+	await dev_body({"need": "hunger", "value": 0})
+	await get_tree().create_timer(2.5).timeout
+	check.call(_player.speed_mult < 1.0 and body._dizzy.visible, "fome no mínimo: mais devagar (×%.2f) e tela zonza" % _player.speed_mult)
+	await dev_body({"need": "all", "value": 60})
+	check.call(is_equal_approx(_player.speed_mult, 1.0) and not bool(body.body.get("dizzy", true)), "neutro: velocidade de sempre")
+	await dev_body({"temp": -12})
+	await get_tree().create_timer(0.4).timeout
+	check.call(bool(body.body.get("cold", false)) and body._breath.emitting and absf(_player.shiver) > 0.0 or bool(body.body.get("cold", false)) and body._breath.emitting,
+		"−12 °C: com frio, vapor da respiração e tremendo")
+	await dev_body({"temp": 40})
+	await get_tree().create_timer(0.3).timeout
+	check.call(bool(body.body.get("hot", false)) and body._sweat.emitting and _player.fanning, "40 °C: com calor, suando e se abanando")
+	await dev_body({"unforce": true})
+	# Fogueira no chão, cozinhar e comer.
+	await dev_body_kit()
+	var lit := await body.light_fire()
+	check.call(lit and not body.fires.is_empty(), "fogueira acesa no chão (%d)" % body.fires.size())
+	_interaction._timer = 0.0
+	await get_tree().create_timer(0.3).timeout
+	check.call(_interaction.target.get("type", "") == "fire", "E perto da fogueira: %s" % _interaction._prompt_text(_interaction.target))
+	await _interaction.interact()
+	check.call(body.cook_open(), "janela da fogueira abriu")
+	await body.cook("roasted_berries")
+	check.call(_session.count("roasted_berries") == 1, "cozinhou frutinhas assadas")
+	_ui.close_windows()
+	await dev_body({"need": "all", "value": 30})
+	await body.consume("roasted_berries")
+	check.call(float(body.body.get("hunger", 0)) > 30.0 and (body.body.get("buffs", []) as Array).size() == 1,
+		"comeu: fome %.0f e bônus %s" % [float(body.body.get("hunger", 0)), str(body.body.get("buffs", []))])
+	# Roupas e visual.
+	await dev_wear()
+	await wear("coat")
+	await wear("beanie")
+	await get_tree().create_timer(1.0).timeout
+	var worn: Dictionary = _player.look_view.get("wear", {})
+	check.call(worn.has("body") and worn.has("head") and _session.count("coat") == 0, "vestiu casaco e gorro (proteção contra frio %d)" % int(body.body.get("cold_protection", 0)))
+	check.call(_player._look_mi != null and is_instance_valid(_player._look_mi), "malha do visual montada no personagem")
+	await wear("straw_hat")
+	check.call(str((_player.look_view.get("wear", {}) as Dictionary).get("head", {}).get("item", "")) == "straw_hat" and _session.count("beanie") == 1,
+		"chapéu de palha no lugar do gorro (o gorro voltou ao bolso)")
+	await dye("body", "paint_red")
+	check.call(str((_player.look_view.get("wear", {}) as Dictionary).get("body", {}).get("color", "")) == str(_session.items["paint_red"]["color"]), "casaco pintado de vermelho")
+	var look: Dictionary = (_player.look_view.get("look", {}) as Dictionary).duplicate()
+	look["head"] = "female-e"
+	look["skin"] = "#9c6644"
+	look["hairstyle"] = "bun"
+	await save_look(look)
+	check.call(str((_player.look_view.get("look", {}) as Dictionary).get("head", "")) == "female-e", "editor salvou a cabeça nova")
+	# Modo tranquilo.
+	await body.set_quiet(true)
+	check.call(body.quiet() and is_equal_approx(_player.speed_mult, 1.0), "modo tranquilo ligado")
+	await body.set_quiet(false)
+	check.call(not body.quiet(), "modo tranquilo desligado")
+	if fails.is_empty():
+		print("Goblo: body-test OK")
+	else:
+		print("Goblo: body-test FALHOU: %s" % ", ".join(fails))
 	get_tree().quit(0 if fails.is_empty() else 1)

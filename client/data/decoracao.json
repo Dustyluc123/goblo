@@ -1,5 +1,5 @@
 {
-  "_doc": "Decoração do chão que o CLIENTE espalha (sem interação, sem colisão): grama e plantinhas do Ultimate Nature Pack. Árvores, pedras, flores e arbustos vêm do servidor (server/data/game/objects.json). models: nomes dos modelos em client/assets/quaternius/ultimate-nature. per_cell: média por célula (~500 unidades²), multiplicada pela densidade da qualidade gráfica. scale: escala mín/máx. tint: cor multiplicada (1 = cor original do modelo). object_tint: tom aplicado aos objetos do servidor em cada bioma. autumn/snow: reservados para as estações da fase 2.5.",
+  "_doc": "Decoração do chão que o CLIENTE espalha (sem interação, sem colisão): grama e plantinhas do Ultimate Nature Pack. Árvores, pedras, flores e arbustos vêm do servidor (server/data/game/objects.json). models: nomes dos modelos em client/assets/quaternius/ultimate-nature. per_cell: média por célula (~500 unidades²), multiplicada pela densidade da qualidade gráfica. scale: escala mín/máx. tint: cor multiplicada (1 = cor original do modelo). object_tint: tom aplicado aos objetos do servidor em cada bioma. autumn/snow: reservados para as estações da fase 2.5. Fase 4.0: flowers = flores decorativas (só enfeite, sem colher) por bioma: per_cell no auge, seasons = em que estações aparecem (none = trópicos e biomas sem estação). As colhíveis vêm do servidor.",
   "biomes": {
     "tropical_forest": [
       {"models": ["Grass", "Grass_2"], "per_cell": 22, "scale": [0.35, 0.55], "tint": [1.0, 1.08, 0.84]},
@@ -34,5 +34,35 @@
     "mountain": [1.0, 1.0, 1.0],
     "tundra": [1.0, 1.0, 1.0],
     "ice": [1.05, 1.05, 1.1]
+  },
+  "flowers": {
+    "grassland": [
+      {"models": ["primitive:flower_daisy", "primitive:flower_poppy"], "per_cell": 14, "scale": [0.7, 1.0], "seasons": ["spring", "summer", "none"]},
+      {"models": ["primitive:flower_sunflower"], "per_cell": 4, "scale": [0.8, 1.1], "seasons": ["summer", "none"]},
+      {"models": ["primitive:flower_lavender"], "per_cell": 6, "scale": [0.7, 1.0], "seasons": ["spring", "summer", "none"]},
+      {"models": ["primitive:flower_daisy"], "per_cell": 3, "scale": [0.7, 1.0], "seasons": ["autumn"]}
+    ],
+    "forest": [
+      {"models": ["primitive:flower_tulip", "primitive:flower_bluebell"], "per_cell": 12, "scale": [0.7, 1.0], "seasons": ["spring"]},
+      {"models": ["primitive:flower_poppy", "primitive:flower_daisy"], "per_cell": 8, "scale": [0.7, 1.0], "seasons": ["summer", "none"]},
+      {"models": ["primitive:flower_snowdrop"], "per_cell": 5, "scale": [0.7, 1.0], "seasons": ["winter"]}
+    ],
+    "tropical_forest": [
+      {"models": ["primitive:flower_hibiscus"], "per_cell": 8, "scale": [0.7, 1.0], "seasons": ["none", "spring", "summer", "autumn", "winter"]},
+      {"models": ["primitive:flower_orchid"], "per_cell": 2, "scale": [0.7, 1.0], "seasons": ["none", "spring", "summer", "autumn", "winter"]}
+    ],
+    "mountain": [
+      {"models": ["primitive:flower_gentian", "primitive:flower_lavender"], "per_cell": 8, "scale": [0.7, 1.0], "seasons": ["spring", "summer"]},
+      {"models": ["primitive:flower_edelweiss"], "per_cell": 1.5, "scale": [0.7, 1.0], "seasons": ["summer"]}
+    ],
+    "tundra": [
+      {"models": ["primitive:flower_heather"], "per_cell": 10, "scale": [0.7, 1.0], "seasons": ["summer", "autumn"]}
+    ],
+    "desert": [
+      {"models": ["primitive:flower_cactus_flower"], "per_cell": 2, "scale": [0.6, 0.9], "seasons": ["none", "spring", "summer", "autumn", "winter"]}
+    ],
+    "beach": [
+      {"models": ["primitive:flower_hibiscus"], "per_cell": 3, "scale": [0.7, 1.0], "seasons": ["none", "summer", "spring"]}
+    ]
   }
 }

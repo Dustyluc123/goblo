@@ -37,7 +37,7 @@ func _ready() -> void:
 	_nick.max_length = 16
 	_nick.text_submitted.connect(func(_t: String) -> void: _submit())
 	box.add_child(_nick)
-	box.add_child(UiStyle.label("Personagem (os outros jogadores veem; dá para trocar no F6)", 18))
+	box.add_child(UiStyle.label("Personagem para começar (logo depois você monta o seu no editor)", 18))
 	_char = OptionButton.new()
 	_char.focus_mode = Control.FOCUS_NONE
 	_char.add_theme_font_size_override("font_size", 17)

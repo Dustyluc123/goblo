@@ -211,3 +211,79 @@ A primeira foto de cada página paga `rewards.pedia_first`. Dar frutinha a um an
 ## Estações
 
 As estações vêm da data real (UTC) e do hemisfério (fórmula em `server/internal/game/season.go` e `client/scripts/seasons.gd`, ADR 0034); não há arquivo de dados. Mudam só floresta, campo, tundra e montanha fora dos trópicos. Os modelos trocados são as versões `*_Autumn_*` e `*_Snow_*` do Nature Pack (árvores comuns, bétulas, pinheiros e salgueiros; pedras, arbustos, troncos e tocos só têm a de neve). A transição dura ~20 dias em volta de cada virada (20/3, 21/6, 22/9 e 21/12).
+
+## Corpo: clima e necessidades (`body.json`, fase 4.0)
+
+Tudo do corpo fica em `server/data/game/body.json` (ADR 0050):
+
+- **`climate`**: temperatura do ar. Equador `equator` (27 °C) caindo até `equator + pole_drop` nos polos pela curva `(|lat|/90)^lat_curve`; estação com amplitude `season_amp_tropics` a `season_amp` (cresce com a latitude) e pico do verão no dia `summer_peak_day` (norte); hora local com pico às `daily_peak_hour` e amplitude `daily` por bioma; `offset` por bioma; `height_lapse` graus por unidade de altura acima de `base_height` (as montanhas altas esfriam).
+- **`comfort`**: faixa confortável (12 a 26 °C). Roupas com `cold` baixam o mínimo; com `heat`, sobem o máximo.
+- **`sources`**: fogueira (`warmth` graus no centro, até zero em `radius`; acesa no chão dura `minutes`), sombra de árvore e beira do mar (refrescam `cooling` graus quando o ar passa de `above`).
+- **`needs`**: quedas por minuto jogado (`thirst_per_min`, `hunger_per_min`, mais `thirst_hot_extra` no calor, `hunger_run_extra` correndo e `hunger_per_collect` por coleta), recuperação do conforto e os limites dos níveis (`optimal_at`, `critical_at`, `dizzy_hunger`).
+- **`speed`**: multiplicador da velocidade no ótimo (1,1), neutro (1) e crítico (0,75).
+- **`buffs`**: bônus da comida: `fast` (velocidade ×1,12), `steady` (necessidades caem pela metade), `warm` e `cool` (8 °C a mais de proteção).
+- **`look`**: opções do editor (partes dos 12 personagens, tons de pele, cores de cabelo, penteados extras e acessórios).
+
+Valores de referência (testados): Manaus 23–32 °C o ano todo; Ushuaia abaixo de 5 °C em julho; Saara acima de 35 °C ao meio-dia e abaixo de 20 °C à meia-noite em janeiro; Antártida abaixo de −5 °C.
+
+### Comida e bebida (`items.json → food`)
+
+| Item | Fome | Sede | Bônus | Como |
+| --- | --- | --- | --- | --- |
+| Frutinhas | 6 | 4 | — | arbusto |
+| Coco | 8 | 30 | — | coqueiro |
+| Cogumelo, ervas | 4, 2 | —, 2 | — | coletar (floresta; campo e montanha) |
+| Cantil cheio / pela metade | — | 35 | — | encher numa fonte, poço ou no chafariz da praça |
+| Frutinhas assadas | 20 | 2 | Barriga cheia 4 min | fogueira: 3 frutinhas |
+| Espetinho de cogumelo | 30 | — | Quentinho 5 min | fogueira: 2 cogumelos, 1 galho |
+| Sopa de ervas | 35 | 15 | Barriga cheia 6 min | fogueira: 2 ervas, 1 cogumelo, 1 coco |
+| Suco de frutinhas | 5 | 45 | Refrescado 5 min | fogueira: 2 frutinhas, 1 coco |
+| Chá de ervas | — | 40 | Quentinho 6 min | fogueira: 2 ervas, 1 cantil cheio (o cantil volta vazio) |
+| Pãozinho de grãos | 40 | — | Pernas leves 5 min | fogueira: 3 grãos |
+
+Novos colocáveis: **fogueira** (galhos, pedra, madeira; aquece e cozinha), **poço** (enche o cantil) e **espelho** (abre o editor).
+
+### Roupas (`items.json → wear`)
+
+Espaços: cabeça, corpo, pernas, pés e costas. `cold`/`heat` em graus de proteção; `color` e `colors` (as cores que a tinta pode dar). O **tecido** sai de 3 flores na bancada; a **tinta** de 2 flores da mesma cor (vermelha, amarela, branca, roxa, azul, rosa).
+
+| Peça | Espaço | Frio | Calor | Como |
+| --- | --- | --- | --- | --- |
+| Gorro | cabeça | 6 | — | 2 tecidos |
+| Chapéu de palha | cabeça | — | 6 | 3 grãos, 1 galho |
+| Boné | cabeça | — | 3 | 1 tecido, 1 flor azul |
+| Gorro de pele | cabeça | 9 | — | loja (países frios) |
+| Chapéu de sol | cabeça | 1 | 7 | loja (países quentes) |
+| Cachecol | corpo | 4 | — | 2 tecidos |
+| Casaco | corpo | 10 | — | 4 tecidos, 1 madeira; loja (alguns países) |
+| Regata | corpo | — | 5 | 2 tecidos |
+| Poncho | corpo | 7 | 1 | loja (Andes e vizinhos) |
+| Calça | pernas | 4 | — | 3 tecidos |
+| Bermuda | pernas | — | 4 | 2 tecidos |
+| Botas | pés | 4 | — | 1 tecido, 2 madeiras |
+| Sandálias | pés | — | 3 | 2 galhos, 1 tecido |
+| Capa de bandeiras | costas | 2 | — | loja de todo país (mostra os carimbos) |
+
+## Flores (fase 4.0)
+
+As flores colhíveis vêm do servidor (`objects.json`, kind `flower`, com `seasons`: em que estações aparecem; `none` = trópicos e biomas sem estação). Cada espécie é um item com a tag `flower`, `color` e `rarity`, e vira página da Goblopédia (seção Flores) sozinha.
+
+| Flor | Onde | Estações | Raridade |
+| --- | --- | --- | --- |
+| Girassol | campo, floresta tropical | verão, trópicos | comum |
+| Lavanda | campo, montanha | primavera, verão | comum |
+| Papoula | floresta, campo | primavera, verão | comum |
+| Margarida | campo, floresta | primavera a outono | comum |
+| Tulipa | floresta, campo | primavera | incomum |
+| Campainha-azul | floresta | primavera | incomum |
+| Galanto | floresta | inverno | incomum |
+| Urze | tundra, montanha | verão, outono | comum |
+| Genciana | montanha, tundra | primavera, verão | incomum |
+| Edelvais | montanha | verão | rara |
+| Cacto florido | deserto | sempre | comum |
+| Hibisco | floresta tropical, praia | sempre | comum |
+| Orquídea | floresta tropical | sempre | rara |
+| Ipê-amarelo (arvorezinha) | floresta tropical, campo | trópicos, primavera | incomum |
+| Flor de lótus | praia (beira d'água) | trópicos, verão | rara |
+
+As cinco flores antigas (vermelha, amarela, branca, roxa e azul) continuam e agora somem no inverno. As **flores decorativas** (só enfeite) ficam em `client/data/decoracao.json → flowers`, por bioma e estação, no mesmo MultiMesh da grama.

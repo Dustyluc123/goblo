@@ -19,6 +19,11 @@ var _detail_title: Label
 var _detail_text: Label
 var _entries: Array = []
 var _selected := ""
+## Seção aberta (fase 4.0): animal, flower ou tree.
+var _section := "animal"
+var _tabs: HBoxContainer
+const SECTIONS := {"animal": "Animais", "flower": "Flores", "tree": "Árvores"}
+const RARITY := {"common": "comum", "uncommon": "incomum", "rare": "rara"}
 
 
 func _ready() -> void:
@@ -30,6 +35,9 @@ func _ready() -> void:
 	add_child(box)
 	var title := UiStyle.label("Goblopédia", 28, Color("8a5a32"))
 	box.add_child(UiStyle.header(title, "G ou Esc", func() -> void: visible = false))
+	_tabs = HBoxContainer.new()
+	_tabs.add_theme_constant_override("separation", 8)
+	box.add_child(_tabs)
 	_progress = UiStyle.label("", 16, UiStyle.INK_SOFT)
 	box.add_child(_progress)
 	var row := HBoxContainer.new()
@@ -97,16 +105,28 @@ func set_entries(list: Array) -> void:
 func _fill() -> void:
 	for c in _grid.get_children():
 		c.queue_free()
+	for c in _tabs.get_children():
+		c.queue_free()
+	for sec: String in SECTIONS:
+		var n := _entries.filter(func(e: Dictionary) -> bool: return str(e["kind"]) == sec).size()
+		var tb := UiStyle.button("%s (%d)" % [tr(SECTIONS[sec]), n], sec == _section)
+		tb.pressed.connect(func() -> void:
+			_section = sec
+			_selected = ""
+			_fill())
+		_tabs.add_child(tb)
+	var shown := _entries.filter(func(e: Dictionary) -> bool: return str(e["kind"]) == _section)
 	var found := 0
 	var friends := 0
-	for e: Dictionary in _entries:
+	for e: Dictionary in shown:
 		var on := bool(e.get("discovered", false))
 		found += 1 if on else 0
 		friends += 1 if bool(e.get("friend", false)) else 0
 		_grid.add_child(_card(e))
-	_progress.text = tr("%d de %d páginas descobertas  ·  %d amigos") % [found, _entries.size(), friends]
-	if _selected.is_empty() and not _entries.is_empty():
-		_selected = str(_entries[0]["id"])
+	_progress.text = tr("%d de %d páginas descobertas  ·  %d amigos") % [found, shown.size(), friends] if _section == "animal" \
+		else tr("%d de %d páginas descobertas") % [found, shown.size()]
+	if _selected.is_empty() and not shown.is_empty():
+		_selected = str(shown[0]["id"])
 	_show(_selected)
 
 
@@ -182,6 +202,8 @@ func _show(id: String) -> void:
 				lines.append("(a foto ficou em outro computador)")
 		else:
 			lines.append(_hint(e))
+		if str(e["kind"]) == "flower" and not str(e.get("rarity", "")).is_empty():
+			lines.append(tr("Raridade: %s") % tr(RARITY.get(str(e["rarity"]), str(e["rarity"]))))
 		if str(e["kind"]) == "animal":
 			lines.append("Amigos: sim ♥" if bool(e.get("friend", false)) else "Amigos: ainda não (dê uma frutinha)")
 		_detail_text.text = "\n".join(lines)
@@ -193,7 +215,7 @@ static func _hint(e: Dictionary) -> String:
 		"animal":
 			return "Ainda não fotografado. Equipe a câmera, botão direito para mirar e clique para fotografar."
 		"flower":
-			return "Uma flor de cor rara, que aparece pouco por aí."
+			return "Uma flor ainda não fotografada. Cada bioma e cada estação têm as suas: equipe a câmera e enquadre de perto."
 		"tree":
 			return "Uma árvore numa estação especial do ano. Fique de olho no calendário!"
 	return ""

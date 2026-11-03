@@ -46,6 +46,8 @@ func _ready() -> void:
 	tabs.add_child(_player_tab())
 	tabs.add_child(_net_tab())
 	tabs.add_child(_npc_tab())
+	tabs.add_child(_body_tab())
+	tabs.add_child(_look_tab())
 	_status = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
@@ -505,3 +507,80 @@ func fill_dialogs(ids: Array) -> void:
 	sorted.sort()
 	for id: String in sorted:
 		_dialogs.add_item(id)
+
+
+# --- Fase 4.0: corpo e visual -----------------------------------------------------------------
+
+func _row(parent: Control, title: String) -> HBoxContainer:
+	parent.add_child(UiStyle.label(title, 18))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+	return row
+
+
+func _body_tab() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Corpo"
+	box.add_theme_constant_override("separation", 6)
+	for need: Array in [["thirst", "Sede"], ["comfort", "Conforto"], ["hunger", "Fome"], ["all", "Todas"]]:
+		var row := _row(box, need[1])
+		for v: Array in [[100, "Encher"], [50, "Metade"], [0, "Zerar"]]:
+			var b := UiStyle.button(v[1], false)
+			b.pressed.connect(func() -> void: game.dev_body({"need": need[0], "value": v[0]}))
+			row.add_child(b)
+	var r2 := _row(box, "Necessidades e modo tranquilo")
+	for f: Array in [[true, "Congelar"], [false, "Descongelar"]]:
+		var b := UiStyle.button(f[1], false)
+		b.pressed.connect(func() -> void: game.dev_body({"freeze": f[0]}))
+		r2.add_child(b)
+	var q := UiStyle.button("Alternar modo tranquilo", false)
+	q.pressed.connect(func() -> void: game.body.set_quiet(not game.body.quiet()))
+	r2.add_child(q)
+	var r3 := _row(box, "Forçar a temperatura do ar (°C)")
+	for t in [-15, 0, 10, 20, 32, 45]:
+		var b := UiStyle.button(str(t), false)
+		b.pressed.connect(func() -> void: game.dev_body({"temp": t}))
+		r3.add_child(b)
+	var normal := UiStyle.button("Normal", false)
+	normal.pressed.connect(func() -> void: game.dev_body({"unforce": true}))
+	r3.add_child(normal)
+	var r4 := _row(box, "Bônus de comida (5 min)")
+	# Os bônus vêm do servidor (body.json): os botões entram quando a aba aparece.
+	box.visibility_changed.connect(func() -> void:
+		if not box.visible or r4.get_child_count() > 0 or game == null:
+			return
+		for id: String in game._session.body.get("buffs", {}):
+			var b := UiStyle.button(str(game._session.body["buffs"][id].get("name", id)), false)
+			b.pressed.connect(func() -> void: game.dev_body({"buff": id, "minutes": 5}))
+			r4.add_child(b))
+	var r5 := _row(box, "Ingredientes e comida")
+	var give := UiStyle.button("Dar ingredientes, fogueira e cantil", false)
+	give.pressed.connect(func() -> void: game.dev_body_kit())
+	r5.add_child(give)
+	return box
+
+
+func _look_tab() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Visual"
+	box.add_theme_constant_override("separation", 6)
+	var r1 := _row(box, "Roupas e editor")
+	var give := UiStyle.button("Dar todas as roupas e tintas", false)
+	give.pressed.connect(func() -> void: game.dev_wear())
+	r1.add_child(give)
+	var ed := UiStyle.button("Abrir o editor de personagem", false)
+	ed.pressed.connect(func() -> void:
+		visible = false
+		game.open_look_editor())
+	r1.add_child(ed)
+	var wr := UiStyle.button("Abrir o guarda-roupa", false)
+	wr.pressed.connect(func() -> void:
+		visible = false
+		game.wardrobe.toggle())
+	r1.add_child(wr)
+	var r2 := _row(box, "Flores")
+	var fl := UiStyle.button("Mostrar todas as flores do bioma aqui", false)
+	fl.pressed.connect(func() -> void: game.dev_show_flowers())
+	r2.add_child(fl)
+	return box
