@@ -2091,9 +2091,10 @@ func _screenshot_setup() -> void:
 			await get_tree().create_timer(0.6).timeout
 		"wardrobe", "editor", "cook", "body":
 			# Fase 4.0: guarda-roupa, editor, fogueira e o HUD do corpo.
-			await dev_wear()
-			await wear("coat")
-			await wear("beanie")
+			if ui != "cook":
+				await dev_wear()
+				await wear("coat")
+				await wear("beanie")
 			await dev_body({"temp": -8})
 			await get_tree().create_timer(1.5).timeout
 			match ui:

@@ -20,10 +20,10 @@ func _ready() -> void:
 	_pivot = Node3D.new()
 	_vp.add_child(_pivot)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 0.5, 2.0)
-	cam.fov = 32
+	cam.position = Vector3(0, 0.62, 3.6)
+	cam.fov = 26
 	_vp.add_child(cam)
-	cam.look_at(Vector3(0, 0.42, 0))
+	cam.look_at(Vector3(0, 0.5, 0))
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-40, 25, 0)
 	_vp.add_child(sun)
@@ -48,6 +48,8 @@ func show_look(view: Dictionary) -> void:
 		if sc == null:
 			return
 		_model = sc.instantiate() as Node3D
+		# Do tamanho do personagem do jogo (1 de altura), de frente para a câmera.
+		_model.scale = Vector3.ONE / maxf(Player._model_height(_model), 0.01)
 		_pivot.add_child(_model)
 		_body = body
 		var aps := _model.find_children("*", "AnimationPlayer", true, false)

@@ -103,10 +103,19 @@ func refresh() -> void:
 			var off := UiStyle.button("Tirar", false)
 			off.pressed.connect(func() -> void: game.unwear(slot))
 			line.add_child(off)
+			# Tintas do bolso: bolinhas de cor (passe o mouse para ver o nome).
 			for p: String in paints:
-				var pb := UiStyle.button(session.item_name(p), false)
-				pb.tooltip_text = tr("Pintar esta peça")
-				pb.add_theme_color_override("font_color", Color(str(session.items[p].get("color", "#ffffff"))).darkened(0.2))
+				var pb := Button.new()
+				pb.custom_minimum_size = Vector2(28, 28)
+				pb.focus_mode = Control.FOCUS_NONE
+				pb.tooltip_text = tr("Pintar com %s") % session.item_name(p)
+				var st := StyleBoxFlat.new()
+				st.bg_color = Color(str(session.items[p].get("color", "#ffffff")))
+				st.set_corner_radius_all(14)
+				st.set_border_width_all(1)
+				st.border_color = Color(0.36, 0.27, 0.21, 0.4)
+				for state in ["normal", "hover", "pressed"]:
+					pb.add_theme_stylebox_override(state, st)
 				pb.pressed.connect(func() -> void: game.dye(slot, p))
 				line.add_child(pb)
 		_slots.add_child(line)
