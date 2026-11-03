@@ -135,8 +135,17 @@ func _compute_corners() -> void:
 		var vs := PackedVector3Array()
 		vs.resize(count)
 		for k in count:
-			vs[k] = (c + centers[nb[(k + count - 1) % count]] + centers[nb[k]]).normalized()
+			vs[k] = corner(i, nb[(k + count - 1) % count], nb[k])
 		vertices[i] = vs
+
+
+## Canto comum a três células. Soma os centros sempre na mesma ordem (pelo id), para as três
+## chegarem ao mesmo canto bit a bit: com ordens diferentes, o arredondamento deixava
+## frestas finíssimas entre hexágonos vizinhos, por onde a colisão deixava passar (fase 3.6).
+func corner(a: int, b: int, c: int) -> Vector3:
+	var ids := [a, b, c]
+	ids.sort()
+	return (centers[ids[0]] + centers[ids[1]] + centers[ids[2]]).normalized()
 
 
 func _compute_water_depth() -> void:

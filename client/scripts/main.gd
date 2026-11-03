@@ -137,6 +137,10 @@ func _ready() -> void:
 	_camera.target = _player
 	_player.camera = _camera
 	_player.cell_changed.connect(_on_cell_changed)
+	_player.rescued.connect(func(_cell: int) -> void:
+		HitchLog.note("personagem abaixo do chão, posto de volta em cima")
+		_terrain.update_collision(_player.global_position, -1)
+		_camera.snap_behind_target())
 	if _args.has("zoom"):
 		_camera.set_zoom_now(float(_args["zoom"]))
 	if _args.has("spawn"):

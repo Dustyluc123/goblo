@@ -13,6 +13,11 @@ extends CharacterBody3D
 ## A ferramenta na mão fica presa ao osso "arm-right". No modo dev dá para voar (noclip).
 
 signal cell_changed(cell_id: int)
+## O personagem estava abaixo do chão e foi posto de volta em cima (rede de segurança).
+signal rescued(cell_id: int)
+
+## Abaixo do topo da célula por mais que isto (unidades), conta como caído dentro do chão.
+const FALL_RESCUE := 1.0
 
 const CHARACTERS_DIR := "res://assets/kenney/mini-characters/"
 ## Os 12 personagens que o jogador pode escolher (os mesmos de rules.json, no servidor).
@@ -411,6 +416,8 @@ func _physics_process(delta: float) -> void:
 		global_position = before
 		velocity = up * minf(velocity.dot(up), 0.0)
 
+	_rescue_if_below()
+
 	_update_animation(delta, up)
 
 	var new_up := global_position.normalized()
@@ -425,6 +432,25 @@ func _physics_process(delta: float) -> void:
 	if id != cell_id:
 		cell_id = id
 		cell_changed.emit(cell_id)
+
+
+## Rede de segurança (fase 3.6): se, por qualquer motivo, o corpo foi parar abaixo do chão
+## (dentro de um hexágono ou embaixo do mar), volta para cima do hexágono de terra mais perto,
+## no mesmo ponto se ele for de terra. Não tira a causa: a colisão é que precisa estar fechada.
+func _rescue_if_below() -> void:
+	var id := world.find_cell(global_position, cell_id)
+	if global_position.length() >= world.surface_radius(id) - FALL_RESCUE:
+		return
+	var up := global_position.normalized()
+	var land := id if world.is_land(id) else world.nearest_land(id)
+	if land != id:
+		up = world.centers[land]
+	# O topo é plano: perto da borda ele fica um pouco acima da esfera; sobra folga.
+	global_position = up * (world.surface_radius(land) + 0.4)
+	velocity = Vector3.ZERO
+	reset_physics_interpolation()
+	push_warning("Goblo: personagem abaixo do chão na célula %d; posto de volta em cima da célula %d" % [id, land])
+	rescued.emit(land)
 
 
 ## Voo do modo dev: WASD no plano, Espaço sobe, Ctrl desce, Shift acelera. Sem colisão.

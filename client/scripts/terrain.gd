@@ -107,6 +107,9 @@ func _process(_delta: float) -> void:
 
 func _add_shape(key: int, faces: PackedVector3Array) -> void:
 	var shape := ConcavePolygonShape3D.new()
+	# Dos dois lados: quem atravessar um pouquinho uma parede ou um topo (canto, pulo,
+	# correção do servidor) bate nela por trás, em vez de cair por dentro do hexágono.
+	shape.backface_collision = true
 	shape.set_faces(faces)
 	var cs := CollisionShape3D.new()
 	cs.shape = shape
@@ -118,6 +121,19 @@ func _exit_tree() -> void:
 	for key: int in _tasks:
 		WorkerThreadPool.wait_for_task_completion(_tasks[key]["id"])
 	_tasks.clear()
+
+
+## Só a colisão, sem as malhas de desenho (testes).
+func setup_collision(w: WorldData) -> void:
+	world = w
+	_body = StaticBody3D.new()
+	_body.name = "Collision"
+	add_child(_body)
+
+
+## Pedaços de colisão ainda na thread ou esperando a vez de entrar.
+func pending_collision() -> int:
+	return _tasks.size()
 
 
 func collision_chunk_count() -> int:

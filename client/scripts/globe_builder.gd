@@ -17,6 +17,10 @@ const INSET := 0.86
 ## As paredes da costa descem abaixo do nível do mar, para as ondas não mostrarem frestas.
 const SEA_FLOOR := -0.6
 const EDGE_DARKEN := 0.88
+## Na colisão, a borda de cada célula avança este tanto para fora (unidades): os topos e as
+## paredes de vizinhos se sobrepõem um pouquinho em vez de só encostar, e nem um raio exatamente
+## em cima da aresta passa entre eles (fase 3.6).
+const COLLISION_GROW := 0.01
 
 const TERRAIN_SHADER := preload("res://shaders/terrain.gdshader")
 const OCEAN_SHADER := preload("res://shaders/ocean.gdshader")
@@ -52,9 +56,11 @@ static func build_meshes(world: WorldData, cells: PackedInt32Array) -> Array[Arr
 
 
 ## Triângulos soltos (terra + oceano) de um conjunto de células, para ConcavePolygonShape3D.
+## As bordas crescem COLLISION_GROW para fora, para fechar qualquer fresta entre pedaços e
+## entre vizinhos.
 static func collision_faces(world: WorldData, cells: PackedInt32Array) -> PackedVector3Array:
 	var faces := PackedVector3Array()
-	for arrays in [_land_arrays(world, cells), _ocean_arrays(world, cells)]:
+	for arrays in [_land_arrays(world, cells, COLLISION_GROW), _ocean_arrays(world, cells, COLLISION_GROW)]:
 		var verts: PackedVector3Array = arrays[0]
 		var idx: PackedInt32Array = arrays[2]
 		var start := faces.size()
@@ -64,8 +70,15 @@ static func collision_faces(world: WorldData, cells: PackedInt32Array) -> Packed
 	return faces
 
 
-## Arrays [vértices, cores, índices] da terra.
-static func _land_arrays(world: WorldData, cells: PackedInt32Array) -> Array:
+## Canto `corner` da célula de centro `c`, empurrado `grow` unidades para fora.
+static func _grown(corner: Vector3, c: Vector3, grow: float, radius: float) -> Vector3:
+	if grow <= 0.0:
+		return corner
+	return (corner + (corner - c).normalized() * (grow / radius)).normalized()
+
+
+## Arrays [vértices, cores, índices] da terra. `grow` > 0 só na colisão.
+static func _land_arrays(world: WorldData, cells: PackedInt32Array, grow := 0.0) -> Array:
 	var verts := PackedVector3Array()
 	var colors := PackedColorArray()
 	var idx := PackedInt32Array()
@@ -94,8 +107,11 @@ static func _land_arrays(world: WorldData, cells: PackedInt32Array) -> Array:
 		for k in n:
 			verts.append(verts[base + 1 + k])
 			colors.append(edge)
+		var outer := PackedVector3Array()
+		outer.resize(n)
 		for k in n:
-			verts.append(poly[k] * top_h)
+			outer[k] = _grown(poly[k], c, grow, r)
+			verts.append(outer[k] * top_h)
 			colors.append(edge)
 		for k in n:
 			var k2 := (k + 1) % n
@@ -109,7 +125,7 @@ static func _land_arrays(world: WorldData, cells: PackedInt32Array) -> Array:
 			var low_h := world.heights[j] if world.land[j] == 1 else SEA_FLOOR
 			if low_h < world.heights[i] - 0.01:
 				var w0 := verts.size()
-				verts.append_array([poly[k] * top_h, poly[k2] * top_h, poly[k] * (r + low_h), poly[k2] * (r + low_h)])
+				verts.append_array([outer[k] * top_h, outer[k2] * top_h, outer[k] * (r + low_h), outer[k2] * (r + low_h)])
 				colors.append_array([wall, wall, wall.darkened(0.15), wall.darkened(0.15)])
 				idx.append_array([w0, w0 + 3, w0 + 2, w0, w0 + 1, w0 + 3])
 	return [verts, colors, idx]
@@ -117,7 +133,7 @@ static func _land_arrays(world: WorldData, cells: PackedInt32Array) -> Array:
 
 ## Arrays [vértices, cores, índices] do oceano. Cor: r = profundidade (0 costa → 1 alto-mar),
 ## g = espuma (1 em cantos que encostam na terra).
-static func _ocean_arrays(world: WorldData, cells: PackedInt32Array) -> Array:
+static func _ocean_arrays(world: WorldData, cells: PackedInt32Array, grow := 0.0) -> Array:
 	var verts := PackedVector3Array()
 	var colors := PackedColorArray()
 	var idx := PackedInt32Array()
@@ -139,7 +155,7 @@ static func _ocean_arrays(world: WorldData, cells: PackedInt32Array) -> Array:
 			var b := nb[k]
 			var d := mini(d0, mini(world.water_depth[a], world.water_depth[b]))
 			var foam := 1.0 if (world.land[a] == 1 or world.land[b] == 1) else 0.0
-			verts.append(poly[k] * r)
+			verts.append(_grown(poly[k], c, grow, r) * r)
 			colors.append(Color(clampf((d - 0.5) / max_depth, 0.0, 1.0), foam, 0.0))
 		for k in n:
 			idx.append_array([base, base + 1 + (k + 1) % n, base + 1 + k])
