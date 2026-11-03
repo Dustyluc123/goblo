@@ -502,10 +502,17 @@ static func _primitive_40(kind: String) -> Array:
 				var x := (k - 2) * 0.03
 				_stem(parts, 0.32, x, (k % 2) * 0.02, x)
 				parts.append([_cy(0.012, 0.02, 0.09, 5), _at(x * 1.4, 0.36, (k % 2) * 0.02), Color("e9c46a")])
-		"canteen":
-			parts.append([_cy(0.1, 0.1, 0.06, 12), _at(0, 0.11, 0, Basis(Vector3.RIGHT, PI / 2)), Color("6d8fe8")])
+		"canteen", "canteen_0", "canteen_1", "canteen_2":
+			# Cantil (fase 4.1): na frente, uma janelinha com a água azulada; cada risco é um
+			# gole que ainda resta (0, 1 ou 2).
+			var sips := int(kind.substr(8)) if kind.length() > 8 else 0
+			parts.append([_cy(0.1, 0.1, 0.06, 12), _at(0, 0.11, 0, Basis(Vector3.RIGHT, PI / 2)), Color("8a9bb0")])
 			parts.append([_cy(0.025, 0.025, 0.05, 6), _at(0, 0.23, 0), Color("7a5233")])
 			parts.append([_box(Vector3(0.02, 0.2, 0.065)), _at(0.1, 0.13, 0), Color("a8754a")])
+			parts.append([_box(Vector3(0.07, 0.13, 0.01)), _at(0, 0.11, 0.032), Color("3b4250")])
+			for k in 2:
+				var full := k < sips
+				parts.append([_box(Vector3(0.056, 0.05, 0.012)), _at(0, 0.075 + k * 0.064, 0.034), Color("6ec6f5") if full else Color("59606e")])
 		"campfire":
 			for k in 7:
 				var a := TAU * k / 7.0
@@ -538,21 +545,51 @@ static func _primitive_40(kind: String) -> Array:
 			var col: Color = {"herb_soup": Color("c9a24a"), "berry_juice": Color("c2185b"), "herb_tea": Color("8bc34a")}[kind]
 			if kind == "herb_soup":
 				parts.append([_cy(0.12, 0.08, 0.08, 10), _at(0, 0.04, 0), Color("f4f1e4")])
-				parts.append([_cy(0.11, 0.11, 0.01, 10), _at(0, 0.075, 0), col])
+				parts.append([_cy(0.112, 0.112, 0.012, 10), _at(0, 0.079, 0), col])
 			else:
-				parts.append([_cy(0.06, 0.05, 0.14, 10), _at(0, 0.07, 0), Color(0.9, 0.95, 1.0)])
-				parts.append([_cy(0.055, 0.055, 0.01, 10), _at(0, 0.12, 0), col])
+				# Copo cheio (fase 4.1): o líquido colorido é o corpo do copo; o vidro só aparece
+				# no fundo, na borda e num reflexo (os modelos não têm transparência).
+				var glass := Color(0.88, 0.94, 1.0)
+				parts.append([_cy(0.052, 0.05, 0.02, 10), _at(0, 0.01, 0), glass])
+				parts.append([_cy(0.056, 0.05, 0.11, 10), _at(0, 0.075, 0), col])
+				parts.append([_ring(0.062, 0.012), _at(0, 0.136, 0), glass])
+				parts.append([_cy(0.055, 0.055, 0.006, 10), _at(0, 0.133, 0), col.lightened(0.15)])
+				parts.append([_box(Vector3(0.012, 0.075, 0.006)), _at(-0.03, 0.08, 0.047, Basis(Vector3.UP, -0.5)), Color(1, 1, 1)])
 		"grain_bread":
 			parts.append([_sp(0.11, 0.12, 8), _at(0, 0.05, 0, Basis().scaled(Vector3(1.3, 1, 1))), Color("d9a05b")])
 		"cloth":
 			for k in 3:
 				parts.append([_box(Vector3(0.26, 0.03, 0.2)), _at(0, 0.02 + k * 0.032, 0, Basis(Vector3.UP, k * 0.2)), [Color("e86a6a"), Color("f4f1e4"), Color("6d8fe8")][k]])
 		"paint":
-			parts.append([_cy(0.07, 0.07, 0.1, 10), _at(0, 0.05, 0), Color("f4f1e4")])
-			parts.append([_cy(0.065, 0.065, 0.01, 10), _at(0, 0.1, 0), Color("e86a6a")])
+			parts.append_array(_paint_pot(Color("e86a6a")))
 		_:
 			if kind.begins_with("wear_"):
 				parts.append_array(_wear_icon(kind.substr(5)))
+			elif kind.begins_with("paint_"):
+				parts.append_array(_paint_pot(Color(kind.substr(6))))
+	return parts
+
+
+## Pote de tinta (fase 4.1): cheio da cor da tinta até a borda, com rótulo creme e um
+## pingo escorrendo (primitive:paint_RRGGBB).
+## Anel (borda de pote e de copo) de raio externo r e espessura t.
+static func _ring(r: float, t: float) -> TorusMesh:
+	var m := TorusMesh.new()
+	m.outer_radius = r
+	m.inner_radius = r - t
+	m.rings = 12
+	m.ring_segments = 4
+	return m
+
+
+static func _paint_pot(col: Color) -> Array:
+	var parts: Array = []
+	parts.append([_cy(0.07, 0.066, 0.1, 10), _at(0, 0.05, 0), col.darkened(0.12)])
+	parts.append([_cy(0.073, 0.072, 0.032, 10), _at(0, 0.042, 0), Color("f4f1e4")])
+	parts.append([_cy(0.066, 0.066, 0.008, 10), _at(0, 0.102, 0), col])
+	parts.append([_ring(0.074, 0.012), _at(0, 0.102, 0), Color("cfc6b4")])
+	parts.append([_box(Vector3(0.018, 0.04, 0.008)), _at(0.02, 0.085, 0.071), col])
+	parts.append([_sp(0.012, 0.016, 6), _at(0.02, 0.064, 0.072), col])
 	return parts
 
 

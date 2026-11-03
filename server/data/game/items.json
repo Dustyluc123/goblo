@@ -866,7 +866,7 @@
       "tags": [
         "canteen"
       ],
-      "model": "primitive:canteen",
+      "model": "primitive:canteen_0",
       "scale": 1.0
     },
     {
@@ -877,7 +877,7 @@
       "tags": [
         "canteen"
       ],
-      "model": "primitive:canteen",
+      "model": "primitive:canteen_1",
       "scale": 1.0,
       "food": {
         "thirst": 35,
@@ -892,7 +892,7 @@
       "tags": [
         "canteen"
       ],
-      "model": "primitive:canteen",
+      "model": "primitive:canteen_2",
       "scale": 1.0,
       "food": {
         "thirst": 35,
@@ -1429,7 +1429,7 @@
       "tags": [
         "paint"
       ],
-      "model": "primitive:paint",
+      "model": "primitive:paint_e86a6a",
       "scale": 1.0,
       "color": "#e86a6a"
     },
@@ -1441,7 +1441,7 @@
       "tags": [
         "paint"
       ],
-      "model": "primitive:paint",
+      "model": "primitive:paint_f5c518",
       "scale": 1.0,
       "color": "#f5c518"
     },
@@ -1453,7 +1453,7 @@
       "tags": [
         "paint"
       ],
-      "model": "primitive:paint",
+      "model": "primitive:paint_f4f1e4",
       "scale": 1.0,
       "color": "#f4f1e4"
     },
@@ -1465,7 +1465,7 @@
       "tags": [
         "paint"
       ],
-      "model": "primitive:paint",
+      "model": "primitive:paint_9b7fd4",
       "scale": 1.0,
       "color": "#9b7fd4"
     },
@@ -1477,7 +1477,7 @@
       "tags": [
         "paint"
       ],
-      "model": "primitive:paint",
+      "model": "primitive:paint_6d8fe8",
       "scale": 1.0,
       "color": "#6d8fe8"
     },
@@ -1489,7 +1489,7 @@
       "tags": [
         "paint"
       ],
-      "model": "primitive:paint",
+      "model": "primitive:paint_f07aa8",
       "scale": 1.0,
       "color": "#f07aa8"
     }
