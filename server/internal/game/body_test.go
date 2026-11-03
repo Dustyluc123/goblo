@@ -308,3 +308,49 @@ func TestCookingFoodAndBuffs(t *testing.T) {
 		}
 	}
 }
+
+// Fase 4.1: cabelo separado da cabeça e quepe como acessório; cabelo desconhecido é recusado;
+// visual sem cabelo escolhido continua valendo (o da própria cabeça).
+func TestLookHaircut(t *testing.T) {
+	f := newFixture(t)
+	p, _ := f.player(t, "Cabeleira", "BRA")
+	l := game.Look{Head: "male-c", Body: "female-a", Legs: "male-b", Hairstyle: "none", Accessory: "cap-male-c", Haircut: "female-e"}
+	res, err := f.svc.SetLook(f.ctx, p, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Look.Look.Haircut != "female-e" || res.Look.Look.Accessory != "cap-male-c" {
+		t.Errorf("visual salvo: %+v", res.Look.Look)
+	}
+	if lv, _ := f.svc.LookOf(f.ctx, p); lv.Look.Haircut != "female-e" {
+		t.Errorf("LookOf: %+v", lv.Look)
+	}
+	l.Haircut = "male-c" // o quepe não é cabelo
+	if _, err := f.svc.SetLook(f.ctx, p, l); err == nil {
+		t.Error("aceitou cabelo desconhecido")
+	}
+	l.Haircut = ""
+	if _, err := f.svc.SetLook(f.ctx, p, l); err != nil {
+		t.Errorf("visual sem cabelo escolhido: %v", err)
+	}
+}
+
+// Os bots do modo dev ganham um visual sorteado válido (com roupas que existem).
+func TestDevRandomLookIsValid(t *testing.T) {
+	f := newFixture(t)
+	p, _ := f.player(t, "Robo", "BRA")
+	n := 0
+	pick := func(k int) int { n++; return (n * 7) % k }
+	for i := 0; i < 20; i++ {
+		v := f.svc.DevRandomLook(pick)
+		if _, err := f.svc.SetLook(f.ctx, p, v.Look); err != nil {
+			t.Fatalf("visual sorteado inválido %+v: %v", v.Look, err)
+		}
+		for slot, w := range v.Wear {
+			it := f.svc.Content().Item(w.Item)
+			if it == nil || it.Wear == nil || it.Wear.Slot != slot {
+				t.Fatalf("peça %q no espaço %q", w.Item, slot)
+			}
+		}
+	}
+}

@@ -54,6 +54,8 @@ func (h *Hub) SpawnBots(pos world.Vec3, n int, country string) int {
 			c := &client{hub: h, id: p.ID, player: p, spawned: true, pos: start, cell: h.world.FindCell(start, -1),
 				visible: map[int64]bool{}, blocked: map[int64]bool{}, blockedBy: map[int64]bool{}, done: make(chan struct{}),
 				tradeReqs: map[int64]time.Time{}, bot: &botState{center: pos, target: start, rng: rng}}
+			// Visual sorteado com roupas (fase 4.1): o teste de multidão mede o custo de verdade.
+			c.look = h.svc.DevRandomLook(rng.IntN)
 			h.clients[p.ID] = c
 			made++
 		}

@@ -36,6 +36,8 @@ type Look struct {
 	Hair      string `json:"hair"`
 	Hairstyle string `json:"hairstyle"`
 	Accessory string `json:"accessory"`
+	// Haircut: o cabelo de qual personagem (fase 4.1; "" = o da cabeça, "none" = sem cabelo).
+	Haircut string `json:"haircut"`
 }
 
 // LookOptions é body.json → look.
@@ -45,6 +47,8 @@ type LookOptions struct {
 	HairColors  []string `json:"hair_colors"`
 	Hairstyles  []string `json:"hairstyles"`
 	Accessories []string `json:"accessories"`
+	// Haircuts: cabelos separados das cabeças (fase 4.1): "" (o da cabeça), "none" e as partes.
+	Haircuts []string `json:"haircuts"`
 }
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -109,6 +113,9 @@ func (s *Service) validLook(l Look) error {
 	}
 	if !slicesContains(o.Hairstyles, l.Hairstyle) || !slicesContains(o.Accessories, l.Accessory) {
 		return ErrInvalid.with("Penteado ou acessório desconhecido.")
+	}
+	if l.Haircut != "" && !slicesContains(o.Haircuts, l.Haircut) {
+		return ErrInvalid.with("Cabelo %q desconhecido.", l.Haircut)
 	}
 	return nil
 }
@@ -327,4 +334,39 @@ func (s *Service) DevWear(ctx context.Context, p *Player) error {
 		}
 		return nil
 	})
+}
+
+// DevRandomLook (modo dev) sorteia um visual com roupas para os bots: partes misturadas,
+// cores e uma peça (com uma das cores da tinta) em cada espaço, quase sempre. Fica só na
+// memória do hub (o bot não grava visual no banco).
+func (s *Service) DevRandomLook(pick func(n int) int) *LookView {
+	o := s.content.Body.Look
+	one := func(list []string) string { return list[pick(len(list))] }
+	v := &LookView{Look: Look{Head: one(o.Parts), Body: one(o.Parts), Legs: one(o.Parts), Skin: one(o.Skins),
+		Hair: one(o.HairColors), Hairstyle: one(o.Hairstyles), Accessory: one(o.Accessories)}, Wear: map[string]Worn{}}
+	if len(o.Haircuts) > 0 {
+		v.Look.Haircut = one(o.Haircuts)
+	}
+	bySlot := map[string][]*Item{}
+	for i := range s.content.Items {
+		if it := &s.content.Items[i]; it.Category == CategoryWear && it.Wear != nil {
+			bySlot[it.Wear.Slot] = append(bySlot[it.Wear.Slot], it)
+		}
+	}
+	for _, slot := range s.content.Body.WearSlots {
+		list := bySlot[slot]
+		if len(list) == 0 || pick(4) == 0 {
+			continue
+		}
+		it := list[pick(len(list))]
+		col := it.Wear.Color
+		if len(it.Wear.Colors) > 0 && pick(2) == 0 {
+			col = it.Wear.Colors[pick(len(it.Wear.Colors))]
+		}
+		v.Wear[slot] = Worn{Item: it.ID, Color: col}
+		if it.ID == "flag_cape" {
+			v.Cape = []string{"BRA", "ARG", "JPN", "FRA"}
+		}
+	}
+	return v
 }
