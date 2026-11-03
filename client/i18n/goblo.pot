@@ -25,7 +25,7 @@ msgstr ""
 msgid "  ×%d"
 msgstr ""
 
-#: client/scripts/main.gd:919
+#: client/scripts/main.gd:935
 msgid " (bot)"
 msgstr ""
 
@@ -41,7 +41,7 @@ msgstr ""
 msgid " · amigo"
 msgstr ""
 
-#: client/scripts/body_game.gd:332
+#: client/scripts/body_game.gd:360
 msgid "%.0f °C"
 msgstr ""
 
@@ -61,7 +61,7 @@ msgstr ""
 msgid "%d %s: %s"
 msgstr ""
 
-#: client/scripts/main.gd:1121
+#: client/scripts/main.gd:1137
 msgid "%d animais carregados"
 msgstr ""
 
@@ -69,15 +69,15 @@ msgstr ""
 msgid "%d animais carregados (até %d):\n%s"
 msgstr ""
 
-#: client/scripts/main.gd:908
+#: client/scripts/main.gd:924
 msgid "%d bots criados perto de você."
 msgstr ""
 
-#: client/scripts/main.gd:908
+#: client/scripts/main.gd:924
 msgid "%d bots tirados."
 msgstr ""
 
-#: client/scripts/main.gd:924
+#: client/scripts/main.gd:940
 msgid "%d conectados, %d bots · servidor mandou %.1f KB/s e recebeu %.1f KB/s em média"
 msgstr ""
 
@@ -89,7 +89,7 @@ msgstr ""
 msgid "%d de %d páginas descobertas  ·  %d amigos"
 msgstr ""
 
-#: client/scripts/main.gd:878
+#: client/scripts/main.gd:894
 msgid "%d flores em volta de você por 1 minuto (bioma: %s)."
 msgstr ""
 
@@ -97,15 +97,15 @@ msgstr ""
 msgid "%d fps"
 msgstr ""
 
-#: client/scripts/main.gd:1360
+#: client/scripts/main.gd:1376
 msgid "%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d animais · %d pedidos\nqualidade %s"
 msgstr ""
 
-#: client/scripts/main.gd:1120
+#: client/scripts/main.gd:1136
 msgid "%d pedidos ao servidor em andamento"
 msgstr ""
 
-#: client/scripts/main.gd:1887
+#: client/scripts/main.gd:1903
 msgid "%d vizinhos falsos criados aqui perto."
 msgstr ""
 
@@ -113,7 +113,7 @@ msgstr ""
 msgid "%d× %s"
 msgstr ""
 
-#: client/scripts/body_game.gd:506
+#: client/scripts/body_game.gd:557
 msgid "%d× %s (%d)"
 msgstr ""
 
@@ -125,7 +125,7 @@ msgstr ""
 msgid "%s  %d ms  %s"
 msgstr ""
 
-#: client/scripts/body_game.gd:366
+#: client/scripts/body_game.gd:394
 msgid "%s  %d:%02d"
 msgstr ""
 
@@ -141,7 +141,7 @@ msgstr ""
 msgid "%s  ·  %s  ·  %d m"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:129
+#: client/scripts/wardrobe_ui.gd:145
 msgid "%s  ·  %s  ·  %s"
 msgstr ""
 
@@ -149,7 +149,7 @@ msgstr ""
 msgid "%s  ·  %s  ·  célula %d"
 msgstr ""
 
-#: client/scripts/body_game.gd:491
+#: client/scripts/body_game.gd:542
 msgid "%s  ·  %s\n%s"
 msgstr ""
 
@@ -197,11 +197,11 @@ msgstr ""
 msgid "%s cada"
 msgstr ""
 
-#: client/scripts/main.gd:1850
+#: client/scripts/main.gd:1866
 msgid "%s criado aqui perto (só neste computador)."
 msgstr ""
 
-#: client/scripts/main.gd:3258
+#: client/scripts/main.gd:3346
 msgid "%s na frente sem transparência"
 msgstr ""
 
@@ -209,7 +209,7 @@ msgstr ""
 msgid "%s oferece"
 msgstr ""
 
-#: client/scripts/body_game.gd:490
+#: client/scripts/body_game.gd:541
 msgid "%s por %d min"
 msgstr ""
 
@@ -221,11 +221,11 @@ msgstr ""
 msgid "%s · %s"
 msgstr ""
 
-#: client/scripts/main.gd:1106
+#: client/scripts/main.gd:1122
 msgid "%s · célula %d (%s) · %s · %d fps · qualidade %s"
 msgstr ""
 
-#: client/scripts/main.gd:919
+#: client/scripts/main.gd:935
 msgid "%s%s · %s · %s · vê %d"
 msgstr ""
 
@@ -233,11 +233,11 @@ msgstr ""
 msgid "%s: %d/%d"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:98
+#: client/scripts/wardrobe_ui.gd:114
 msgid "%s: %s"
 msgstr ""
 
-#: client/scripts/main.gd:624
+#: client/scripts/main.gd:640
 msgid "%s\nFeche este jogo ou entre de novo."
 msgstr ""
 
@@ -261,11 +261,11 @@ msgstr ""
 msgid "+ %s"
 msgstr ""
 
-#: client/scripts/interaction.gd:264 client/scripts/main.gd:1733
+#: client/scripts/interaction.gd:264 client/scripts/main.gd:1749
 msgid "+%d %s"
 msgstr ""
 
-#: client/scripts/main.gd:1844
+#: client/scripts/main.gd:1860
 msgid ", com os polígonos de debug"
 msgstr ""
 
@@ -293,7 +293,7 @@ msgstr ""
 msgid "A obra fica pronta no dia seguinte, às 5h."
 msgstr ""
 
-#: client/scripts/main.gd:1757
+#: client/scripts/main.gd:1773
 msgid "A reforma começou! Fica pronta amanhã às 5h."
 msgstr ""
 
@@ -325,11 +325,11 @@ msgstr ""
 msgid "Acenar"
 msgstr ""
 
-#: client/scripts/look_editor.gd:72
+#: client/scripts/look_editor.gd:118
 msgid "Acessório"
 msgstr ""
 
-#: client/scripts/first_access.gd:76
+#: client/scripts/first_access.gd:67
 msgid "Achamos que você está em %s (pela sua conexão). Confirme ou escolha outro."
 msgstr ""
 
@@ -349,7 +349,7 @@ msgstr ""
 msgid "Agora fabrique um machado na bancada: chegue perto dela e aperte E."
 msgstr ""
 
-#: client/scripts/main.gd:1892
+#: client/scripts/main.gd:1908
 msgid "Agora você mora em %s."
 msgstr ""
 
@@ -361,7 +361,7 @@ msgstr ""
 msgid "Airport_%s"
 msgstr ""
 
-#: client/scripts/main.gd:223
+#: client/scripts/main.gd:225
 msgid "Airports"
 msgstr ""
 
@@ -369,7 +369,7 @@ msgstr ""
 msgid "Alce-macho"
 msgstr ""
 
-#: client/scripts/main.gd:2847
+#: client/scripts/main.gd:2935
 msgid "Alemanha (floresta, estação)"
 msgstr ""
 
@@ -397,11 +397,11 @@ msgstr ""
 msgid "Animal_%d"
 msgstr ""
 
-#: client/scripts/main.gd:212
+#: client/scripts/main.gd:214
 msgid "Animals"
 msgstr ""
 
-#: client/scripts/animals.gd:163 client/scripts/look_preview.gd:55 client/scripts/main.gd:1053 client/scripts/npc.gd:49 client/scripts/pedia_art.gd:91 client/scripts/player.gd:198
+#: client/scripts/animals.gd:163 client/scripts/look_preview.gd:78 client/scripts/main.gd:1069 client/scripts/npc.gd:49 client/scripts/pedia_art.gd:91 client/scripts/player.gd:198
 msgid "AnimationPlayer"
 msgstr ""
 
@@ -421,16 +421,24 @@ msgstr ""
 msgid "Apresentação do guia"
 msgstr ""
 
-#: client/scripts/main.gd:3654
+#: client/scripts/main.gd:3739
 msgid "Apresentação marcada como não vista: aparece no próximo login."
 msgstr ""
 
-#: client/scripts/main.gd:3723
+#: client/scripts/main.gd:3808
 msgid "Apresentação pulada. Dá para rever pelo F6."
 msgstr ""
 
 #: server/data/game/items.json
 msgid "Arbusto de frutinhas"
+msgstr ""
+
+#: client/scripts/wardrobe_ui.gd:45
+msgid "Arraste ou A/D para girar · roda para aproximar"
+msgstr ""
+
+#: client/scripts/look_preview.gd:54
+msgid "Arraste ou use A/D para girar · roda para aproximar"
 msgstr ""
 
 #: server/data/game/npcs.json
@@ -445,7 +453,7 @@ msgstr ""
 msgid "Atraso: 0 ms"
 msgstr ""
 
-#: client/scripts/main.gd:2482
+#: client/scripts/main.gd:2528
 msgid "Attack"
 msgstr ""
 
@@ -461,7 +469,7 @@ msgstr ""
 msgid "Avançar para o dia seguinte (limites e obra)"
 msgstr ""
 
-#: client/scripts/main.gd:247
+#: client/scripts/main.gd:249
 msgid "Baixando o mundo de %s…"
 msgstr ""
 
@@ -505,7 +513,7 @@ msgstr ""
 msgid "Barraquinha vermelha"
 msgstr ""
 
-#: client/scripts/main.gd:1832
+#: client/scripts/main.gd:1848
 msgid "Barreira da fronteira %s."
 msgstr ""
 
@@ -525,7 +533,7 @@ msgstr ""
 msgid "Bem-vindo ao aeroporto! Eu sou {name}. Para onde vamos hoje?"
 msgstr ""
 
-#: client/scripts/main.gd:1505
+#: client/scripts/main.gd:1521
 msgid "Bem-vindo de volta para casa!"
 msgstr ""
 
@@ -541,11 +549,11 @@ msgstr ""
 msgid "Bloquear"
 msgstr ""
 
-#: client/scripts/main.gd:3723
+#: client/scripts/main.gd:3808
 msgid "Boas aventuras no Goblo!"
 msgstr ""
 
-#: client/scripts/body_game.gd:255 client/scripts/main.gd:469
+#: client/scripts/body_game.gd:283 client/scripts/main.gd:485
 msgid "Body"
 msgstr ""
 
@@ -557,11 +565,11 @@ msgstr ""
 msgid "Bolso  ·  %d/%d"
 msgstr ""
 
-#: client/scripts/main.gd:1873
+#: client/scripts/main.gd:1889
 msgid "Bom dia! Os limites diários voltaram e as obras ficaram prontas."
 msgstr ""
 
-#: client/scripts/main.gd:540
+#: client/scripts/main.gd:556
 msgid "Bom dia! Um novo dia começou no Goblo."
 msgstr ""
 
@@ -573,7 +581,7 @@ msgstr ""
 msgid "Bora!"
 msgstr ""
 
-#: client/scripts/main.gd:207
+#: client/scripts/main.gd:209
 msgid "BorderLines"
 msgstr ""
 
@@ -597,11 +605,15 @@ msgstr ""
 msgid "Bônus de comida (5 min)"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:25
+#: client/scripts/wardrobe_ui.gd:26
 msgid "C ou Esc"
 msgstr ""
 
-#: client/scripts/look_editor.gd:8 client/scripts/wardrobe_ui.gd:8
+#: client/scripts/look_editor.gd:106
+msgid "Cabelo"
+msgstr ""
+
+#: client/scripts/wardrobe_ui.gd:9
 msgid "Cabeça"
 msgstr ""
 
@@ -609,7 +621,7 @@ msgstr ""
 msgid "Cachecol"
 msgstr ""
 
-#: client/scripts/look_editor.gd:9
+#: client/scripts/look_editor.gd:13
 msgid "Cachos"
 msgstr ""
 
@@ -645,7 +657,7 @@ msgstr ""
 msgid "Cancelar"
 msgstr ""
 
-#: client/scripts/body_game.gd:358
+#: client/scripts/body_game.gd:386
 msgid "Cansado: um pouco mais devagar"
 msgstr ""
 
@@ -669,7 +681,7 @@ msgstr ""
 msgid "Capa de bandeiras"
 msgstr ""
 
-#: client/scripts/main.gd:1036 client/scripts/main.gd:2090 client/scripts/main.gd:681
+#: client/scripts/main.gd:1052 client/scripts/main.gd:2109 client/scripts/main.gd:697
 msgid "Carimbo novo no passaporte!  +%s"
 msgstr ""
 
@@ -677,7 +689,7 @@ msgstr ""
 msgid "Carregando o estoque…"
 msgstr ""
 
-#: client/scripts/main.gd:293
+#: client/scripts/main.gd:295
 msgid "Carregando árvores e casas…"
 msgstr ""
 
@@ -745,7 +757,7 @@ msgstr ""
 msgid "Chapéu de sol"
 msgstr ""
 
-#: client/scripts/main.gd:900
+#: client/scripts/main.gd:916
 msgid "Chegue perto de uma fonte ou de um poço e aperte E para encher o cantil."
 msgstr ""
 
@@ -793,8 +805,12 @@ msgstr ""
 msgid "Comemorar"
 msgstr ""
 
-#: client/scripts/first_access.gd:63
+#: client/scripts/first_access.gd:54
 msgid "Começar"
+msgstr ""
+
+#: client/scripts/look_editor.gd:78
+msgid "Começar a jogar"
 msgstr ""
 
 #: server/data/game/dialogs.json
@@ -833,7 +849,7 @@ msgstr ""
 msgid "Cone de trânsito"
 msgstr ""
 
-#: client/scripts/main.gd:978
+#: client/scripts/main.gd:994
 msgid "Conectando a %s…"
 msgstr ""
 
@@ -845,7 +861,7 @@ msgstr ""
 msgid "Conectar"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:36
+#: client/scripts/settings_ui.gd:35
 msgid "Configurações"
 msgstr ""
 
@@ -853,7 +869,7 @@ msgstr ""
 msgid "Confirmar troca"
 msgstr ""
 
-#: client/scripts/body_game.gd:276 client/scripts/dev_panel.gd:526
+#: client/scripts/body_game.gd:304 client/scripts/dev_panel.gd:526
 msgid "Conforto"
 msgstr ""
 
@@ -869,27 +885,27 @@ msgstr ""
 msgid "Content-Type: application/json"
 msgstr ""
 
-#: client/scripts/look_editor.gd:9
+#: client/scripts/look_editor.gd:13
 msgid "Coque"
 msgstr ""
 
-#: client/scripts/look_editor.gd:70
+#: client/scripts/look_editor.gd:113
 msgid "Cor do cabelo"
 msgstr ""
 
-#: client/scripts/dev_panel.gd:524 client/scripts/wardrobe_ui.gd:8
+#: client/scripts/dev_panel.gd:524 client/scripts/wardrobe_ui.gd:9
 msgid "Corpo"
 msgstr ""
 
-#: client/scripts/main.gd:834
+#: client/scripts/main.gd:850
 msgid "Corpo: sede %d, conforto %d, fome %d · %.0f °C (%s)"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:8
+#: client/scripts/wardrobe_ui.gd:9
 msgid "Costas"
 msgstr ""
 
-#: client/scripts/body_game.gd:495
+#: client/scripts/body_game.gd:546
 msgid "Cozinhar"
 msgstr ""
 
@@ -933,7 +949,7 @@ msgstr ""
 msgid "Dar todas as roupas e tintas"
 msgstr ""
 
-#: client/scripts/main.gd:1662
+#: client/scripts/main.gd:1678
 msgid "Data forçada: %02d/%02d (%s no norte, %s no sul)."
 msgstr ""
 
@@ -941,7 +957,11 @@ msgstr ""
 msgid "Data real"
 msgstr ""
 
-#: client/scripts/main.gd:2482
+#: client/scripts/wardrobe_ui.gd:40
+msgid "De frente"
+msgstr ""
+
+#: client/scripts/main.gd:2528
 msgid "Death"
 msgstr ""
 
@@ -961,15 +981,15 @@ msgstr ""
 msgid "Deserto"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:89
+#: client/scripts/settings_ui.gd:84
 msgid "Desliga sede, fome e conforto: sem bônus e sem cansaço. Fica salvo."
 msgstr ""
 
-#: client/scripts/main.gd:862
+#: client/scripts/main.gd:878
 msgid "DevFlores"
 msgstr ""
 
-#: client/scripts/body_game.gd:305
+#: client/scripts/body_game.gd:333
 msgid "Dizzy"
 msgstr ""
 
@@ -1053,8 +1073,8 @@ msgstr ""
 msgid "Edelvais"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:94
-msgid "Editar personagem"
+#: client/scripts/settings_ui.gd:37
+msgid "Editar personagem (os outros jogadores veem)"
 msgstr ""
 
 #: client/scripts/craft_ui.gd:181
@@ -1089,7 +1109,7 @@ msgstr ""
 msgid "Entendi, valeu!"
 msgstr ""
 
-#: client/scripts/main.gd:288
+#: client/scripts/main.gd:290
 msgid "Entrando no Goblo…"
 msgstr ""
 
@@ -1101,7 +1121,7 @@ msgstr ""
 msgid "Erro %d."
 msgstr ""
 
-#: client/scripts/main.gd:1784 client/scripts/main.gd:1811 client/scripts/main.gd:1860
+#: client/scripts/main.gd:1800 client/scripts/main.gd:1827 client/scripts/main.gd:1876
 msgid "Erro: %s"
 msgstr ""
 
@@ -1109,7 +1129,7 @@ msgstr ""
 msgid "Ervas"
 msgstr ""
 
-#: client/scripts/body_game.gd:453 client/scripts/craft_ui.gd:25 client/scripts/look_editor.gd:25 client/scripts/sell_ui.gd:36 client/scripts/shop_ui.gd:26 client/scripts/travel_ui.gd:34
+#: client/scripts/body_game.gd:504 client/scripts/craft_ui.gd:25 client/scripts/look_editor.gd:36 client/scripts/sell_ui.gd:36 client/scripts/shop_ui.gd:26 client/scripts/travel_ui.gd:34
 msgid "Esc"
 msgstr ""
 
@@ -1122,7 +1142,7 @@ msgid "Escolha o lugar da casa · clique: construir · R: girar · Esc: cancelar
 msgstr ""
 
 #: client/scripts/first_access.gd:34
-msgid "Escolha um apelido e o país onde você vai morar."
+msgid "Escolha um apelido e o país onde você vai morar. Depois você monta o seu personagem."
 msgstr ""
 
 #: client/scripts/travel_ui.gd:147
@@ -1141,7 +1161,7 @@ msgstr ""
 msgid "Escolha um país na lista (aba Mundo)."
 msgstr ""
 
-#: client/scripts/first_access.gd:104
+#: client/scripts/first_access.gd:95
 msgid "Escolha um país na lista."
 msgstr ""
 
@@ -1157,7 +1177,7 @@ msgstr ""
 msgid "Espelho"
 msgstr ""
 
-#: client/scripts/look_editor.gd:9
+#: client/scripts/look_editor.gd:13
 msgid "Espetado"
 msgstr ""
 
@@ -1165,7 +1185,7 @@ msgstr ""
 msgid "Espetinho de cogumelo"
 msgstr ""
 
-#: client/scripts/main.gd:1549
+#: client/scripts/main.gd:1565
 msgid "Esse país não tem células no mundo."
 msgstr ""
 
@@ -1177,7 +1197,7 @@ msgstr ""
 msgid "Esta árvore já deu madeira hoje"
 msgstr ""
 
-#: client/scripts/main.gd:1657
+#: client/scripts/main.gd:1673
 msgid "Estações pela data real."
 msgstr ""
 
@@ -1185,7 +1205,7 @@ msgstr ""
 msgid "Este lote é seu. A bancada e a caixa de vendas já estão aqui esperando você."
 msgstr ""
 
-#: client/scripts/main.gd:3660
+#: client/scripts/main.gd:3745
 msgid "Estoque de %s reposto."
 msgstr ""
 
@@ -1193,7 +1213,7 @@ msgstr ""
 msgid "Estoque de hoje (chega coisa nova em %dh%02d, às 5h daqui). Os itens do dia e os exclusivos daqui mudam todo dia!"
 msgstr ""
 
-#: client/scripts/main.gd:2557
+#: client/scripts/main.gd:2603
 msgid "F liga o selfie: câmera na frente, corpo à vista, pose (%.2f), parado"
 msgstr ""
 
@@ -1201,7 +1221,7 @@ msgstr ""
 msgid "F1 ou Esc"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:36
+#: client/scripts/settings_ui.gd:35
 msgid "F6 ou Esc"
 msgstr ""
 
@@ -1217,11 +1237,11 @@ msgstr ""
 msgid "Fechar"
 msgstr ""
 
-#: client/scripts/body_game.gd:205
+#: client/scripts/body_game.gd:220
 msgid "Fire_%d"
 msgstr ""
 
-#: client/scripts/border_lines.gd:668 client/scripts/main.gd:3124 client/scripts/main.gd:3126
+#: client/scripts/border_lines.gd:668 client/scripts/main.gd:3212 client/scripts/main.gd:3214
 msgid "Flags"
 msgstr ""
 
@@ -1269,11 +1289,11 @@ msgstr ""
 msgid "Flowers.fbx"
 msgstr ""
 
-#: client/scripts/body_game.gd:453 server/data/game/items.json
+#: client/scripts/body_game.gd:504 server/data/game/items.json
 msgid "Fogueira"
 msgstr ""
 
-#: client/scripts/body_game.gd:276 client/scripts/dev_panel.gd:526
+#: client/scripts/body_game.gd:304 client/scripts/dev_panel.gd:526
 msgid "Fome"
 msgstr ""
 
@@ -1309,7 +1329,7 @@ msgstr ""
 msgid "FrameWorkLast"
 msgstr ""
 
-#: client/scripts/main.gd:1839
+#: client/scripts/main.gd:1855
 msgid "Fronteiras pelos seus passaportes."
 msgstr ""
 
@@ -1333,7 +1353,7 @@ msgstr ""
 msgid "Galho"
 msgstr ""
 
-#: client/scripts/animals.gd:238 client/scripts/animals.gd:32 client/scripts/main.gd:2473
+#: client/scripts/animals.gd:238 client/scripts/animals.gd:32 client/scripts/main.gd:2519
 msgid "Gallop"
 msgstr ""
 
@@ -1361,15 +1381,15 @@ msgstr ""
 msgid "Goblopédia"
 msgstr ""
 
-#: client/scripts/main.gd:1865
+#: client/scripts/main.gd:1881
 msgid "Goblopédia completa."
 msgstr ""
 
-#: client/scripts/main.gd:1865
+#: client/scripts/main.gd:1881
 msgid "Goblopédia zerada (as fotos continuam em user://fotos/)."
 msgstr ""
 
-#: client/scripts/main.gd:2572
+#: client/scripts/main.gd:2618
 msgid "Goblopédia: vaca descoberta na Argentina, 3 fotos (%s)"
 msgstr ""
 
@@ -1389,7 +1409,7 @@ msgstr ""
 msgid "Grãos"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:25
+#: client/scripts/wardrobe_ui.gd:26
 msgid "Guarda-roupa"
 msgstr ""
 
@@ -1401,7 +1421,7 @@ msgstr ""
 msgid "Guardar no bolso e melhorar"
 msgstr ""
 
-#: client/scripts/main.gd:1775
+#: client/scripts/main.gd:1791
 msgid "Guardei %d objeto%s no bolso."
 msgstr ""
 
@@ -1413,7 +1433,7 @@ msgstr ""
 msgid "Hibisco"
 msgstr ""
 
-#: client/scripts/main.gd:227
+#: client/scripts/main.gd:229
 msgid "HitchLog"
 msgstr ""
 
@@ -1425,7 +1445,7 @@ msgstr ""
 msgid "Hora real (F4)"
 msgstr ""
 
-#: client/scripts/main.gd:1584
+#: client/scripts/main.gd:1600
 msgid "Horário real"
 msgstr ""
 
@@ -1445,11 +1465,11 @@ msgstr ""
 msgid "Ingredientes e comida"
 msgstr ""
 
-#: client/scripts/main.gd:844
+#: client/scripts/main.gd:860
 msgid "Ingredientes, fogueiras e cantil no bolso."
 msgstr ""
 
-#: client/scripts/main.gd:3763
+#: client/scripts/main.gd:3848
 msgid "IntroArrow"
 msgstr ""
 
@@ -1457,7 +1477,7 @@ msgstr ""
 msgid "Inverno"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:145
+#: client/scripts/settings_ui.gd:132
 msgid "Inverter eixo vertical: %s"
 msgstr ""
 
@@ -1489,7 +1509,7 @@ msgstr ""
 msgid "J ou Esc"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:159
+#: client/scripts/settings_ui.gd:146
 msgid "Janela %d × %d · 3D em %d × %d (%d%%%s) · a interface fica sempre na resolução cheia."
 msgstr ""
 
@@ -1497,15 +1517,15 @@ msgstr ""
 msgid "Jogador"
 msgstr ""
 
-#: client/scripts/main.gd:610
+#: client/scripts/main.gd:626
 msgid "Jogador bloqueado: vocês não veem mais o chat nem os emotes um do outro."
 msgstr ""
 
-#: client/scripts/main.gd:610
+#: client/scripts/main.gd:626
 msgid "Jogador desbloqueado."
 msgstr ""
 
-#: client/scripts/main.gd:707
+#: client/scripts/main.gd:723
 msgid "Jogador silenciado."
 msgstr ""
 
@@ -1529,7 +1549,7 @@ msgstr ""
 msgid "Kit inicial"
 msgstr ""
 
-#: client/scripts/main.gd:1800
+#: client/scripts/main.gd:1816
 msgid "Kit inicial entregue."
 msgstr ""
 
@@ -1549,11 +1569,11 @@ msgstr ""
 msgid "Lavanda"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:52
+#: client/scripts/settings_ui.gd:47
 msgid "Limite de fps (o V-Sync fica sempre ligado; menos fps esquenta menos)"
 msgstr ""
 
-#: client/scripts/main.gd:1844
+#: client/scripts/main.gd:1860
 msgid "Linhas de fronteira %s%s."
 msgstr ""
 
@@ -1589,7 +1609,7 @@ msgstr ""
 msgid "Lojista"
 msgstr ""
 
-#: client/scripts/character_look.gd:672 client/scripts/character_look.gd:675
+#: client/scripts/character_look.gd:988 client/scripts/character_look.gd:991
 msgid "Look"
 msgstr ""
 
@@ -1629,7 +1649,7 @@ msgstr ""
 msgid "Merged"
 msgstr ""
 
-#: client/scripts/character_look.gd:107 client/scripts/character_look.gd:668 client/scripts/model_library.gd:163 client/scripts/neighborhood.gd:254 client/scripts/pedia_art.gd:96 client/scripts/player.gd:182
+#: client/scripts/character_look.gd:163 client/scripts/character_look.gd:984 client/scripts/model_library.gd:163 client/scripts/neighborhood.gd:254 client/scripts/pedia_art.gd:96 client/scripts/player.gd:182
 msgid "MeshInstance3D"
 msgstr ""
 
@@ -1641,27 +1661,27 @@ msgstr ""
 msgid "Modo dev"
 msgstr ""
 
-#: client/scripts/main.gd:1401
+#: client/scripts/main.gd:1417
 msgid "Modo dev desligado. Rode o servidor com GOBLO_DEV=1."
 msgstr ""
 
-#: client/scripts/body_game.gd:360
+#: client/scripts/body_game.gd:388
 msgid "Modo tranquilo"
 msgstr ""
 
-#: client/scripts/body_game.gd:80
+#: client/scripts/body_game.gd:84
 msgid "Modo tranquilo desligado."
 msgstr ""
 
-#: client/scripts/body_game.gd:80
+#: client/scripts/body_game.gd:84
 msgid "Modo tranquilo ligado: sem necessidades."
 msgstr ""
 
-#: client/scripts/settings_ui.gd:173 client/scripts/settings_ui.gd:88
+#: client/scripts/settings_ui.gd:160 client/scripts/settings_ui.gd:83
 msgid "Modo tranquilo: desligado"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:173
+#: client/scripts/settings_ui.gd:160
 msgid "Modo tranquilo: ligado"
 msgstr ""
 
@@ -1673,6 +1693,10 @@ msgstr ""
 msgid "Montanha"
 msgstr ""
 
+#: client/scripts/look_editor.gd:75
+msgid "Monte o seu personagem"
+msgstr ""
+
 #: client/scripts/dev_panel.gd:483
 msgid "Mostrar a apresentação agora"
 msgstr ""
@@ -1681,7 +1705,7 @@ msgstr ""
 msgid "Mostrar todas as flores do bioma aqui"
 msgstr ""
 
-#: client/scripts/main.gd:2376
+#: client/scripts/main.gd:2404
 msgid "MultiMeshInstance3D"
 msgstr ""
 
@@ -1693,7 +1717,7 @@ msgstr ""
 msgid "NPC_%s"
 msgstr ""
 
-#: client/scripts/main.gd:1321
+#: client/scripts/main.gd:1337
 msgid "Na mão: %s"
 msgstr ""
 
@@ -1705,7 +1729,7 @@ msgstr ""
 msgid "Nada para colocar. Fabrique decorações na bancada! · X: guardar · B: sair"
 msgstr ""
 
-#: client/scripts/main.gd:1680
+#: client/scripts/main.gd:1696
 msgid "Nada para vender."
 msgstr ""
 
@@ -1717,11 +1741,11 @@ msgstr ""
 msgid "Necessidades e modo tranquilo"
 msgstr ""
 
-#: client/scripts/main.gd:193
+#: client/scripts/main.gd:195
 msgid "Neighborhood"
 msgstr ""
 
-#: client/scripts/look_editor.gd:10 client/scripts/look_editor.gd:9
+#: client/scripts/look_editor.gd:13 client/scripts/look_editor.gd:14
 msgid "Nenhum"
 msgstr ""
 
@@ -1729,11 +1753,11 @@ msgstr ""
 msgid "Nenhum carimbo ainda. Atravesse uma fronteira (com o passaporte) ou viaje de avião!"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:140
+#: client/scripts/wardrobe_ui.gd:156
 msgid "Nenhuma roupa no bolso. Fabrique na bancada ou compre na loja da praça."
 msgstr ""
 
-#: client/scripts/main.gd:231
+#: client/scripts/main.gd:233
 msgid "Net"
 msgstr ""
 
@@ -1741,7 +1765,7 @@ msgstr ""
 msgid "Ninguém por perto agora."
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:38
+#: client/scripts/wardrobe_ui.gd:53
 msgid "No bolso (passe o mouse para ver, clique para vestir)"
 msgstr ""
 
@@ -1753,7 +1777,7 @@ msgstr ""
 msgid "Normal"
 msgstr ""
 
-#: client/scripts/main.gd:3389
+#: client/scripts/main.gd:3477
 msgid "NÃO chegou"
 msgstr ""
 
@@ -1765,11 +1789,11 @@ msgstr ""
 msgid "Não consegui falar com o servidor."
 msgstr ""
 
-#: client/scripts/first_access.gd:80
+#: client/scripts/first_access.gd:71
 msgid "Não conseguimos descobrir seu país. Escolha na lista."
 msgstr ""
 
-#: client/scripts/main.gd:1850
+#: client/scripts/main.gd:1866
 msgid "Não coube aqui (lote ou borda do hexágono)."
 msgstr ""
 
@@ -1785,15 +1809,19 @@ msgstr ""
 msgid "O dinheiro daqui é o gobolar, mas todo mundo chama de {slang}. Você ganha vendendo coisas na caixa de vendas."
 msgstr ""
 
+#: client/scripts/look_editor.gd:109
+msgid "O do rosto"
+msgstr ""
+
 #: client/scripts/server_setup.gd:21
 msgid "O jogo não achou o servidor. Se um amigo hospeda o Goblo, cole aqui o endereço que ele mandou (por exemplo https://goblo.exemplo.com)."
 msgstr ""
 
-#: client/scripts/main.gd:1879
+#: client/scripts/main.gd:1895
 msgid "O relógio do servidor voltou para a hora real."
 msgstr ""
 
-#: client/scripts/main.gd:1869
+#: client/scripts/main.gd:1885
 msgid "Obra concluída!"
 msgstr ""
 
@@ -1821,7 +1849,7 @@ msgstr ""
 msgid "Onde: %s"
 msgstr ""
 
-#: client/scripts/look_editor.gd:121
+#: client/scripts/look_editor.gd:187
 msgid "Original"
 msgstr ""
 
@@ -1849,7 +1877,7 @@ msgstr ""
 msgid "Papoula"
 msgstr ""
 
-#: client/scripts/main.gd:1178
+#: client/scripts/main.gd:1194
 msgid "Para entrar aqui, você precisa do passaporte deste país: %s. Ele pode ser comprado em qualquer aeroporto."
 msgstr ""
 
@@ -1865,15 +1893,15 @@ msgstr ""
 msgid "Passaporte"
 msgstr ""
 
-#: client/scripts/main.gd:1815
+#: client/scripts/main.gd:1831
 msgid "Passaporte completo: %d passaportes, %d carimbos."
 msgstr ""
 
-#: client/scripts/main.gd:1814
+#: client/scripts/main.gd:1830
 msgid "Passaporte de %s entregue."
 msgstr ""
 
-#: client/scripts/main.gd:1814
+#: client/scripts/main.gd:1830
 msgid "Passaporte de %s retirado."
 msgstr ""
 
@@ -1889,11 +1917,11 @@ msgstr ""
 msgid "Passaportes"
 msgstr ""
 
-#: client/scripts/main.gd:1816
+#: client/scripts/main.gd:1832
 msgid "Passaportes e carimbos zerados (fica o do seu país)."
 msgstr ""
 
-#: client/scripts/first_access.gd:49
+#: client/scripts/first_access.gd:40
 msgid "País"
 msgstr ""
 
@@ -1905,11 +1933,11 @@ msgstr ""
 msgid "Pedido de troca"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:73 client/scripts/settings_ui.gd:76
+#: client/scripts/settings_ui.gd:68 client/scripts/settings_ui.gd:71
 msgid "Pedidos de troca: aceitando"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:76
+#: client/scripts/settings_ui.gd:71
 msgid "Pedidos de troca: recusando todos"
 msgstr ""
 
@@ -1933,7 +1961,7 @@ msgstr ""
 msgid "Pedra grande  ·  segure a picareta (1–5)"
 msgstr ""
 
-#: client/scripts/first_access.gd:78
+#: client/scripts/first_access.gd:69
 msgid "Pelo idioma do seu computador, sugerimos %s. Confirme ou escolha outro."
 msgstr ""
 
@@ -1941,7 +1969,7 @@ msgstr ""
 msgid "Pelos passaportes"
 msgstr ""
 
-#: client/scripts/look_editor.gd:71
+#: client/scripts/look_editor.gd:114
 msgid "Penteado extra"
 msgstr ""
 
@@ -1953,7 +1981,7 @@ msgstr ""
 msgid "Perda de pacotes de movimento: 0%"
 msgstr ""
 
-#: client/scripts/look_editor.gd:8 client/scripts/wardrobe_ui.gd:8
+#: client/scripts/look_editor.gd:12 client/scripts/wardrobe_ui.gd:9
 msgid "Pernas"
 msgstr ""
 
@@ -1965,15 +1993,7 @@ msgstr ""
 msgid "Personagem %d"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:37
-msgid "Personagem (os outros jogadores veem)"
-msgstr ""
-
-#: client/scripts/first_access.gd:40
-msgid "Personagem para começar (logo depois você monta o seu no editor)"
-msgstr ""
-
-#: client/scripts/main.gd:217
+#: client/scripts/main.gd:219
 msgid "PhotoMode"
 msgstr ""
 
@@ -1981,7 +2001,7 @@ msgstr ""
 msgid "Picareta"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:111
+#: client/scripts/wardrobe_ui.gd:127
 msgid "Pintar com %s"
 msgstr ""
 
@@ -2021,15 +2041,15 @@ msgstr ""
 msgid "Precisa de:"
 msgstr ""
 
-#: client/scripts/main.gd:1616
+#: client/scripts/main.gd:1632
 msgid "Preparando a estação…"
 msgstr ""
 
-#: client/scripts/main.gd:412
+#: client/scripts/main.gd:320 client/scripts/main.gd:428
 msgid "Preparando o seu lote…"
 msgstr ""
 
-#: client/scripts/main.gd:301
+#: client/scripts/main.gd:303
 msgid "Preparando os gráficos…"
 msgstr ""
 
@@ -2057,11 +2077,11 @@ msgstr ""
 msgid "Pronto ✓"
 msgstr ""
 
-#: client/scripts/main.gd:1817
+#: client/scripts/main.gd:1833
 msgid "Pronto."
 msgstr ""
 
-#: client/scripts/main.gd:1899
+#: client/scripts/main.gd:1915
 msgid "Pronto: %s resetado."
 msgstr ""
 
@@ -2069,7 +2089,7 @@ msgstr ""
 msgid "Propor troca"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:142
+#: client/scripts/wardrobe_ui.gd:158
 msgid "Proteção: frio %d °C, calor %d °C · confortável de %d a %d °C"
 msgstr ""
 
@@ -2081,7 +2101,7 @@ msgstr ""
 msgid "Pular apresentação"
 msgstr ""
 
-#: client/scripts/main.gd:3535
+#: client/scripts/main.gd:3623
 msgid "Pular apresentação  (Alt + clique)"
 msgstr ""
 
@@ -2089,7 +2109,7 @@ msgstr ""
 msgid "Pãozinho de grãos"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:8
+#: client/scripts/wardrobe_ui.gd:9
 msgid "Pés"
 msgstr ""
 
@@ -2097,7 +2117,7 @@ msgstr ""
 msgid "Pôr na troca"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:48
+#: client/scripts/settings_ui.gd:43
 msgid "Qualidade gráfica"
 msgstr ""
 
@@ -2113,6 +2133,10 @@ msgstr ""
 msgid "Quentinho"
 msgstr ""
 
+#: client/scripts/look_editor.gd:14
+msgid "Quepe azul"
+msgstr ""
+
 #: server/data/game/dialogs.json
 msgid "Quer dar uma olhada? Também compro qualquer coisa que você tiver, pagando um pouquinho mais que a caixa de vendas."
 msgstr ""
@@ -2125,7 +2149,7 @@ msgstr ""
 msgid "Quero vender"
 msgstr ""
 
-#: client/scripts/look_editor.gd:9
+#: client/scripts/look_editor.gd:13
 msgid "Rabo de cavalo"
 msgstr ""
 
@@ -2141,7 +2165,7 @@ msgstr ""
 msgid "Receitas"
 msgstr ""
 
-#: client/scripts/body_game.gd:454
+#: client/scripts/body_game.gd:505
 msgid "Receitas simples. Comidas melhores dão um bônus por alguns minutos."
 msgstr ""
 
@@ -2161,7 +2185,7 @@ msgstr ""
 msgid "Regata"
 msgstr ""
 
-#: client/scripts/main.gd:234
+#: client/scripts/main.gd:236
 msgid "RemotePlayers"
 msgstr ""
 
@@ -2181,11 +2205,11 @@ msgstr ""
 msgid "Resetar o lote (casa e decoração)"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:80
+#: client/scripts/settings_ui.gd:75
 msgid "Rever a apresentação"
 msgstr ""
 
-#: client/scripts/main.gd:380
+#: client/scripts/main.gd:394
 msgid "Robo %d"
 msgstr ""
 
@@ -2197,15 +2221,23 @@ msgstr ""
 msgid "Roda de carroça"
 msgstr ""
 
+#: client/scripts/look_editor.gd:105
+msgid "Rosto"
+msgstr ""
+
+#: client/scripts/look_editor.gd:105
+msgid "Rosto %d"
+msgstr ""
+
 #: client/scripts/dev_panel.gd:568
 msgid "Roupas e editor"
 msgstr ""
 
-#: client/scripts/main.gd:1804 client/scripts/main.gd:1805
+#: client/scripts/main.gd:1820 client/scripts/main.gd:1821
 msgid "Saldo: %s."
 msgstr ""
 
-#: client/scripts/look_editor.gd:35
+#: client/scripts/look_editor.gd:49 client/scripts/look_editor.gd:78
 msgid "Salvar"
 msgstr ""
 
@@ -2217,15 +2249,19 @@ msgstr ""
 msgid "Se quiser, eu conto tudo do começo outra vez."
 msgstr ""
 
-#: client/scripts/main.gd:220
+#: client/scripts/main.gd:222
 msgid "SeasonFx"
 msgstr ""
 
-#: client/scripts/body_game.gd:276 client/scripts/dev_panel.gd:526
+#: client/scripts/body_game.gd:304 client/scripts/dev_panel.gd:526
 msgid "Sede"
 msgstr ""
 
-#: client/scripts/main.gd:583
+#: client/scripts/look_editor.gd:111
+msgid "Sem cabelo"
+msgstr ""
+
+#: client/scripts/main.gd:599
 msgid "Sem conexão com o servidor. Tentando de novo…"
 msgstr ""
 
@@ -2237,7 +2273,7 @@ msgstr ""
 msgid "Sem estação"
 msgstr ""
 
-#: client/scripts/main.gd:369
+#: client/scripts/main.gd:383
 msgid "Sem resposta do servidor (%s).\nTentando de novo…"
 msgstr ""
 
@@ -2249,7 +2285,7 @@ msgstr ""
 msgid "Sementes de flores"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:60
+#: client/scripts/settings_ui.gd:55
 msgid "Sensibilidade do mouse"
 msgstr ""
 
@@ -2257,7 +2293,7 @@ msgstr ""
 msgid "Sentar"
 msgstr ""
 
-#: client/scripts/look_editor.gd:25
+#: client/scripts/look_editor.gd:35 client/scripts/look_editor.gd:75
 msgid "Seu personagem"
 msgstr ""
 
@@ -2281,7 +2317,7 @@ msgstr ""
 msgid "Simular rede ruim (só neste computador):"
 msgstr ""
 
-#: client/scripts/character_look.gd:663 client/scripts/npc.gd:56 client/scripts/player.gd:141
+#: client/scripts/character_look.gd:979 client/scripts/npc.gd:56 client/scripts/player.gd:141
 msgid "Skeleton3D"
 msgstr ""
 
@@ -2317,15 +2353,15 @@ msgstr ""
 msgid "Tab ou Esc"
 msgstr ""
 
-#: client/scripts/main.gd:2032
+#: client/scripts/main.gd:2051
 msgid "TabContainer"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:56
+#: client/scripts/settings_ui.gd:51
 msgid "Tamanho da interface"
 msgstr ""
 
-#: client/scripts/main.gd:3824
+#: client/scripts/main.gd:3909
 msgid "Tarefa da apresentação!  +%s"
 msgstr ""
 
@@ -2333,11 +2369,11 @@ msgstr ""
 msgid "Tecido"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:69
+#: client/scripts/settings_ui.gd:64
 msgid "Tela cheia (F11)"
 msgstr ""
 
-#: client/scripts/main.gd:1567
+#: client/scripts/main.gd:1583
 msgid "Teleportado para %s."
 msgstr ""
 
@@ -2349,7 +2385,7 @@ msgstr ""
 msgid "Tempo mais rápido (F3)"
 msgstr ""
 
-#: client/scripts/main.gd:1579
+#: client/scripts/main.gd:1595
 msgid "Tempo ×%d"
 msgstr ""
 
@@ -2361,7 +2397,7 @@ msgstr ""
 msgid "Terra sem país"
 msgstr ""
 
-#: client/scripts/character_look.gd:75
+#: client/scripts/character_look.gd:133
 msgid "Textures/colormap.png"
 msgstr ""
 
@@ -2389,7 +2425,7 @@ msgstr ""
 msgid "Tinta vermelha"
 msgstr ""
 
-#: client/scripts/dev_panel.gd:135 client/scripts/trade_ui.gd:303 client/scripts/wardrobe_ui.gd:103
+#: client/scripts/dev_panel.gd:135 client/scripts/trade_ui.gd:303 client/scripts/wardrobe_ui.gd:119
 msgid "Tirar"
 msgstr ""
 
@@ -2409,15 +2445,15 @@ msgstr ""
 msgid "Todas abertas"
 msgstr ""
 
-#: client/scripts/main.gd:1839
+#: client/scripts/main.gd:1855
 msgid "Todas as fronteiras abertas (só a visão)."
 msgstr ""
 
-#: client/scripts/main.gd:1839
+#: client/scripts/main.gd:1855
 msgid "Todas as fronteiras fechadas (só a visão)."
 msgstr ""
 
-#: client/scripts/main.gd:848
+#: client/scripts/main.gd:864
 msgid "Todas as roupas e tintas no bolso."
 msgstr ""
 
@@ -2429,7 +2465,7 @@ msgstr ""
 msgid "Todos os passaportes e um carimbo de cada país com aeroporto (sem gobolares)"
 msgstr ""
 
-#: client/scripts/look_editor.gd:69
+#: client/scripts/look_editor.gd:115
 msgid "Tom de pele"
 msgstr ""
 
@@ -2465,7 +2501,7 @@ msgstr ""
 msgid "Troca"
 msgstr ""
 
-#: client/scripts/main.gd:3669
+#: client/scripts/main.gd:3754
 msgid "Troca aberta com %s."
 msgstr ""
 
@@ -2481,7 +2517,7 @@ msgstr ""
 msgid "Trocar meu país para o selecionado na aba Mundo"
 msgstr ""
 
-#: client/scripts/look_editor.gd:8
+#: client/scripts/look_editor.gd:12
 msgid "Tronco e braços"
 msgstr ""
 
@@ -2493,7 +2529,7 @@ msgstr ""
 msgid "Tudo deste tipo"
 msgstr ""
 
-#: client/scripts/body_game.gd:356
+#: client/scripts/body_game.gd:384
 msgid "Tudo em dia: um pouco mais rápido!"
 msgstr ""
 
@@ -2521,7 +2557,7 @@ msgstr ""
 msgid "Urze"
 msgstr ""
 
-#: client/scripts/main.gd:2441 client/scripts/main.gd:2451 server/data/game/animals.json
+#: client/scripts/main.gd:2487 client/scripts/main.gd:2497 server/data/game/animals.json
 msgid "Vaca"
 msgstr ""
 
@@ -2565,6 +2601,10 @@ msgstr ""
 msgid "Vender tudo"
 msgstr ""
 
+#: client/scripts/wardrobe_ui.gd:38
+msgid "Ver de costas"
+msgstr ""
+
 #: server/data/game/dialogs.json
 msgid "Ver destinos"
 msgstr ""
@@ -2573,7 +2613,7 @@ msgstr ""
 msgid "Verão"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:35
+#: client/scripts/wardrobe_ui.gd:50
 msgid "Vestido"
 msgstr ""
 
@@ -2585,7 +2625,7 @@ msgstr ""
 msgid "Viajar"
 msgstr ""
 
-#: client/scripts/dev_panel.gd:566 client/scripts/main.gd:1235
+#: client/scripts/dev_panel.gd:566 client/scripts/main.gd:1251
 msgid "Visual"
 msgstr ""
 
@@ -2597,7 +2637,7 @@ msgstr ""
 msgid "Viu um bicho ou uma flor diferente? Fotografe com a câmera e veja tudo na Goblopédia (tecla G)."
 msgstr ""
 
-#: client/scripts/main.gd:1574
+#: client/scripts/main.gd:1590
 msgid "Voando: Espaço sobe, Ctrl desce, Shift acelera"
 msgstr ""
 
@@ -2613,7 +2653,7 @@ msgstr ""
 msgid "Voar de graça para lá"
 msgstr ""
 
-#: client/scripts/main.gd:1502
+#: client/scripts/main.gd:1518
 msgid "Você ainda não tem lote."
 msgstr ""
 
@@ -2621,15 +2661,15 @@ msgstr ""
 msgid "Você confirmou. Esperando %s confirmar…"
 msgstr ""
 
-#: client/scripts/main.gd:1561
+#: client/scripts/main.gd:1577
 msgid "Você está em %s."
 msgstr ""
 
-#: client/scripts/main.gd:1794
+#: client/scripts/main.gd:1810
 msgid "Você ganhou %d× %s."
 msgstr ""
 
-#: client/scripts/main.gd:740
+#: client/scripts/main.gd:756
 msgid "Você já está numa troca."
 msgstr ""
 
@@ -2653,7 +2693,7 @@ msgstr ""
 msgid "Você tem: %d"
 msgstr ""
 
-#: client/scripts/main.gd:707
+#: client/scripts/main.gd:723
 msgid "Você volta a ouvir esse jogador."
 msgstr ""
 
@@ -2665,7 +2705,7 @@ msgstr ""
 msgid "Voltar o relógio do servidor para a hora real"
 msgstr ""
 
-#: client/scripts/main.gd:1574
+#: client/scripts/main.gd:1590
 msgid "Voltou a andar"
 msgstr ""
 
@@ -2697,7 +2737,7 @@ msgstr ""
 msgid "WoodLog_Snow"
 msgstr ""
 
-#: client/scripts/main.gd:2334 client/scripts/main.gd:2335 client/scripts/main.gd:2371
+#: client/scripts/main.gd:2362 client/scripts/main.gd:2363 client/scripts/main.gd:2399
 msgid "WorldEnvironment"
 msgstr ""
 
@@ -2717,39 +2757,39 @@ msgstr ""
 msgid "[b][color=%s]%s[/color][/b]: %s"
 msgstr ""
 
-#: client/scripts/main.gd:1221
+#: client/scripts/main.gd:1237
 msgid "\nCarimbo novo no passaporte!  +%s"
 msgstr ""
 
-#: client/scripts/main.gd:970
+#: client/scripts/main.gd:986
 msgid "\nTentando de novo em %d s…"
 msgstr ""
 
-#: client/scripts/main.gd:1365
+#: client/scripts/main.gd:1381
 msgid "\nrede: %s · ping %d ms · ↓%d ↑%d pacotes/s · %d jogadores visíveis"
 msgstr ""
 
-#: client/scripts/main.gd:3248
+#: client/scripts/main.gd:3336
 msgid "abaixo do chão"
 msgstr ""
 
-#: client/scripts/main.gd:2318
+#: client/scripts/main.gd:2343
 msgid "antisserrilhado (MSAA/FXAA)"
 msgstr ""
 
-#: client/scripts/main.gd:336
+#: client/scripts/main.gd:350
 msgid "automação"
 msgstr ""
 
-#: client/scripts/main.gd:2972
+#: client/scripts/main.gd:3060
 msgid "aviso da fronteira"
 msgstr ""
 
-#: client/scripts/main.gd:262
+#: client/scripts/main.gd:264
 msgid "cache (versão %s)"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:151
+#: client/scripts/wardrobe_ui.gd:167
 msgid "calor +%d °C"
 msgstr ""
 
@@ -2757,23 +2797,23 @@ msgstr ""
 msgid "carregando o mundo…"
 msgstr ""
 
-#: client/scripts/main.gd:2865
+#: client/scripts/main.gd:2953
 msgid "casa (H)"
 msgstr ""
 
-#: client/scripts/main.gd:2323
+#: client/scripts/main.gd:2348
 msgid "casas e lotes"
 msgstr ""
 
-#: client/scripts/main.gd:4022
+#: client/scripts/main.gd:4107
 msgid "chapéu de palha no lugar do gorro (o gorro voltou ao bolso)"
 msgstr ""
 
-#: client/scripts/main.gd:2324
+#: client/scripts/main.gd:2349
 msgid "chão e oceano"
 msgstr ""
 
-#: client/scripts/main.gd:2931
+#: client/scripts/main.gd:3019
 msgid "clique depois do Esc"
 msgstr ""
 
@@ -2785,23 +2825,23 @@ msgstr ""
 msgid "clique: tirar foto  ·  roda: zoom  ·  F: %s  ·  botão direito ou Esc: sair"
 msgstr ""
 
-#: client/scripts/vegetation.gd:234
+#: client/scripts/vegetation.gd:237
 msgid "colisão dos objetos"
 msgstr ""
 
-#: client/scripts/main.gd:3162
+#: client/scripts/main.gd:3250
 msgid "com o passaporte, abre com animação (%.2f no meio, %.2f no fim)"
 msgstr ""
 
-#: client/scripts/main.gd:4011
+#: client/scripts/main.gd:4096
 msgid "comeu: fome %.0f e bônus %s"
 msgstr ""
 
-#: client/scripts/main.gd:2912
+#: client/scripts/main.gd:3000
 msgid "começo do jogo"
 msgstr ""
 
-#: client/scripts/main.gd:2840
+#: client/scripts/main.gd:2928
 msgid "correndo perto de casa"
 msgstr ""
 
@@ -2809,15 +2849,15 @@ msgstr ""
 msgid "cyl %.3f %.3f %d"
 msgstr ""
 
-#: client/scripts/main.gd:1116
+#: client/scripts/main.gd:1132
 msgid "câmera afastada %.0f%%"
 msgstr ""
 
-#: client/scripts/main.gd:2842
+#: client/scripts/main.gd:2930
 msgid "câmera afastada até o globo e de volta"
 msgstr ""
 
-#: client/scripts/main.gd:2334
+#: client/scripts/main.gd:2362
 msgid "céu"
 msgstr ""
 
@@ -2845,7 +2885,7 @@ msgstr ""
 msgid "distância"
 msgstr ""
 
-#: client/scripts/main.gd:3246
+#: client/scripts/main.gd:3334
 msgid "distância mudou sozinha (%.2f, zoom pede %.2f)"
 msgstr ""
 
@@ -2861,31 +2901,39 @@ msgstr ""
 msgid "exclusivo daqui"
 msgstr ""
 
-#: client/scripts/main.gd:2918
+#: client/scripts/main.gd:3006
 msgid "fechar o bolso"
 msgstr ""
 
-#: client/scripts/main.gd:2957
+#: client/scripts/main.gd:3045
 msgid "fim do voo (%s)"
 msgstr ""
 
-#: client/scripts/body_game.gd:485
+#: client/scripts/main.gd:2361
+msgid "flores decorativas"
+msgstr ""
+
+#: client/scripts/main.gd:2360
+msgid "fogueiras (luz e fogo)"
+msgstr ""
+
+#: client/scripts/body_game.gd:536
 msgid "fome +%d"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:149
+#: client/scripts/wardrobe_ui.gd:165
 msgid "frio −%d °C"
 msgstr ""
 
-#: client/scripts/main.gd:2322
+#: client/scripts/main.gd:2347
 msgid "grama e plantinhas (cliente)"
 msgstr ""
 
-#: client/scripts/main.gd:2868
+#: client/scripts/main.gd:2956
 msgid "inverno forçado e volta"
 msgstr ""
 
-#: client/scripts/main.gd:1123
+#: client/scripts/main.gd:1139
 msgid "janela sem foco (o Mac desacelera)"
 msgstr ""
 
@@ -2901,11 +2949,11 @@ msgstr ""
 msgid "lon (ex.: -60)"
 msgstr ""
 
-#: client/scripts/main.gd:1118
+#: client/scripts/main.gd:1134
 msgid "modo foto"
 msgstr ""
 
-#: client/scripts/main.gd:2853
+#: client/scripts/main.gd:2941
 msgid "modo foto e selfie"
 msgstr ""
 
@@ -2925,31 +2973,35 @@ msgstr ""
 msgid "nenhuma (só o terreno)"
 msgstr ""
 
-#: client/scripts/main.gd:3306
+#: client/scripts/main.gd:3394
 msgid "nenhuma casa por perto"
 msgstr ""
 
-#: client/scripts/settings_ui.gd:145
+#: client/scripts/settings_ui.gd:132
 msgid "não"
 msgstr ""
 
-#: client/scripts/main.gd:2326
+#: client/scripts/main.gd:2351
 msgid "névoa"
 msgstr ""
 
-#: client/scripts/main.gd:2790 client/scripts/main.gd:2814
+#: client/scripts/main.gd:2878 client/scripts/main.gd:2902
 msgid "oi do a"
 msgstr ""
 
-#: client/scripts/main.gd:2785 client/scripts/main.gd:2798
+#: client/scripts/main.gd:2873 client/scripts/main.gd:2886
 msgid "oi do b"
 msgstr ""
 
-#: client/scripts/main.gd:3266
+#: client/scripts/main.gd:3354
 msgid "ok   "
 msgstr ""
 
-#: client/scripts/main.gd:2850
+#: client/scripts/main.gd:2359
+msgid "outros personagens"
+msgstr ""
+
+#: client/scripts/main.gd:2938
 msgid "pampa com animais"
 msgstr ""
 
@@ -2961,7 +3013,7 @@ msgstr ""
 msgid "para colocar no lote"
 msgstr ""
 
-#: client/scripts/main.gd:2722
+#: client/scripts/main.gd:2768
 msgid "passaporte da Argentina comprado junto e carimbo na chegada (%d → %d gobolares, passagem + passaporte %d)"
 msgstr ""
 
@@ -2973,11 +3025,11 @@ msgstr ""
 msgid "países visitados"
 msgstr ""
 
-#: client/scripts/main.gd:2974
+#: client/scripts/main.gd:3062
 msgid "plaquinha de boas-vindas"
 msgstr ""
 
-#: client/scripts/main.gd:2538
+#: client/scripts/main.gd:2584
 msgid "primeira foto da vaca registra e paga (%d → %d gobolares)"
 msgstr ""
 
@@ -2985,7 +3037,7 @@ msgstr ""
 msgid "primeira pessoa"
 msgstr ""
 
-#: client/scripts/main.gd:2548
+#: client/scripts/main.gd:2594
 msgid "primeira pessoa: câmera nos olhos (%.2f) e corpo escondido"
 msgstr ""
 
@@ -3001,19 +3053,19 @@ msgstr ""
 msgid "procurar item… (Enter dá o primeiro)"
 msgstr ""
 
-#: client/scripts/dev_panel.gd:285 client/scripts/first_access.gd:53 client/scripts/travel_ui.gd:74
+#: client/scripts/dev_panel.gd:285 client/scripts/first_access.gd:44 client/scripts/travel_ui.gd:74
 msgid "procurar país…"
 msgstr ""
 
-#: client/scripts/main.gd:334
+#: client/scripts/main.gd:348
 msgid "qualidade %s · janela %d × %d · limite %s · V-Sync %s · %s"
 msgstr ""
 
-#: client/scripts/body_game.gd:487
+#: client/scripts/body_game.gd:538
 msgid "sede +%d"
 msgstr ""
 
-#: client/scripts/main.gd:582 client/scripts/net.gd:109 client/scripts/net.gd:12 client/scripts/net.gd:159 client/scripts/net.gd:51
+#: client/scripts/main.gd:598 client/scripts/net.gd:109 client/scripts/net.gd:12 client/scripts/net.gd:159 client/scripts/net.gd:51
 msgid "sem conexão"
 msgstr ""
 
@@ -3025,35 +3077,35 @@ msgstr ""
 msgid "shaders compilados: "
 msgstr ""
 
-#: client/scripts/main.gd:2960
+#: client/scripts/main.gd:3048
 msgid "tecla H"
 msgstr ""
 
-#: client/scripts/main.gd:3452
+#: client/scripts/main.gd:3540
 msgid "tela cheia"
 msgstr ""
 
-#: client/scripts/main.gd:2937
+#: client/scripts/main.gd:3025
 msgid "teleporte até o aeroporto"
 msgstr ""
 
-#: client/scripts/main.gd:2967
+#: client/scripts/main.gd:3055
 msgid "teleporte do modo dev"
 msgstr ""
 
-#: client/scripts/main.gd:2328
+#: client/scripts/main.gd:2353
 msgid "tonemapping AgX e ajuste de cor"
 msgstr ""
 
-#: client/scripts/main.gd:3565
+#: client/scripts/main.gd:3653
 msgid "uma novidade"
 msgstr ""
 
-#: client/scripts/main.gd:2280
+#: client/scripts/main.gd:2299
 msgid "vender 2 madeiras: %d → %d gobolares"
 msgstr ""
 
-#: client/scripts/main.gd:2333
+#: client/scripts/main.gd:2358
 msgid "vento e variação (shader de folhagem)"
 msgstr ""
 
@@ -3061,7 +3113,7 @@ msgstr ""
 msgid "você tem ✓"
 msgstr ""
 
-#: client/scripts/main.gd:2862
+#: client/scripts/main.gd:2950
 msgid "voo até o Japão"
 msgstr ""
 
@@ -3085,22 +3137,22 @@ msgstr ""
 msgid "É isso! Qualquer coisa, dá para rever esta conversa nas configurações (F6). Divirta-se, {player}!"
 msgstr ""
 
-#: client/scripts/look_editor.gd:10
+#: client/scripts/look_editor.gd:14
 msgid "Óculos"
 msgstr ""
 
-#: client/scripts/look_editor.gd:10
+#: client/scripts/look_editor.gd:14
 msgid "Óculos escuros"
 msgstr ""
 
-#: client/scripts/vegetation.gd:234
+#: client/scripts/vegetation.gd:237
 msgid "árvores e pedras"
 msgstr ""
 
-#: client/scripts/main.gd:2321
+#: client/scripts/main.gd:2346
 msgid "árvores e pedras (servidor)"
 msgstr ""
 
-#: client/scripts/main.gd:3991
+#: client/scripts/main.gd:4076
 msgid "−12 °C: com frio, vapor da respiração e tremendo"
 msgstr ""

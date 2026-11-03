@@ -16,6 +16,7 @@ Tudo o que dá para ajustar sem mexer em código fica em arquivos JSON. Depois d
 | `server/data/game/animals.json` | servidor | espécies de animais, quais vivem em cada bioma e os cachorros dos bairros |
 | `server/data/game/goblopedia.json` | servidor | páginas da Goblopédia além dos animais (flor rara, árvores em estação) |
 | `client/data/decoracao.json` | cliente | grama e plantinhas decorativas de cada bioma, e o tom dos objetos por bioma |
+| `client/data/cabecas.json` | cliente | encaixe dos chapéus em cada cabeça, corte do cabelo embaixo do chapéu e nomes dos cabelos no editor (fase 4.1, ADR 0052) |
 
 O servidor confere tudo ao subir (`game.LoadContent`): receita com item que não existe, casa maior que o lote ou flor sem item param o servidor com uma mensagem clara.
 
@@ -286,4 +287,20 @@ As flores colhíveis vêm do servidor (`objects.json`, kind `flower`, com `seaso
 | Ipê-amarelo (arvorezinha) | floresta tropical, campo | trópicos, primavera | incomum |
 | Flor de lótus | praia (beira d'água) | trópicos, verão | rara |
 
-As cinco flores antigas (vermelha, amarela, branca, roxa e azul) continuam e agora somem no inverno. As **flores decorativas** (só enfeite) ficam em `client/data/decoracao.json → flowers`, por bioma e estação, no mesmo MultiMesh da grama.
+As cinco flores antigas (vermelha, amarela, branca, roxa e azul) continuam e agora somem no inverno. As **flores decorativas** (só enfeite) ficam em `client/data/decoracao.json → flowers`, por bioma e estação, no mesmo MultiMesh da grama, com densidade e distância próprias por qualidade (`flower_density`, `flower_radius` em `quality.gd`; somem antes da grama, fase 4.1).
+
+## Cabeças, cabelos e chapéus (`cabecas.json`, fase 4.1)
+
+As 12 cabeças do Mini Characters têm o mesmo crânio; o cabelo é o que sai dele e vira uma parte à parte no editor ([ADR 0052](decisoes/0052-roupas-por-regiao-cabelo-separado-e-desempenho.md)). No arquivo:
+
+- `anchor`: ponto de encaixe dos chapéus no alto do crânio (preso ao osso da cabeça);
+- `hats`: ajuste por cabeça (`offset` [x, y, z], `scale`, `rot` em graus); `default` para as outras;
+- `hair_cut` (+ `hair_cut_add` por cabeça): com chapéu, o cabelo acima desta altura é achatado para dentro do chapéu;
+- `haircut_names`: nome de cada cabelo no editor;
+- `cap_heads`: cabeças cujo "cabelo" é um boné (fica com a cor original e vira acessório `cap-<cabeça>` em `body.json → look.accessories`).
+
+A lista de cabelos oferecidos fica em `server/data/game/body.json → look.haircuts` (o servidor valida).
+
+Roupas substituem a parte da roupa original do espaço delas (cor por região, sem malha a mais). Peça nova: item com `wear` em `items.json` e a regra da região em `CharacterLook` (`_body_color`, `_legs_color`) ou a forma em `_add_hat`/`_build`; o `client/tests/test_roupas.gd` confere que ela só muda o próprio espaço.
+
+Ícones de líquidos: tintas usam `primitive:paint_RRGGBB` (o pote cheio da cor), o cantil `primitive:canteen_N` (N = goles que restam, na janelinha da frente).
