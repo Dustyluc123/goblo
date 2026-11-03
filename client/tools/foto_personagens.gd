@@ -12,7 +12,7 @@ const LOOKS := [
 		{"head": {"item": "beanie", "color": "#e86a6a"}, "body": {"item": "coat", "color": "#6d8fe8"}, "legs": {"item": "pants", "color": "#5b6f8c"}, "feet": {"item": "boots", "color": "#7a5233"}}],
 	[{"head": "female-e", "body": "male-b", "legs": "female-c", "skin": "#f6d5b8", "hair": "#c0392b", "hairstyle": "ponytail", "accessory": "aid-sunglasses"},
 		{"head": {"item": "straw_hat", "color": "#e9c46a"}, "body": {"item": "tank_top", "color": "#f4f1e4"}, "legs": {"item": "shorts", "color": "#e9c46a"}, "feet": {"item": "sandals", "color": "#c99a6b"}}],
-	[{"head": "male-f", "body": "male-e", "legs": "male-e", "skin": "#9c6644", "hair": "#2b1d16", "hairstyle": "bun", "accessory": "none"},
+	[{"head": "male-f", "body": "male-e", "legs": "male-e", "skin": "#9c6644", "hair": "#2b1d16", "hairstyle": "bun", "accessory": "none", "haircut": "female-d"},
 		{"head": {"item": "cap", "color": "#6d8fe8"}, "body": {"item": "scarf", "color": "#e86a6a"}, "back": {"item": "flag_cape", "color": "#f4f1e4"}}],
 	[{"head": "female-b", "body": "female-f", "legs": "female-b", "skin": "#c98e62", "hair": "#7d8ea6", "hairstyle": "spiky", "accessory": "none"},
 		{"head": {"item": "fur_hat", "color": "#8d6e63"}, "body": {"item": "poncho", "color": "#c0392b"}}],
@@ -63,6 +63,11 @@ func _run() -> void:
 	cam.position = Vector3(0, 0.55, 2.6)
 	cam.look_at(Vector3(0, 0.38, 0))
 	cam.fov = 45
+	if args.has("perto"):
+		# --perto=N: só o visual N (1 a 5), de perto.
+		var x := (int(args["perto"]) - 1 - (LOOKS.size() - 1) * 0.5) * 0.75
+		cam.position = Vector3(x, 0.5, 1.1)
+		cam.look_at(Vector3(x, 0.45, 0))
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-50, 30, 0)
 	root.add_child(sun)

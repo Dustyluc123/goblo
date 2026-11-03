@@ -7,8 +7,11 @@ shader_type spatial;
 // para todos os personagens.
 
 uniform sampler2D colormap : source_color, filter_linear_mipmap;
-instance uniform vec4 skin_color = vec4(0.0);
-instance uniform vec4 hair_color = vec4(0.0);
+// Índices fixos (fase 4.1): a capa é outra superfície da MESMA instância e tem o parâmetro
+// dela (wave, índice 2). Sem instance_index, os dois shaders usavam o índice 0 e a capa
+// escrevia por cima de skin_color, pintando o corpo inteiro.
+instance uniform vec4 skin_color : instance_index(0) = vec4(0.0);
+instance uniform vec4 hair_color : instance_index(1) = vec4(0.0);
 
 void fragment() {
 	vec3 tex = texture(colormap, UV).rgb;

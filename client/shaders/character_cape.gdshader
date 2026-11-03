@@ -5,7 +5,8 @@ shader_type spatial;
 render_mode cull_disabled;
 
 uniform sampler2D flags : source_color, filter_linear_mipmap;
-instance uniform float wave = 0.3;
+// Índice 2: 0 e 1 são a pele e o cabelo do corpo (character_look.gdshader), na mesma instância.
+instance uniform float wave : instance_index(2) = 0.3;
 
 void vertex() {
 	float k = COLOR.a;

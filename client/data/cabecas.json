@@ -1,0 +1,29 @@
+{
+  "_doc": "Cabeças, cabelos e chapéus do personagem (fase 4.1, ADR 0052). As 12 cabeças do Mini Characters têm o mesmo crânio (uma caixa chanfrada): o cabelo é o que sai dela e vira uma malha à parte (CharacterLook._is_hair_tri). anchor: ponto de encaixe dos chapéus no alto do crânio (espaço do modelo, preso ao osso da cabeça). hats: ajuste de cada cabeça (offset [x, y, z] somado ao anchor, scale multiplica o chapéu, rot = giro em graus em volta de Y); default vale para as que não aparecem. hair_cut: com chapéu, a parte do cabelo acima desta altura some (o chapéu cobre), mais o hair_cut_add da cabeça. haircut_names: nomes dos cabelos no editor (pela cabeça de onde saíram). cap_heads: cabeças cujo 'cabelo' é um boné ou quepe: na cabeça escolhida ele aparece com a cor original (não muda com a cor do cabelo) e também é oferecido como acessório.",
+  "anchor": [0.0, 0.661, -0.002],
+  "hats": {
+    "default": {"offset": [0.0, 0.0, 0.0], "scale": 1.0, "rot": 0.0},
+    "female-a": {"offset": [0.0, 0.0, -0.01], "scale": 1.04, "rot": 0.0},
+    "female-c": {"offset": [0.0, 0.0, -0.01], "scale": 1.04, "rot": 0.0},
+    "female-d": {"offset": [0.0, 0.0, -0.01], "scale": 1.04, "rot": 0.0},
+    "female-e": {"offset": [0.0, 0.0, -0.015], "scale": 1.06, "rot": 0.0},
+    "female-f": {"offset": [0.0, 0.0, 0.0], "scale": 1.08, "rot": 0.0}
+  },
+  "hair_cut": 0.6,
+  "hair_cut_add": {},
+  "haircut_names": {
+    "female-a": "Coque no alto",
+    "female-b": "Dois coquinhos",
+    "female-c": "Coque com franja",
+    "female-d": "Coque atrás",
+    "female-e": "Comprido",
+    "female-f": "Chanel",
+    "male-a": "Curtinho",
+    "male-b": "Careca",
+    "male-c": "Quepe",
+    "male-d": "Espetado",
+    "male-e": "Repartido",
+    "male-f": "Curto com franja"
+  },
+  "cap_heads": ["male-c"]
+}
