@@ -2930,6 +2930,31 @@ func _border_live_test() -> int:
 				elif c is MultiMeshInstance3D:
 					markers = maxi(markers, (c as MultiMeshInstance3D).multimesh.instance_count)
 	check.call(meshes >= 3 and markers >= 2, "cortina, faixa e bandeirolas (%d malhas) e %d marcos no par %s" % [meshes, markers, PAIR])
+	# Bandeirinhas (fase 3.6): de cada lado do marco, a bandeira do país do outro lado. A
+	# face da frente é vista do lado +x do marco; ela mostra o país do lado -x.
+	var flags_ok := 0
+	var flags_bad := 0
+	for chunk in _border_lines.get_children():
+		for g in chunk.get_children():
+			if str(g.get_meta("pair", "")) != PAIR or not g.has_node("Flags"):
+				continue
+			var fl := g.get_node("Flags") as MultiMeshInstance3D
+			var fl_markers: Array = fl.get_meta("markers", [])
+			var fl_codes: Array = fl.get_meta("codes", [])
+			for i in fl_markers.size():
+				var xf: Transform3D = fl_markers[i]
+				var plus := xf.origin + xf.basis.x.normalized() * 1.5
+				var minus := xf.origin - xf.basis.x.normalized() * 1.5
+				var c_plus := _data.borders.country_at(plus, world.find_cell(plus, _player.cell_id))
+				var c_minus := _data.borders.country_at(minus, world.find_cell(minus, _player.cell_id))
+				if c_plus == c_minus or c_plus in ["", "?"] or c_minus in ["", "?"]:
+					continue  # marco numa curva fechada: o teste de 1,5 unidade não diz nada
+				# A face da frente (vista do lado +x) mostra codes[i][1], o país do lado -x.
+				if str(fl_codes[i][0]) == c_plus and str(fl_codes[i][1]) == c_minus:
+					flags_ok += 1
+				else:
+					flags_bad += 1
+	check.call(flags_ok >= 2 and flags_bad == 0, "bandeirinhas com o país do outro lado (%d certas, %d trocadas)" % [flags_ok, flags_bad])
 	check.call(is_zero_approx(_border_lines.openness(PAIR)), "sem o passaporte do Paraguai, fechada (%.2f)" % _border_lines.openness(PAIR))
 	# Encostar: anda para o oeste com a barreira e a cortina faz a onda.
 	var rippled := false

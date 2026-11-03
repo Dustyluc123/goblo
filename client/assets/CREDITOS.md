@@ -27,6 +27,14 @@ Do Graveyard Kit (tema de Halloween), nada de abóboras, lápides, cruzes, caix�
 
 Não copiamos as versões FBX e OBJ da Kenney, os `OBJ/` e `Blends/` do Quaternius, as prévias (imagens e `Preview.mp4`) nem os arquivos de vetor e spritesheet. Os pacotes originais baixados (`kenney_*/`, `Ultimate */`) ficam fora do Git. Para atualizar um pacote, baixe de novo e copie só as mesmas pastas.
 
+## Bandeiras
+
+| Pacote | Versão | Pasta | O que copiamos | Uso |
+| --- | --- | --- | --- | --- |
+| [flag-icons](https://github.com/lipis/flag-icons) (Panayiotis Lipiridis) | 7.6.0 | `lipis/flag-icons/` | só o atlas `bandeiras.png` (64 × 48 por país, das SVG `flags/4x3/`), o índice `bandeiras.json` e o `License.txt` | bandeirinhas nos marcos da fronteira (fase 3.6); pronto para a capa da fase 4.0 (`FlagAtlas`) |
+
+Licença **MIT** (não é CC0): pode ser usado à vontade, desde que o aviso de copyright e a licença acompanhem (estão em `lipis/flag-icons/License.txt`). Para atualizar, baixe o pacote (`npm pack flag-icons` ou o `.tgz` do registro do npm), descompacte numa pasta fora do projeto e rode `godot --headless --path . -s tools/montar_bandeiras.gd -- --svg=PASTA/package/flags/4x3`. Os SVG não vão para o Git.
+
 ## Outros modelos
 
 A bancada, o machado, a picareta e o coco não existem nos pacotes: são modelos low-poly simples feitos em código (caixas e cilindros), em `client/scripts/model_library.gd` (`primitive:…`).

@@ -516,6 +516,7 @@ tools/sem_foco.sh -- --profile-scene --neighbors=20 --window-size=3136x1930   # 
 
 - **Mapa:** [Natural Earth](https://www.naturalearthdata.com/), escalas 1:110m (terra, a forma do globo) e 1:50m (países, capitais e regiões para os biomas), domínio público. Embutido no binário do servidor.
 - **Fronteiras disputadas:** usamos a versão padrão do Natural Earth (a visão *de facto* do projeto), sem tomar lado.
+- **Bandeiras:** [flag-icons](https://github.com/lipis/flag-icons) 7.6.0, licença MIT, num atlas em `client/assets/lipis/flag-icons/` (montado por `client/tools/montar_bandeiras.gd`). Cobre todos os 240 países e territórios do jogo. Mesma regra neutra das fronteiras: cada área do Natural Earth usa a bandeira do seu código ISO 3166-1; as que não têm código (Chipre do Norte, Somalilândia e o Glaciar de Siachen) ganham uma bandeirinha neutra com o código do jogo. Taiwan, marcado como `CN-TW` no Natural Earth, usa o código ISO `TW`.
 - **IP → país:** [IP to Country Lite](https://db-ip.com/db/download/ip-to-country-lite) da DB-IP, licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). **IP Geolocation by [DB-IP](https://db-ip.com).** Baixada por `server/scripts/baixar-dados.sh`, fora do Git.
 
 Detalhes em [`docs/DADOS.md`](docs/DADOS.md); o método dos biomas em [`docs/BIOMAS.md`](docs/BIOMAS.md); o conteúdo do jogo em [`docs/CONTEUDO.md`](docs/CONTEUDO.md).
@@ -526,6 +527,7 @@ Detalhes em [`docs/DADOS.md`](docs/DADOS.md); o método dos biomas em [`docs/BIO
 - **[Quaternius](https://quaternius.com)** (CC0): **Ultimate Nature Pack** (toda a natureza dos biomas) e **Ultimate Animated Animals** (os animais da fase 2.5).
 - **[Natural Earth](https://www.naturalearthdata.com/)**: mapa, domínio público.
 - **[DB-IP](https://db-ip.com)**: IP Geolocation by DB-IP, CC BY 4.0.
+- **[flag-icons](https://github.com/lipis/flag-icons)** (MIT, © Panayiotis Lipiridis): as bandeiras dos marcos da fronteira.
 
 Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITOS.md`](client/assets/CREDITOS.md).
 
@@ -550,4 +552,4 @@ Gostou do projeto, achou um bug ou tem uma ideia? Abra uma issue ou me chame no 
 
 ## Licença
 
-[MIT](LICENSE) © 2026 Lucas Barreto. Dados do Natural Earth em domínio público, assets da Kenney e do Quaternius em CC0, base IP → país da DB-IP em CC BY 4.0.
+[MIT](LICENSE) © 2026 Lucas Barreto. Dados do Natural Earth em domínio público, assets da Kenney e do Quaternius em CC0, bandeiras do flag-icons em MIT, base IP → país da DB-IP em CC BY 4.0.

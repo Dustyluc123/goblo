@@ -6,7 +6,10 @@ extends Node3D
 ## - em cima dela, uma cortina de luz baixa e translúcida em tons pastel, ondulando, com
 ##   brilhinhos subindo;
 ## - marcos (postes baixos com bolinha) a cada poucos metros, com uma corda de bandeirolas
-##   de festa entre eles e um cadeadinho em cima.
+##   de festa entre eles e um cadeadinho em cima;
+## - em cada marco, um mastro com uma bandeirinha tremulando (fase 3.6): cada face mostra a
+##   bandeira de um país (FlagAtlas), e quem olha de um lado vê a do país do outro lado.
+##   Fica acima da cortina, visível de longe, aberta ou fechada.
 ## O estado é por jogador: com os passaportes dos dois países do par, a fronteira está
 ## aberta (cortina baixa e quase transparente, em menta; corda erguida em arco; cadeado
 ## aberto). Sem um deles, fechada (rosa e lilás, corda baixa, cadeado fechado). Ao comprar
@@ -35,6 +38,11 @@ const FLAG_EVERY := 0.32
 const FLAG_COLORS := [Color("ff9fb8"), Color("ffd27f"), Color("9fe0c0"), Color("a9c8ff"), Color("d7b4ff")]
 const CURTAIN_SHADER := preload("res://shaders/border_curtain.gdshader")
 ## Duração (s) da animação de abrir ou fechar e da onda ao encostar.
+## Mastro e bandeirinha dos marcos (unidades; o marco fica em y = 0, o chão em -0,25).
+const FLAG_POLE_TOP := 1.95
+const FLAG_SIZE := Vector2(0.9, 0.62)
+const FLAG_POLE_OFFSET := 0.16
+const FLAG_SHADER := preload("res://shaders/border_flag.gdshader")
 const OPEN_TIME := 1.6
 const RIPPLE_TIME := 2.0
 
@@ -54,6 +62,9 @@ var _post_mesh: Mesh
 var _cap_mesh: Mesh
 var _icon_mesh: Mesh
 var _atlas: ImageTexture
+var _pole_mesh: Mesh
+var _flag_mesh: Mesh
+var _flag_mat: ShaderMaterial
 ## Par de países ("BRA|PRY") → {"curtain", "ribbon", "icon": ShaderMaterial, "open": float,
 ## "target": float, "ripple": float (idade, < 0 = nenhuma)}.
 var _pairs := {}
@@ -92,6 +103,20 @@ func setup(w: WorldData, d: ChunkData) -> void:
 	quad.size = Vector2(0.26, 0.26)
 	_icon_mesh = _baked(quad, null)
 	_atlas = icon_atlas()
+	var pole := CylinderMesh.new()
+	pole.top_radius = 0.02
+	pole.bottom_radius = 0.028
+	pole.height = FLAG_POLE_TOP + 0.25
+	pole.radial_segments = 6
+	pole.rings = 1
+	_pole_mesh = _baked(pole, pm)
+	_flag_mesh = _flag_cloth()
+	_flag_mat = ShaderMaterial.new()
+	_flag_mat.shader = FLAG_SHADER
+	_flag_mat.set_shader_parameter("atlas", FlagAtlas.texture())
+	_flag_mat.set_shader_parameter("grid", Vector2(FlagAtlas.grid()))
+	_flag_mat.set_shader_parameter("margin", FlagAtlas.inner_margin())
+	_flag_mesh.surface_set_material(0, _flag_mat)
 
 
 ## Malha primitiva convertida em ArrayMesh (o MultiMesh com PrimitiveMesh dá erro no
@@ -283,10 +308,14 @@ func _compute(job: Dictionary, dbg: bool) -> Dictionary:
 					segs[k] = null
 				continue
 			if not segs.has(k) or segs[k] == null:
-				segs[k] = [a, b, c, {}]
+				segs[k] = [a, b, c, {}, []]
 			(segs[k][3] as Dictionary)[str(s[2])] = true
+			# O país do segmento fica à esquerda de a → b (BorderMap): guarda a orientação
+			# para saber o país de cada lado dos marcos.
+			(segs[k][4] as Array).append([a, b, str(s[2])])
 	# 2. Por par de países, linhas contínuas (ligando pontas iguais).
 	var by_pair := {}
+	var sides := {}  # par → [[a, b, país à esquerda]]
 	for k: String in segs:
 		var sg: Variant = segs[k]
 		if sg == null:
@@ -298,17 +327,19 @@ func _compute(job: Dictionary, dbg: bool) -> Dictionary:
 		var pk := pair_key(str(codes[0]), str(codes[1]))
 		if not by_pair.has(pk):
 			by_pair[pk] = []
+			sides[pk] = []
 		(by_pair[pk] as Array).append(sg)
+		(sides[pk] as Array).append_array(sg[4])
 	var out := {"pairs": {}, "debug": {}}
 	for pk: String in by_pair:
 		var lines := _chain(by_pair[pk])
 		var r := {"line_v": PackedVector3Array(), "line_c": PackedColorArray(),
 			"cur_v": PackedVector3Array(), "cur_n": PackedVector3Array(), "cur_uv": PackedVector2Array(),
 			"rib_v": PackedVector3Array(), "rib_n": PackedVector3Array(), "rib_uv": PackedVector2Array(), "rib_c": PackedColorArray(),
-			"markers": []}
+			"markers": [], "marker_codes": []}
 		var col := _country_color(pk) if dbg else Color("fff3d6")
 		for line: Dictionary in lines:
-			_build_line(line, cells, col, r)
+			_build_line(line, cells, col, r, sides[pk], pk)
 		out["pairs"][pk] = r
 	if dbg:
 		var d := {"line_v": PackedVector3Array(), "line_c": PackedColorArray()}
@@ -403,7 +434,7 @@ func _samples(line: Dictionary) -> Array:
 
 
 ## Faixa, cortina, marcos e bandeirolas de uma linha (só nas amostras das células do pedaço).
-func _build_line(line: Dictionary, cells: Dictionary, col: Color, r: Dictionary) -> void:
+func _build_line(line: Dictionary, cells: Dictionary, col: Color, r: Dictionary, sides: Array, pk: String) -> void:
 	var smp := _samples(line)
 	if smp.size() < 2:
 		return
@@ -461,6 +492,31 @@ func _build_line(line: Dictionary, cells: Dictionary, col: Color, r: Dictionary)
 		var fwd := (p - (smp[m - 1][0] as Vector3)).normalized()
 		var x := fwd.cross(up).normalized()
 		(r["markers"] as Array).append(Transform3D(Basis(x, up, x.cross(up)), p + up * 0.25 - up * LIFT))
+		(r["marker_codes"] as Array).append(_side_codes(p, up, x, sides, pk))
+
+
+## Países dos dois lados de um marco: [o do lado +x, o do lado -x]. Pelo segmento mais perto
+## e pela orientação dele (o país do segmento fica à esquerda de a → b).
+static func _side_codes(p: Vector3, up: Vector3, x: Vector3, sides: Array, pk: String) -> Array:
+	var codes := pk.split("|")
+	var dir := p.normalized()
+	var best: Array = []
+	var best_d := INF
+	for sd: Array in sides:
+		var a: Vector3 = sd[0]
+		var b: Vector3 = sd[1]
+		var ab := b - a
+		var t := clampf((dir - a).dot(ab) / maxf(ab.length_squared(), 1e-12), 0.0, 1.0)
+		var d := dir.distance_squared_to(a + ab * t)
+		if d < best_d:
+			best_d = d
+			best = sd
+	if best.is_empty():
+		return [codes[0], codes[1]]
+	var left := str(best[2])
+	var other := codes[1] if codes[0] == left else codes[0]
+	var left_dir := up.cross((best[1] as Vector3) - (best[0] as Vector3))
+	return [left, other] if x.dot(left_dir) > 0.0 else [other, left]
 
 
 ## Pedaço da cortina entre dois pontos do chão (o shader levanta pela UV.y).
@@ -570,6 +626,8 @@ func _build_group(pk: String, r: Dictionary) -> Node3D:
 		var parts: Array = [[_post_mesh, Vector3.ZERO, null], [_cap_mesh, Vector3(0, 0.27, 0), null]]
 		if not debug:
 			parts.append([_icon_mesh, Vector3(0, 0.55, 0), e["icon"]])
+		if not debug:
+			parts.append([_pole_mesh, Vector3(0, (FLAG_POLE_TOP - 0.25) * 0.5, FLAG_POLE_OFFSET), null])
 		for part: Array in parts:
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -583,10 +641,72 @@ func _build_group(pk: String, r: Dictionary) -> Node3D:
 			if part[2] != null:
 				mmi.material_override = part[2]
 			group.add_child(mmi)
+		if not debug:
+			group.add_child(_flags(markers, r.get("marker_codes", [])))
 	if group.get_child_count() == 0:
 		group.free()
 		return null
 	return group
+
+
+## Bandeirinhas dos marcos: um MultiMesh; cada instância diz no INSTANCE_CUSTOM as duas
+## bandeiras (a da frente, vista do lado +x, é a do país do lado -x) e a fase da onda.
+func _flags(markers: Array, codes: Array) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	mm.mesh = _flag_mesh
+	mm.instance_count = markers.size()
+	var top := Vector3(0, FLAG_POLE_TOP, FLAG_POLE_OFFSET)
+	for i in markers.size():
+		var xf: Transform3D = markers[i]
+		mm.set_instance_transform(i, xf.translated_local(top))
+		var pair: Array = codes[i] if i < codes.size() else ["", ""]
+		var phase := fposmod(xf.origin.x * 0.37 + xf.origin.z * 0.61, 1.0)
+		mm.set_instance_custom_data(i, Color(FlagAtlas.index_of(str(pair[1])), FlagAtlas.index_of(str(pair[0])), phase, 0.0))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Flags"
+	# Para os testes (o renderizador falso do modo headless não guarda os dados do MultiMesh).
+	mmi.set_meta("markers", markers)
+	mmi.set_meta("codes", codes)
+	mmi.multimesh = mm
+	mmi.material_override = _flag_mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# O pano tremula no shader: folga para não sumir na borda da tela.
+	mmi.extra_cull_margin = 0.5
+	return mmi
+
+
+## Pano da bandeirinha: preso no mastro em z = 0, solto em z = FLAG_SIZE.x, de y = 0 para
+## baixo; normal +x. UV.x = 0 no mastro (o shader ondula mais na ponta solta).
+static func _flag_cloth() -> ArrayMesh:
+	var cols := 6
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var idx := PackedInt32Array()
+	for row in 2:
+		for c in cols + 1:
+			var u := float(c) / cols
+			verts.append(Vector3(0.0, -float(row) * FLAG_SIZE.y, u * FLAG_SIZE.x))
+			normals.append(Vector3.RIGHT)
+			uvs.append(Vector2(u, float(row)))
+	for c in cols:
+		var a := c
+		var b := c + 1
+		var d := cols + 1 + c
+		var e := cols + 2 + c
+		# Sentido horário visto do lado +x: a face da frente (FRONT_FACING) é a desse lado.
+		idx.append_array([a, d, b, b, d, e])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 
 ## MeshInstance3D com uma superfície (nada se não houver vértices). Devolve se criou.
@@ -615,7 +735,7 @@ func warm_nodes() -> Array[Node3D]:
 	var r := {"line_v": PackedVector3Array(), "line_c": PackedColorArray(),
 		"cur_v": PackedVector3Array(), "cur_n": PackedVector3Array(), "cur_uv": PackedVector2Array(),
 		"rib_v": PackedVector3Array(), "rib_n": PackedVector3Array(), "rib_uv": PackedVector2Array(), "rib_c": PackedColorArray(),
-		"markers": []}
+		"markers": [], "marker_codes": [["BRA", "PRY"]]}
 	var a := Vector3(0, 0, 1)
 	var b := Vector3(0.5, 0, 1)
 	_quad(a, b, Color("fff3d6"), r["line_v"], r["line_c"])
