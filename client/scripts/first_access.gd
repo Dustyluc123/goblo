@@ -1,9 +1,10 @@
 class_name FirstAccess
 extends Control
 ## Tela de primeiro acesso: o jogador escolhe um apelido e confirma (ou troca) o país.
-## O país sugerido vem do servidor (pelo IP; rodando local, pelo idioma do sistema).
+## O país sugerido vem do servidor (pelo IP; rodando local, pelo idioma do sistema). O
+## personagem é montado logo depois, no editor (fase 4.1: a escolha de um pronto saiu).
 
-signal submitted(nickname: String, country: String, character: String)
+signal submitted(nickname: String, country: String)
 
 var _nick: LineEdit
 var _search: LineEdit
@@ -13,7 +14,6 @@ var _error: Label
 var _button: Button
 var _countries: Array = []  # [código, nome] em ordem alfabética
 var _selected := ""
-var _char: OptionButton
 
 
 func _ready() -> void:
@@ -31,21 +31,12 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 10)
 	card.add_child(box)
 	box.add_child(UiStyle.label("Bem-vindo ao Goblo!", 32))
-	box.add_child(UiStyle.label("Escolha um apelido e o país onde você vai morar.", 17, UiStyle.INK_SOFT))
+	box.add_child(UiStyle.label("Escolha um apelido e o país onde você vai morar. Depois você monta o seu personagem.", 17, UiStyle.INK_SOFT))
 	box.add_child(UiStyle.label("Apelido", 18))
 	_nick = UiStyle.line_edit("de 3 a 16 letras")
 	_nick.max_length = 16
 	_nick.text_submitted.connect(func(_t: String) -> void: _submit())
 	box.add_child(_nick)
-	box.add_child(UiStyle.label("Personagem para começar (logo depois você monta o seu no editor)", 18))
-	_char = OptionButton.new()
-	_char.focus_mode = Control.FOCUS_NONE
-	_char.add_theme_font_size_override("font_size", 17)
-	for id: String in Player.CHARACTERS:
-		_char.add_item(Player.character_label(id))
-		_char.set_item_metadata(_char.item_count - 1, id)
-	_char.select(Player.CHARACTERS.find("character-male-a"))
-	box.add_child(_char)
 	box.add_child(UiStyle.label("País", 18))
 	_detected = UiStyle.label("", 16, UiStyle.INK_SOFT)
 	_detected.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -105,4 +96,4 @@ func _submit() -> void:
 		return
 	_error.text = ""
 	_button.disabled = true
-	submitted.emit(_nick.text, _selected, str(_char.get_item_metadata(_char.selected)))
+	submitted.emit(_nick.text, _selected)

@@ -124,6 +124,8 @@ var _home_marker: Sprite3D
 var body: BodyGame
 var wardrobe: WardrobeUi
 var look_editor: LookEditor
+## Conta criada agora (primeiro acesso): o editor abre antes de entrar no mundo.
+var _new_account := false
 var _looks := CharacterLook.new()
 @onready var _terrain: Terrain = $Terrain
 @onready var _vegetation: Vegetation = $Vegetation
@@ -304,6 +306,18 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	_neighborhood.prefill_arrays()
 	load_stats["warmup_ms"] = Time.get_ticks_msec() - tm
 	load_stats["warmup_items"] = warmed
+	# Conta nova (fase 4.1): o editor de personagem é obrigatório antes de entrar no mundo.
+	if _new_account:
+		_hud.hide_status()
+		if _args.get("ui", "") == "first-look":
+			look_editor.open(true)
+			await get_tree().create_timer(1.5).timeout
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(str(_args.get("screenshot", "user://editor.png")))
+			get_tree().quit()
+			return
+		await look_editor.run_first()
+		_hud.show_status("Preparando o seu lote…")
 
 	var t1 := Time.get_ticks_msec()
 	var spawn_cell: int
@@ -387,6 +401,7 @@ func _identify() -> bool:
 			_fail("Não consegui criar o jogador: %s" % r["message"])
 			return false
 		created = r["data"]
+		_new_account = _args.get("ui", "") == "first-look"  # captura do editor do 1º acesso
 	elif _args.get("ui", "") == "first":
 		# Screenshot da tela de primeiro acesso (testes): mostra, fotografa e fecha.
 		_hud.hide_status()
@@ -403,9 +418,10 @@ func _identify() -> bool:
 		var screen := _ui.show_first_access(world.countries, detected, source)
 		while true:
 			var sub: Array = await screen.submitted
-			var r := await _api.request("POST", "/players", {"nickname": sub[0], "country": sub[1], "character": sub[2]})
+			var r := await _api.request("POST", "/players", {"nickname": sub[0], "country": sub[1]})
 			if r["ok"]:
 				created = r["data"]
+				_new_account = true
 				break
 			screen.show_error(str(r["message"]))
 		_ui.close_first_access()
@@ -1909,7 +1925,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test", "npc-test", "body-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test", "npc-test", "body-test", "cpu-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -1954,6 +1970,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("crowd-test"):
 		await _crowd_test()
+		return
+	if _args.has("cpu-test"):
+		await _cpu_test()
 		return
 	if _args.has("travel-test"):
 		await _travel_test()
@@ -2293,6 +2312,12 @@ func _profile_scene() -> void:
 	if _args.has("neighbors"):
 		await dev_fake_neighbors(int(_args["neighbors"]))
 		await get_tree().create_timer(2.0).timeout
+	# Fase 4.1: bots com roupas (--bots=N) e fogueiras acesas em volta (--fires=N).
+	if _args.has("bots"):
+		await dev_bots(int(_args["bots"]))
+		await get_tree().create_timer(4.0).timeout
+	if _args.has("fires"):
+		_profile_fires(int(_args["fires"]))
 	var vp := get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	await get_tree().create_timer(2.0).timeout
@@ -2331,6 +2356,9 @@ func _profile_scene() -> void:
 			_env().tonemap_mode = Environment.TONE_MAPPER_AGX
 			_env().adjustment_enabled = true],
 		"vento e variação (shader de folhagem)": [func() -> void: _set_foliage(false), func() -> void: _set_foliage(true)],
+		"outros personagens": [func() -> void: _remotes.visible = false, func() -> void: _remotes.visible = true],
+		"fogueiras (luz e fogo)": [func() -> void: body.visible_fires(false), func() -> void: body.visible_fires(true)],
+		"flores decorativas": [func() -> void: _set_flowers_visible(false), func() -> void: _set_flowers_visible(true)],
 		"céu": [func() -> void: (get_node("WorldEnvironment") as WorldEnvironment).environment.background_mode = Environment.BG_COLOR,
 			func() -> void: (get_node("WorldEnvironment") as WorldEnvironment).environment.background_mode = Environment.BG_SKY],
 	}
@@ -2379,6 +2407,24 @@ func _set_foliage(on: bool) -> void:
 		elif not on and (mmi as MultiMeshInstance3D).material_override:
 			mmi.set_meta("foliage", (mmi as MultiMeshInstance3D).material_override)
 			(mmi as MultiMeshInstance3D).material_override = null
+
+
+## Fogueiras falsas em volta do jogador (só para medir; não existem no servidor).
+func _profile_fires(n: int) -> void:
+	var f := world.cell_frame(_player.cell_id)
+	for i in n:
+		var a := TAU * i / maxf(n, 1)
+		var r := 3.0 + 2.0 * (i % 3)
+		var q := WorldData.frame_coords(f, _player.global_position)
+		body.add_fire({"id": 900000 + i, "cell": _player.cell_id, "x": q.x + cos(a) * r, "y": q.y + sin(a) * r, "left": 3600})
+
+
+func _set_flowers_visible(on: bool) -> void:
+	for c in _vegetation.get_children():
+		if c.has_meta("layer") and c.get_meta("layer") == "small":
+			for mmi in c.get_children():
+				if str(mmi.get_meta("model", "")).contains("flower"):
+					(mmi as Node3D).visible = on
 
 
 func _set_layer_visible(layer: String, on: bool) -> void:
@@ -2750,6 +2796,48 @@ func _crowd_test() -> void:
 		print("Goblo: crowd-test %3d bots criados (%d visíveis): %.2f ms por quadro (+%.3f ms por jogador)" % [
 			target, _remotes.visible_count, ms, (ms - base) / maxf(1.0, _remotes.visible_count)])
 	await dev_bots(0)
+	get_tree().quit(0)
+
+
+## CPU por script (fase 4.1): mede o quadro com tudo e depois com o _process (e o
+## _physics_process) de cada script desligado, um por vez. Com --bots=N, cria bots antes.
+func _cpu_test() -> void:
+	Engine.max_fps = 0
+	if _args.has("bots"):
+		await dev_bots(int(_args["bots"]))
+	var measure := func() -> float:
+		await get_tree().create_timer(0.5).timeout
+		var frames := 0
+		var t0 := Time.get_ticks_usec()
+		while frames < 240:
+			await get_tree().process_frame
+			frames += 1
+		return (Time.get_ticks_usec() - t0) / 1000.0 / frames
+	await get_tree().create_timer(3.0).timeout
+	var groups := {}  # script → [nós]
+	for n: Node in get_tree().root.find_children("*", "", true, false):
+		var sc: Script = n.get_script()
+		if sc == null or not (n.is_processing() or n.is_physics_processing()):
+			continue
+		var key := sc.resource_path.get_file()
+		if not groups.has(key):
+			groups[key] = []
+		(groups[key] as Array).append(n)
+	var base: float = await measure.call()
+	print("Goblo: cpu-test tudo ligado: %.2f ms por quadro" % base)
+	for key: String in groups:
+		var list: Array = groups[key]
+		var states := []
+		for n: Node in list:
+			states.append([n.is_processing(), n.is_physics_processing()])
+			n.set_process(false)
+			n.set_physics_process(false)
+		var ms: float = await measure.call()
+		for i in list.size():
+			if is_instance_valid(list[i]):
+				(list[i] as Node).set_process(states[i][0])
+				(list[i] as Node).set_physics_process(states[i][1])
+		print("Goblo: cpu-test   sem %s (%d nós): %.2f ms (−%.2f)" % [key, list.size(), ms, base - ms])
 	get_tree().quit(0)
 
 
@@ -3633,10 +3721,7 @@ func _check_intro() -> void:
 		await _set_intro(true)
 		return
 	await get_tree().create_timer(1.2).timeout
-	# Conta nova (fase 4.0): primeiro o editor de personagem, depois a apresentação do guia.
-	open_look_editor()
-	while look_editor.visible:
-		await look_editor.visibility_changed
+	# O editor de personagem já veio antes de entrar no mundo (fase 4.1).
 	start_intro()
 
 

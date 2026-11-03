@@ -2,8 +2,9 @@ class_name WardrobeUi
 extends PanelContainer
 ## Guarda-roupa (tecla C, fase 4.0): um espaço por parte do corpo (cabeça, corpo, pernas, pés,
 ## costas). Vestir troca pela peça que estava no espaço (ela volta ao bolso). A tinta (feita
-## de flores na bancada) pinta a peça vestida. A prévia mostra o personagem girando com a
-## peça escolhida antes de vestir.
+## de flores na bancada) pinta a peça vestida. A prévia mostra o personagem parado, de
+## frente, com a peça escolhida antes de vestir (fase 4.1): arrastar ou A/D gira, a roda
+## aproxima, e os botões viram de costas (bom para a capa) e de frente.
 
 const SLOT_NAMES := {"head": "Cabeça", "body": "Corpo", "legs": "Pernas", "feet": "Pés", "back": "Costas"}
 
@@ -26,8 +27,22 @@ func _ready() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	box.add_child(row)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 6)
+	row.add_child(left)
 	_preview = LookPreview.new()
-	row.add_child(_preview)
+	left.add_child(_preview)
+	var turn := HBoxContainer.new()
+	turn.add_theme_constant_override("separation", 6)
+	turn.alignment = BoxContainer.ALIGNMENT_CENTER
+	var back := UiStyle.button("Ver de costas", false)
+	back.pressed.connect(func() -> void: _preview.show_back())
+	var front := UiStyle.button("De frente", false)
+	front.pressed.connect(func() -> void: _preview.show_front())
+	turn.add_child(back)
+	turn.add_child(front)
+	left.add_child(turn)
+	left.add_child(UiStyle.label("Arraste ou A/D para girar · roda para aproximar", 13, UiStyle.INK_SOFT))
 	var right := VBoxContainer.new()
 	right.custom_minimum_size = Vector2(430, 0)
 	right.add_theme_constant_override("separation", 8)
@@ -61,6 +76,7 @@ func toggle() -> void:
 	visible = not visible
 	if visible:
 		_try = ""
+		_preview.reset_view()
 		refresh()
 
 

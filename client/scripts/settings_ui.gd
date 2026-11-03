@@ -7,7 +7,6 @@ extends PanelContainer
 const SENSITIVITIES := [0.5, 0.75, 1.0, 1.5, 2.0]
 
 var _quality_row: HBoxContainer
-var _char: OptionButton
 ## Chamado com o personagem escolhido (GameMain.set_character).
 var on_character := Callable()
 ## Rever a apresentação do guia (fase 3.5).
@@ -34,17 +33,13 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 12)
 	add_child(box)
 	box.add_child(UiStyle.header(UiStyle.label("Configurações", 26), "F6 ou Esc", func() -> void: visible = false))
-	box.add_child(UiStyle.label("Personagem (os outros jogadores veem)", 18))
-	_char = OptionButton.new()
-	_char.focus_mode = Control.FOCUS_NONE
-	_char.add_theme_font_size_override("font_size", 17)
-	for id: String in Player.CHARACTERS:
-		_char.add_item(Player.character_label(id))
-		_char.set_item_metadata(_char.item_count - 1, id)
-	_char.item_selected.connect(func(i: int) -> void:
-		if on_character.is_valid():
-			on_character.call(str(_char.get_item_metadata(i))))
-	box.add_child(_char)
+	# Fase 4.1: o personagem é montado no editor (a lista de personagens prontos saiu).
+	var ed := UiStyle.button("Editar personagem (os outros jogadores veem)", false)
+	ed.pressed.connect(func() -> void:
+		visible = false
+		if on_editor.is_valid():
+			on_editor.call())
+	box.add_child(ed)
 	box.add_child(UiStyle.label("Qualidade gráfica", 18))
 	_quality_row = HBoxContainer.new()
 	_quality_row.add_theme_constant_override("separation", 8)
@@ -91,12 +86,6 @@ func _ready() -> void:
 		if on_quiet.is_valid():
 			on_quiet.call())
 	row4.add_child(_quiet)
-	var ed := UiStyle.button("Editar personagem", false)
-	ed.pressed.connect(func() -> void:
-		visible = false
-		if on_editor.is_valid():
-			on_editor.call())
-	row4.add_child(ed)
 	box.add_child(row4)
 	_info = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -112,11 +101,9 @@ func toggle() -> void:
 		refresh()
 
 
-## Mostra o personagem atual na lista.
-func show_character(id: String) -> void:
-	var i := Player.CHARACTERS.find(id)
-	if i >= 0:
-		_char.select(i)
+## Mantido para quem chama (a lista de personagens saiu na fase 4.1).
+func show_character(_id: String) -> void:
+	pass
 
 
 func refresh() -> void:
