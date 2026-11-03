@@ -19,6 +19,9 @@ type PediaEntry struct {
 	Kind   string `json:"kind"` // animal, flower ou tree
 	Model  string `json:"model"`
 	Season string `json:"season,omitempty"`
+	// Flores (fase 4.0): raridade e cor.
+	Rarity string `json:"rarity,omitempty"`
+	Color  string `json:"color,omitempty"`
 }
 
 // PediaEntries lista as páginas: os animais (por nome) e depois as coisas de goblopedia.json.
@@ -28,6 +31,15 @@ func (c *Content) PediaEntries() []PediaEntry {
 		out = append(out, PediaEntry{ID: id, Name: sp.Name, Kind: "animal", Model: sp.Model})
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].Name < out[b].Name })
+	// Flores (fase 4.0): todo item com a tag flower vira página, em ordem de nome.
+	var flowers []PediaEntry
+	for _, it := range c.Items {
+		if it.HasTag("flower") {
+			flowers = append(flowers, PediaEntry{ID: it.ID, Name: it.Name, Kind: "flower", Model: it.Model, Rarity: it.Rarity, Color: it.Color})
+		}
+	}
+	sort.Slice(flowers, func(a, b int) bool { return flowers[a].Name < flowers[b].Name })
+	out = append(out, flowers...)
 	return append(out, c.Pedia.Extras...)
 }
 

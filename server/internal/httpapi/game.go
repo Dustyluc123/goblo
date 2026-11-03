@@ -49,6 +49,7 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /passport/stamp", s.auth(s.passportAction(s.Game.Stamp)))
 	mux.HandleFunc("POST /pedia/register", s.auth(s.pediaRegister))
 	mux.HandleFunc("GET /transactions", s.auth(s.transactions))
+	s.bodyRoutes(mux)
 }
 
 type authedHandler func(w http.ResponseWriter, r *http.Request, p *game.Player)
@@ -145,6 +146,7 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"animals":         c.Animals.Species,
 		"pedia":           c.PediaEntries(),
 		"rules":           c.Rules,
+		"body":            c.Body,
 	})
 }
 
@@ -259,8 +261,9 @@ func (s *Server) objects(w http.ResponseWriter, r *http.Request, p *game.Player)
 		return
 	}
 	// now_ms: horário do servidor, para o cliente acertar o relógio dos animais (ADR 0032).
+	// fires: fogueiras acesas no chão (fase 4.0).
 	writeJSON(w, http.StatusOK, map[string]any{"day": day, "objects": objs, "animals": animals,
-		"now_ms": s.Game.Clock().Now().UnixMilli()})
+		"now_ms": s.Game.Clock().Now().UnixMilli(), "fires": s.Game.Fires(cells)})
 }
 
 func (s *Server) interact(w http.ResponseWriter, r *http.Request, p *game.Player) {

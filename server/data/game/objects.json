@@ -1,5 +1,5 @@
 {
- "_doc": "Objetos que o servidor gera em cada célula de terra (determinístico pelo id da célula). kind: tree (sacudir; com machado, cortar), rock (picareta), flower (colher), pebble e branch (pegar), bush (colher frutinhas), decor (só enfeite, sem interação). models: nomes dos modelos do Ultimate Nature Pack (client/assets/quaternius/ultimate-nature). autumn: versões de outono (o cliente troca o modelo pela estação; veja client/scripts/seasons.gd). per_cell: média por célula (~500 unidades²). scale: escala mín/máx do modelo. spacing: distância mínima até o vizinho. drop: o que a árvore dá ao sacudir (branch, coconut ou none). chop: se o machado tira madeira. near_water: só em células que encostam no oceano. colors: cores das flores (viram itens flower_<cor>). rare_color e rare_chance: cor rara (Goblopédia) e a chance de cada flor sair nela (sorteio pelo id da flor, que não muda os outros objetos). solid: o enfeite tem colisão.",
+ "_doc": "Objetos que o servidor gera em cada célula de terra (determinístico pelo id da célula). kind: tree (sacudir; com machado, cortar), rock (picareta), flower (colher), pebble e branch (pegar), bush (colher frutinhas), decor (só enfeite, sem interação). models: nomes dos modelos do Ultimate Nature Pack (client/assets/quaternius/ultimate-nature). autumn: versões de outono (o cliente troca o modelo pela estação; veja client/scripts/seasons.gd). per_cell: média por célula (~500 unidades²). scale: escala mín/máx do modelo. spacing: distância mínima até o vizinho. drop: o que a árvore dá ao sacudir (branch, coconut ou none). chop: se o machado tira madeira. near_water: só em células que encostam no oceano. colors: cores das flores (viram itens flower_<cor>). rare_color e rare_chance: cor rara (Goblopédia) e a chance de cada flor sair nela (sorteio pelo id da flor, que não muda os outros objetos). solid: o enfeite tem colisão. Fase 4.0: seasons = em que estações a flor aparece (spring, summer, autumn, winter e none = trópicos e biomas sem estação); o filtro é na hora de mandar, os ids não mudam. kind forage = ingrediente (cogumelo, ervas, grãos): pick dá o item de drop. Regras novas ficam no fim de cada bioma, para não mexer nos objetos que já existem.",
  "biomes": {
   "tropical_forest": [
    {
@@ -132,7 +132,13 @@
      "purple"
     ],
     "rare_color": "blue",
-    "rare_chance": 0.04
+    "rare_chance": 0.04,
+    "seasons": [
+     "spring",
+     "summer",
+     "autumn",
+     "none"
+    ]
    },
    {
     "kind": "pebble",
@@ -160,6 +166,94 @@
      0.26
     ],
     "spacing": 0.7
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_sunflower"
+    ],
+    "per_cell": 0.45,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "sunflower"
+    ],
+    "seasons": [
+     "summer",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_hibiscus"
+    ],
+    "per_cell": 0.8,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "hibiscus"
+    ],
+    "seasons": [
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_orchid"
+    ],
+    "per_cell": 0.15,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "orchid"
+    ],
+    "seasons": [
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_ipe"
+    ],
+    "per_cell": 0.35,
+    "scale": [
+     0.9,
+     1.2
+    ],
+    "spacing": 2.2,
+    "colors": [
+     "ipe"
+    ],
+    "seasons": [
+     "none",
+     "spring"
+    ],
+    "solid": true
+   },
+   {
+    "kind": "forage",
+    "models": [
+     "primitive:mushroom"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "spacing": 0.8,
+    "drop": "mushroom"
    }
   ],
   "forest": [
@@ -327,7 +421,13 @@
      "purple"
     ],
     "rare_color": "blue",
-    "rare_chance": 0.04
+    "rare_chance": 0.04,
+    "seasons": [
+     "spring",
+     "summer",
+     "autumn",
+     "none"
+    ]
    },
    {
     "kind": "pebble",
@@ -355,6 +455,114 @@
      0.26
     ],
     "spacing": 0.7
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_poppy"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "poppy"
+    ],
+    "seasons": [
+     "spring",
+     "summer",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_daisy"
+    ],
+    "per_cell": 0.6,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "daisy"
+    ],
+    "seasons": [
+     "spring",
+     "summer",
+     "autumn",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_tulip"
+    ],
+    "per_cell": 0.7,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "tulip"
+    ],
+    "seasons": [
+     "spring"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_bluebell"
+    ],
+    "per_cell": 0.6,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "bluebell"
+    ],
+    "seasons": [
+     "spring"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_snowdrop"
+    ],
+    "per_cell": 0.6,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "snowdrop"
+    ],
+    "seasons": [
+     "winter"
+    ]
+   },
+   {
+    "kind": "forage",
+    "models": [
+     "primitive:mushroom"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "spacing": 0.8,
+    "drop": "mushroom"
    }
   ],
   "grassland": [
@@ -456,7 +664,13 @@
      "purple"
     ],
     "rare_color": "blue",
-    "rare_chance": 0.04
+    "rare_chance": 0.04,
+    "seasons": [
+     "spring",
+     "summer",
+     "autumn",
+     "none"
+    ]
    },
    {
     "kind": "pebble",
@@ -484,6 +698,150 @@
      0.26
     ],
     "spacing": 0.7
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_sunflower"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "sunflower"
+    ],
+    "seasons": [
+     "summer",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_lavender"
+    ],
+    "per_cell": 0.8,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "lavender"
+    ],
+    "seasons": [
+     "spring",
+     "summer",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_poppy"
+    ],
+    "per_cell": 0.45,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "poppy"
+    ],
+    "seasons": [
+     "spring",
+     "summer",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_daisy"
+    ],
+    "per_cell": 1.2,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "daisy"
+    ],
+    "seasons": [
+     "spring",
+     "summer",
+     "autumn",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_tulip"
+    ],
+    "per_cell": 0.35,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "tulip"
+    ],
+    "seasons": [
+     "spring"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_ipe"
+    ],
+    "per_cell": 0.17,
+    "scale": [
+     0.9,
+     1.2
+    ],
+    "spacing": 2.2,
+    "colors": [
+     "ipe"
+    ],
+    "seasons": [
+     "none",
+     "spring"
+    ],
+    "solid": true
+   },
+   {
+    "kind": "forage",
+    "models": [
+     "primitive:herbs"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "spacing": 0.8,
+    "drop": "herbs"
+   },
+   {
+    "kind": "forage",
+    "models": [
+     "primitive:grain"
+    ],
+    "per_cell": 0.8,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "spacing": 0.8,
+    "drop": "grain"
    }
   ],
   "beach": [
@@ -536,6 +894,44 @@
      0.3
     ],
     "spacing": 0.6
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_hibiscus"
+    ],
+    "per_cell": 0.4,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "hibiscus"
+    ],
+    "seasons": [
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_lotus"
+    ],
+    "per_cell": 0.2,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "lotus"
+    ],
+    "seasons": [
+     "none",
+     "summer"
+    ],
+    "near_water": true
    }
   ],
   "desert": [
@@ -607,6 +1003,24 @@
      0.3
     ],
     "spacing": 0.6
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_cactus_flower"
+    ],
+    "per_cell": 0.7,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "cactus_flower"
+    ],
+    "seasons": [
+     "none"
+    ]
    }
   ],
   "mountain": [
@@ -679,6 +1093,95 @@
      0.26
     ],
     "spacing": 0.7
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_lavender"
+    ],
+    "per_cell": 0.4,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "lavender"
+    ],
+    "seasons": [
+     "spring",
+     "summer",
+     "none"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_heather"
+    ],
+    "per_cell": 0.45,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "heather"
+    ],
+    "seasons": [
+     "summer",
+     "autumn"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_gentian"
+    ],
+    "per_cell": 0.6,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "gentian"
+    ],
+    "seasons": [
+     "spring",
+     "summer"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_edelweiss"
+    ],
+    "per_cell": 0.18,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "edelweiss"
+    ],
+    "seasons": [
+     "summer"
+    ]
+   },
+   {
+    "kind": "forage",
+    "models": [
+     "primitive:herbs"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "spacing": 0.8,
+    "drop": "herbs"
    }
   ],
   "tundra": [
@@ -811,6 +1314,57 @@
      0.3
     ],
     "spacing": 0.6
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_heather"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "heather"
+    ],
+    "seasons": [
+     "summer",
+     "autumn"
+    ]
+   },
+   {
+    "kind": "flower",
+    "models": [
+     "primitive:flower_gentian"
+    ],
+    "per_cell": 0.3,
+    "scale": [
+     0.85,
+     1.15
+    ],
+    "spacing": 0.9,
+    "colors": [
+     "gentian"
+    ],
+    "seasons": [
+     "spring",
+     "summer"
+    ]
+   },
+   {
+    "kind": "forage",
+    "models": [
+     "primitive:herbs"
+    ],
+    "per_cell": 0.9,
+    "scale": [
+     0.9,
+     1.1
+    ],
+    "spacing": 0.8,
+    "drop": "herbs"
    }
   ],
   "ice": [

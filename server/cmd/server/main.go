@@ -128,6 +128,7 @@ func run(log *slog.Logger) error {
 	svc.SetPresence(hub)
 	svc.SetEvents(hub.OnEvent)
 	go hub.Run()
+	go hub.RunBody()
 	defer hub.Close()
 	api := &httpapi.Server{
 		World: w, Geo: geoData, Snapshot: snap, Game: svc,

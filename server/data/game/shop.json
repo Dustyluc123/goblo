@@ -4,7 +4,10 @@
     "axe",
     "pickaxe",
     "camera",
-    "seeds"
+    "seeds",
+    "flag_cape",
+    "canteen",
+    "campfire"
   ],
   "rotating": [
     "banner_red",
@@ -19,7 +22,14 @@
     "traffic_cone",
     "lantern",
     "bench",
-    "fountain"
+    "fountain",
+    "beanie",
+    "straw_hat",
+    "cap",
+    "scarf",
+    "shorts",
+    "sandals",
+    "boots"
   ],
   "rotating_count": 4,
   "regional": [
@@ -78,6 +88,61 @@
         "THA",
         "TWN"
       ]
+    },
+    {
+      "item": "poncho",
+      "countries": [
+        "ARG",
+        "BOL",
+        "PER",
+        "CHL",
+        "ECU",
+        "COL",
+        "MEX",
+        "URY"
+      ]
+    },
+    {
+      "item": "sun_hat",
+      "countries": [
+        "BRA",
+        "EGY",
+        "IND",
+        "AUS",
+        "THA",
+        "VNM",
+        "IDN",
+        "SAU",
+        "MAR"
+      ]
+    },
+    {
+      "item": "fur_hat",
+      "countries": [
+        "RUS",
+        "CAN",
+        "NOR",
+        "FIN",
+        "SWE",
+        "ISL",
+        "MNG",
+        "KAZ",
+        "GRL"
+      ]
+    },
+    {
+      "item": "coat",
+      "countries": [
+        "DEU",
+        "GBR",
+        "IRL",
+        "NLD",
+        "POL",
+        "JPN",
+        "KOR",
+        "USA",
+        "CHN"
+      ]
     }
   ],
   "prices": {
@@ -102,6 +167,20 @@
     "hay_bale": 30,
     "fountain_square": 130,
     "pillar_stone": 45,
-    "lantern_glass": 50
+    "lantern_glass": 50,
+    "flag_cape": 60,
+    "canteen": 12,
+    "campfire": 15,
+    "beanie": 22,
+    "straw_hat": 18,
+    "cap": 16,
+    "scarf": 16,
+    "shorts": 16,
+    "sandals": 14,
+    "boots": 24,
+    "poncho": 45,
+    "sun_hat": 32,
+    "fur_hat": 40,
+    "coat": 40
   }
 }

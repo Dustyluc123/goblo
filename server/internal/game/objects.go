@@ -3,6 +3,7 @@ package game
 import (
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/Dustyluc123/goblo/server/internal/world"
 )
@@ -28,6 +29,17 @@ type Object struct {
 	Chop  bool    `json:"chop,omitempty"` // árvore: dá madeira com o machado
 	Item  string  `json:"item,omitempty"` // flor: o item que ela vira
 	Solid bool    `json:"solid,omitempty"`
+	// Estações em que aparece, separadas por vírgula (vazio = sempre); o filtro é na hora
+	// de mandar (seasonal). Texto, para Object continuar comparável.
+	seasons string
+}
+
+// inSeason diz se o objeto aparece na estação dada (none = trópicos e biomas sem estação).
+func (o *Object) inSeason(season string) bool {
+	if o.seasons == "" {
+		return true
+	}
+	return strings.Contains(","+o.seasons+",", ","+season+",")
 }
 
 // ObjectID monta o id estável de um objeto.
@@ -113,6 +125,10 @@ func GenerateObjects(w *world.World, content *Content, cell int) []Object {
 			o := Object{
 				ID: ObjectID(cell, len(out)), Cell: cell, Kind: rule.Kind, Model: model,
 				X: round2(x), Y: round2(y), Yaw: round2(yaw), Scale: round2(scale), Solid: rule.Solid,
+				seasons: strings.Join(rule.Seasons, ","),
+			}
+			if rule.Kind == KindForage {
+				o.Item = rule.Drop
 			}
 			if rule.Kind == KindTree {
 				o.Drop = rule.Drop

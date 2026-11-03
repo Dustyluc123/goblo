@@ -17,6 +17,7 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 		writeJSON(w, http.StatusOK, map[string]any{"dev": true})
 	})
 	mux.HandleFunc("POST /dev/give", s.auth(s.devGive))
+	s.devBodyRoutes(mux)
 	mux.HandleFunc("POST /dev/finish-house", s.auth(s.devMe(s.Game.DevFinishHouse)))
 	mux.HandleFunc("POST /dev/next-day", s.auth(s.devMe(s.Game.DevNextDay)))
 	mux.HandleFunc("POST /dev/real-time", s.auth(s.devMe(s.Game.DevRealTime)))

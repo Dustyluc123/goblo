@@ -562,13 +562,13 @@ func TestObjectsAreDeterministic(t *testing.T) {
 			}
 		}
 	}
-	// Oceano não tem objetos; o deserto tem cactos e nenhuma flor.
+	// Oceano não tem objetos; no deserto, a única flor é o cacto florido (fase 4.0).
 	if n := len(game.GenerateObjects(w, c, w.CellAt(0, -30).ID)); n != 0 {
 		t.Fatalf("oceano com %d objetos", n)
 	}
 	for _, o := range game.GenerateObjects(w, c, w.CellAt(23, 13).ID) {
-		if o.Kind == game.KindFlower {
-			t.Fatal("flor no Saara")
+		if o.Kind == game.KindFlower && o.Item != "flower_cactus_flower" {
+			t.Fatalf("flor %s no Saara", o.Item)
 		}
 	}
 }

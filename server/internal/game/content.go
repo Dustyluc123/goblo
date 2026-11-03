@@ -13,7 +13,11 @@ const (
 	CategoryMaterial  = "material"
 	CategoryTool      = "tool"
 	CategoryPlaceable = "placeable"
+	CategoryWear      = "wear"
 )
+
+// StationFire: receita da fogueira (sem station = bancada).
+const StationFire = "fire"
 
 // Item é uma entrada de items.json. Model, Scale e Height são só para o cliente.
 type Item struct {
@@ -27,6 +31,11 @@ type Item struct {
 	Scale     float64  `json:"scale"`
 	Height    float64  `json:"height"`
 	Light     bool     `json:"light,omitempty"`
+	// Fase 4.0: cor e raridade (flores, tintas), comida/bebida e roupa.
+	Color  string    `json:"color,omitempty"`
+	Rarity string    `json:"rarity,omitempty"`
+	Food   *FoodInfo `json:"food,omitempty"`
+	Wear   *WearInfo `json:"wear,omitempty"`
 }
 
 // HasTag diz se o item pertence ao grupo (ex.: "flower").
@@ -45,6 +54,7 @@ type Recipe struct {
 	Result      string         `json:"result"`
 	Count       int            `json:"count"`
 	Ingredients map[string]int `json:"ingredients"`
+	Station     string         `json:"station,omitempty"` // "" = bancada, "fire" = fogueira
 }
 
 // HouseLevel é um nível da casa.
@@ -71,6 +81,8 @@ type ObjectRule struct {
 	RareColor string     `json:"rare_color,omitempty"`
 	RareP     float64    `json:"rare_chance,omitempty"`
 	Solid     bool       `json:"solid,omitempty"`
+	// Fase 4.0: estações em que aparece (flores; vazio = sempre) e o item que um forage dá.
+	Seasons []string `json:"seasons,omitempty"`
 }
 
 // Economy são os números do dinheiro (economy.json).
@@ -114,6 +126,7 @@ type Content struct {
 	Shop      *ShopContent            `json:"-"`
 	NPCs      *NPCContent             `json:"-"`
 	Dialogs   *DialogContent          `json:"-"`
+	Body      *BodyContent            `json:"-"`
 	Pedia     struct {
 		Extras []PediaEntry `json:"extras"`
 	} `json:"-"`
@@ -131,6 +144,7 @@ const (
 	KindBranch = "branch"
 	KindBush   = "bush"
 	KindDecor  = "decor"
+	KindForage = "forage" // ingrediente (cogumelo, ervas, grãos): pick dá o item de drop
 )
 
 // LoadContent lê items.json, recipes.json, houses.json e objects.json de fsys
@@ -160,6 +174,7 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 		{"game/goblopedia.json", &c.Pedia}, {"game/rules.json", &c.Rules},
 		{"game/countries.json", &c.Countries}, {"game/shop.json", &c.Shop},
 		{"game/npcs.json", &c.NPCs}, {"game/dialogs.json", &c.Dialogs},
+		{"game/body.json", &c.Body},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -231,6 +246,15 @@ func (c *Content) index() error {
 	if err := c.checkDialogs(); err != nil {
 		return err
 	}
+	if c.Body == nil {
+		return fmt.Errorf("body.json faltando")
+	}
+	if err := c.Body.check(c.items); err != nil {
+		return err
+	}
+	if err := c.checkWear(); err != nil {
+		return err
+	}
 	if c.Economy.ShopBuyBonus < 1 {
 		return fmt.Errorf("economy.json: shop_buy_bonus precisa ser >= 1")
 	}
@@ -271,6 +295,14 @@ func (c *Content) index() error {
 		for _, r := range rules {
 			if len(r.Models) == 0 || r.Spacing <= 0 {
 				return fmt.Errorf("objetos de %s: %s sem modelos ou sem spacing", biome, r.Kind)
+			}
+			if r.Kind == KindForage && c.items[r.Drop] == nil {
+				return fmt.Errorf("objetos de %s: forage sem item (%s)", biome, r.Drop)
+			}
+			for _, se := range r.Seasons {
+				if se != "none" && !slicesContains(SeasonNames[:], se) {
+					return fmt.Errorf("objetos de %s: estação %s desconhecida", biome, se)
+				}
 			}
 			if r.Kind == KindFlower {
 				if r.RareColor != "" && c.items["flower_"+r.RareColor] == nil {
@@ -356,4 +388,13 @@ func (c *Content) itemsWithTag(tag string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func slicesContains(list []string, v string) bool {
+	for _, x := range list {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }

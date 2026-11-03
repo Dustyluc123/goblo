@@ -1,5 +1,5 @@
 {
-  "_doc": "Itens do jogo. category: material, tool ou placeable. stack: quantos cabem num espaço do inventário. tags: grupos usados nas receitas (\"#flower\" = qualquer flor). footprint: [largura, profundidade] em quadradinhos do lote (0,5 unidade cada). model e scale são só para o cliente (caminho no projeto Godot e escala do modelo). height: altura da colisão no cliente (0 = sem colisão). light: acende à noite. Itens só da loja (fase 3.5) não têm receita: estão em shop.json.",
+  "_doc": "Itens do jogo. category: material, tool ou placeable. stack: quantos cabem num espaço do inventário. tags: grupos usados nas receitas (\"#flower\" = qualquer flor). footprint: [largura, profundidade] em quadradinhos do lote (0,5 unidade cada). model e scale são só para o cliente (caminho no projeto Godot e escala do modelo). height: altura da colisão no cliente (0 = sem colisão). light: acende à noite. Itens só da loja (fase 3.5) não têm receita: estão em shop.json. Fase 4.0: category wear = roupa (wear: slot cabeça/corpo/pernas/pés/costas, cold e heat = proteção em graus, color e colors = cor padrão e as que a tinta pode dar). food: hunger e thirst que o item devolve ao comer/beber (0 a 100), buff e minutes = bônus temporário (body.json → buffs), becomes = o que fica no lugar (cantil), returns = o que volta no bolso depois de cozinhar. color e rarity das flores (Goblopédia). tags: heat (aquece, fogueira), water (enche o cantil), mirror (abre o editor de personagem), canteen, food, paint, wear, ingredient.",
   "items": [
     {
       "id": "branch",
@@ -34,7 +34,9 @@
         "flower"
       ],
       "model": "flower:red",
-      "scale": 0.8
+      "scale": 0.8,
+      "color": "#e8453c",
+      "rarity": "common"
     },
     {
       "id": "flower_yellow",
@@ -45,7 +47,9 @@
         "flower"
       ],
       "model": "flower:yellow",
-      "scale": 0.8
+      "scale": 0.8,
+      "color": "#f5d33c",
+      "rarity": "common"
     },
     {
       "id": "flower_white",
@@ -56,7 +60,9 @@
         "flower"
       ],
       "model": "flower:white",
-      "scale": 0.8
+      "scale": 0.8,
+      "color": "#fbfbf2",
+      "rarity": "common"
     },
     {
       "id": "flower_purple",
@@ -67,7 +73,9 @@
         "flower"
       ],
       "model": "flower:purple",
-      "scale": 0.8
+      "scale": 0.8,
+      "color": "#9b6fd4",
+      "rarity": "common"
     },
     {
       "id": "flower_blue",
@@ -78,7 +86,9 @@
         "flower"
       ],
       "model": "flower:blue",
-      "scale": 0.8
+      "scale": 0.8,
+      "color": "#4d8fe8",
+      "rarity": "rare"
     },
     {
       "id": "berries",
@@ -86,7 +96,11 @@
       "category": "material",
       "stack": 99,
       "model": "res://assets/quaternius/ultimate-nature/BushBerries_2.fbx",
-      "scale": 0.3
+      "scale": 0.3,
+      "food": {
+        "hunger": 6,
+        "thirst": 4
+      }
     },
     {
       "id": "coconut",
@@ -94,7 +108,11 @@
       "category": "material",
       "stack": 99,
       "model": "primitive:coconut",
-      "scale": 1.0
+      "scale": 1.0,
+      "food": {
+        "hunger": 8,
+        "thirst": 30
+      }
     },
     {
       "id": "axe",
@@ -353,7 +371,10 @@
       ],
       "model": "res://assets/kenney/fantasy-town-kit/fountain-round.glb",
       "scale": 1.45,
-      "height": 0.4
+      "height": 0.4,
+      "tags": [
+        "water"
+      ]
     },
     {
       "id": "rock_large",
@@ -519,7 +540,10 @@
       ],
       "model": "res://assets/kenney/fantasy-town-kit/fountain-square-detail.glb",
       "scale": 1.5,
-      "height": 0.6
+      "height": 0.6,
+      "tags": [
+        "water"
+      ]
     },
     {
       "id": "windmill",
@@ -598,6 +622,876 @@
       "model": "res://assets/kenney/car-kit/cone.glb",
       "scale": 0.9,
       "height": 0
+    },
+    {
+      "id": "flower_sunflower",
+      "name": "Girassol",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_sunflower",
+      "scale": 1.0,
+      "color": "#f5c518",
+      "rarity": "common"
+    },
+    {
+      "id": "flower_lavender",
+      "name": "Lavanda",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_lavender",
+      "scale": 1.0,
+      "color": "#9b7fd4",
+      "rarity": "common"
+    },
+    {
+      "id": "flower_poppy",
+      "name": "Papoula",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_poppy",
+      "scale": 1.0,
+      "color": "#e8453c",
+      "rarity": "common"
+    },
+    {
+      "id": "flower_daisy",
+      "name": "Margarida",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_daisy",
+      "scale": 1.0,
+      "color": "#fbfbf2",
+      "rarity": "common"
+    },
+    {
+      "id": "flower_tulip",
+      "name": "Tulipa",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_tulip",
+      "scale": 1.0,
+      "color": "#f07aa8",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "flower_bluebell",
+      "name": "Campainha-azul",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_bluebell",
+      "scale": 1.0,
+      "color": "#6d8fe8",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "flower_snowdrop",
+      "name": "Galanto",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_snowdrop",
+      "scale": 1.0,
+      "color": "#f2f6ff",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "flower_heather",
+      "name": "Urze",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_heather",
+      "scale": 1.0,
+      "color": "#c46fb3",
+      "rarity": "common"
+    },
+    {
+      "id": "flower_gentian",
+      "name": "Genciana",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_gentian",
+      "scale": 1.0,
+      "color": "#3c62d6",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "flower_edelweiss",
+      "name": "Edelvais",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_edelweiss",
+      "scale": 1.0,
+      "color": "#f4f1e4",
+      "rarity": "rare"
+    },
+    {
+      "id": "flower_cactus_flower",
+      "name": "Cacto florido",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_cactus_flower",
+      "scale": 1.0,
+      "color": "#ff6fa3",
+      "rarity": "common"
+    },
+    {
+      "id": "flower_hibiscus",
+      "name": "Hibisco",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_hibiscus",
+      "scale": 1.0,
+      "color": "#ff4d6d",
+      "rarity": "common"
+    },
+    {
+      "id": "flower_orchid",
+      "name": "Orquídea",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_orchid",
+      "scale": 1.0,
+      "color": "#d68fe8",
+      "rarity": "rare"
+    },
+    {
+      "id": "flower_ipe",
+      "name": "Ipê-amarelo",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_ipe",
+      "scale": 1.0,
+      "color": "#ffd23f",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "flower_lotus",
+      "name": "Flor de lótus",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "flower"
+      ],
+      "model": "primitive:flower_lotus",
+      "scale": 1.0,
+      "color": "#ffb3c8",
+      "rarity": "rare"
+    },
+    {
+      "id": "mushroom",
+      "name": "Cogumelo",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "ingredient"
+      ],
+      "model": "primitive:mushroom",
+      "scale": 1.0,
+      "food": {
+        "hunger": 4
+      }
+    },
+    {
+      "id": "herbs",
+      "name": "Ervas",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "ingredient"
+      ],
+      "model": "primitive:herbs",
+      "scale": 1.0,
+      "food": {
+        "hunger": 2,
+        "thirst": 2
+      }
+    },
+    {
+      "id": "grain",
+      "name": "Grãos",
+      "category": "material",
+      "stack": 99,
+      "tags": [
+        "ingredient"
+      ],
+      "model": "primitive:grain",
+      "scale": 1.0
+    },
+    {
+      "id": "canteen",
+      "name": "Cantil vazio",
+      "category": "material",
+      "stack": 1,
+      "tags": [
+        "canteen"
+      ],
+      "model": "primitive:canteen",
+      "scale": 1.0
+    },
+    {
+      "id": "canteen_half",
+      "name": "Cantil pela metade",
+      "category": "material",
+      "stack": 1,
+      "tags": [
+        "canteen"
+      ],
+      "model": "primitive:canteen",
+      "scale": 1.0,
+      "food": {
+        "thirst": 35,
+        "becomes": "canteen"
+      }
+    },
+    {
+      "id": "canteen_full",
+      "name": "Cantil cheio",
+      "category": "material",
+      "stack": 1,
+      "tags": [
+        "canteen"
+      ],
+      "model": "primitive:canteen",
+      "scale": 1.0,
+      "food": {
+        "thirst": 35,
+        "becomes": "canteen_half"
+      }
+    },
+    {
+      "id": "campfire",
+      "name": "Fogueira",
+      "category": "placeable",
+      "stack": 10,
+      "tags": [
+        "heat",
+        "fire"
+      ],
+      "footprint": [
+        2,
+        2
+      ],
+      "model": "primitive:campfire",
+      "scale": 1.0,
+      "height": 0.0,
+      "light": true
+    },
+    {
+      "id": "well",
+      "name": "Poço",
+      "category": "placeable",
+      "stack": 5,
+      "tags": [
+        "water"
+      ],
+      "footprint": [
+        3,
+        3
+      ],
+      "model": "primitive:well",
+      "scale": 1.0,
+      "height": 1.0
+    },
+    {
+      "id": "mirror",
+      "name": "Espelho",
+      "category": "placeable",
+      "stack": 5,
+      "tags": [
+        "mirror"
+      ],
+      "footprint": [
+        2,
+        1
+      ],
+      "model": "primitive:mirror",
+      "scale": 1.0,
+      "height": 1.4
+    },
+    {
+      "id": "roasted_berries",
+      "name": "Frutinhas assadas",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "food"
+      ],
+      "model": "primitive:roasted_berries",
+      "scale": 1.0,
+      "food": {
+        "hunger": 20,
+        "thirst": 2,
+        "buff": "steady",
+        "minutes": 4
+      }
+    },
+    {
+      "id": "mushroom_skewer",
+      "name": "Espetinho de cogumelo",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "food"
+      ],
+      "model": "primitive:mushroom_skewer",
+      "scale": 1.0,
+      "food": {
+        "hunger": 30,
+        "buff": "warm",
+        "minutes": 5
+      }
+    },
+    {
+      "id": "herb_soup",
+      "name": "Sopa de ervas",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "food"
+      ],
+      "model": "primitive:herb_soup",
+      "scale": 1.0,
+      "food": {
+        "hunger": 35,
+        "thirst": 15,
+        "buff": "steady",
+        "minutes": 6
+      }
+    },
+    {
+      "id": "berry_juice",
+      "name": "Suco de frutinhas",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "food"
+      ],
+      "model": "primitive:berry_juice",
+      "scale": 1.0,
+      "food": {
+        "thirst": 45,
+        "hunger": 5,
+        "buff": "cool",
+        "minutes": 5
+      }
+    },
+    {
+      "id": "herb_tea",
+      "name": "Chá de ervas",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "food"
+      ],
+      "model": "primitive:herb_tea",
+      "scale": 1.0,
+      "food": {
+        "thirst": 40,
+        "buff": "warm",
+        "minutes": 6,
+        "returns": "canteen"
+      }
+    },
+    {
+      "id": "grain_bread",
+      "name": "Pãozinho de grãos",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "food"
+      ],
+      "model": "primitive:grain_bread",
+      "scale": 1.0,
+      "food": {
+        "hunger": 40,
+        "buff": "fast",
+        "minutes": 5
+      }
+    },
+    {
+      "id": "cloth",
+      "name": "Tecido",
+      "category": "material",
+      "stack": 99,
+      "model": "primitive:cloth",
+      "scale": 1.0
+    },
+    {
+      "id": "beanie",
+      "name": "Gorro",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_beanie",
+      "scale": 1.0,
+      "wear": {
+        "slot": "head",
+        "cold": 6,
+        "heat": 0,
+        "color": "#e86a6a",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "straw_hat",
+      "name": "Chapéu de palha",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_straw_hat",
+      "scale": 1.0,
+      "wear": {
+        "slot": "head",
+        "cold": 0,
+        "heat": 6,
+        "color": "#e9c46a",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "cap",
+      "name": "Boné",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_cap",
+      "scale": 1.0,
+      "wear": {
+        "slot": "head",
+        "cold": 0,
+        "heat": 3,
+        "color": "#6d8fe8",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "scarf",
+      "name": "Cachecol",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_scarf",
+      "scale": 1.0,
+      "wear": {
+        "slot": "body",
+        "cold": 4,
+        "heat": 0,
+        "color": "#e86a6a",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "coat",
+      "name": "Casaco",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_coat",
+      "scale": 1.0,
+      "wear": {
+        "slot": "body",
+        "cold": 10,
+        "heat": 0,
+        "color": "#6d8fe8",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "tank_top",
+      "name": "Regata",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_tank_top",
+      "scale": 1.0,
+      "wear": {
+        "slot": "body",
+        "cold": 0,
+        "heat": 5,
+        "color": "#f4f1e4",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "pants",
+      "name": "Calça",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_pants",
+      "scale": 1.0,
+      "wear": {
+        "slot": "legs",
+        "cold": 4,
+        "heat": 0,
+        "color": "#5b6f8c",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "shorts",
+      "name": "Bermuda",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_shorts",
+      "scale": 1.0,
+      "wear": {
+        "slot": "legs",
+        "cold": 0,
+        "heat": 4,
+        "color": "#e9c46a",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "boots",
+      "name": "Botas",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_boots",
+      "scale": 1.0,
+      "wear": {
+        "slot": "feet",
+        "cold": 4,
+        "heat": 0,
+        "color": "#7a5233",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "sandals",
+      "name": "Sandálias",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_sandals",
+      "scale": 1.0,
+      "wear": {
+        "slot": "feet",
+        "cold": 0,
+        "heat": 3,
+        "color": "#c99a6b",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "poncho",
+      "name": "Poncho",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_poncho",
+      "scale": 1.0,
+      "wear": {
+        "slot": "body",
+        "cold": 7,
+        "heat": 1,
+        "color": "#c0392b",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "sun_hat",
+      "name": "Chapéu de sol",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_sun_hat",
+      "scale": 1.0,
+      "wear": {
+        "slot": "head",
+        "cold": 1,
+        "heat": 7,
+        "color": "#f4f1e4",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "fur_hat",
+      "name": "Gorro de pele",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_fur_hat",
+      "scale": 1.0,
+      "wear": {
+        "slot": "head",
+        "cold": 9,
+        "heat": 0,
+        "color": "#8d6e63",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "flag_cape",
+      "name": "Capa de bandeiras",
+      "category": "wear",
+      "stack": 1,
+      "tags": [
+        "wear"
+      ],
+      "model": "primitive:wear_flag_cape",
+      "scale": 1.0,
+      "wear": {
+        "slot": "back",
+        "cold": 2,
+        "heat": 0,
+        "color": "#f4f1e4",
+        "colors": [
+          "#e86a6a",
+          "#f5c518",
+          "#7cc49a",
+          "#6d8fe8",
+          "#9b7fd4",
+          "#f4f1e4",
+          "#5b4636"
+        ]
+      }
+    },
+    {
+      "id": "paint_red",
+      "name": "Tinta vermelha",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "paint"
+      ],
+      "model": "primitive:paint",
+      "scale": 1.0,
+      "color": "#e86a6a"
+    },
+    {
+      "id": "paint_yellow",
+      "name": "Tinta amarela",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "paint"
+      ],
+      "model": "primitive:paint",
+      "scale": 1.0,
+      "color": "#f5c518"
+    },
+    {
+      "id": "paint_white",
+      "name": "Tinta branca",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "paint"
+      ],
+      "model": "primitive:paint",
+      "scale": 1.0,
+      "color": "#f4f1e4"
+    },
+    {
+      "id": "paint_purple",
+      "name": "Tinta roxa",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "paint"
+      ],
+      "model": "primitive:paint",
+      "scale": 1.0,
+      "color": "#9b7fd4"
+    },
+    {
+      "id": "paint_blue",
+      "name": "Tinta azul",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "paint"
+      ],
+      "model": "primitive:paint",
+      "scale": 1.0,
+      "color": "#6d8fe8"
+    },
+    {
+      "id": "paint_pink",
+      "name": "Tinta rosa",
+      "category": "material",
+      "stack": 20,
+      "tags": [
+        "paint"
+      ],
+      "model": "primitive:paint",
+      "scale": 1.0,
+      "color": "#f07aa8"
     }
   ]
 }

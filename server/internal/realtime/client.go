@@ -59,6 +59,13 @@ type client struct {
 	trade     *trade
 	tradeReqs map[int64]time.Time
 	noTrades  bool
+
+	// Corpo (fase 4.0): multiplicador de velocidade aceito, o último corpo mandado e o
+	// visual (roupas, editor) que os outros veem.
+	speed      float64
+	lastBody   game.BodyView
+	bodySentAt time.Time
+	look       *game.LookView
 }
 
 type outMsg struct {
@@ -67,7 +74,7 @@ type outMsg struct {
 }
 
 func newClient(h *Hub, conn *websocket.Conn, p *game.Player, st *game.MovementState) *client {
-	return &client{hub: h, conn: conn, id: p.ID, player: p, state: st, send: make(chan outMsg, 256),
+	return &client{hub: h, conn: conn, id: p.ID, player: p, state: st, send: make(chan outMsg, 256), speed: 1,
 		done: make(chan struct{}), cell: -1, visible: map[int64]bool{}, blocked: map[int64]bool{},
 		blockedBy: map[int64]bool{}, tradeReqs: map[int64]time.Time{}, chatTokens: float64(h.rules.Chat.Burst), emoteTokens: 2, actTokens: 4,
 		chatAt: time.Now(), emoteAt: time.Now(), actAt: time.Now()}
@@ -76,7 +83,7 @@ func newClient(h *Hub, conn *websocket.Conn, p *game.Player, st *game.MovementSt
 // enterMsg apresenta o jogador para quem passa a vê-lo.
 func (c *client) enterMsg() map[string]any {
 	return map[string]any{"t": "enter", "id": c.id, "nick": c.player.Nickname, "country": c.player.Country,
-		"char": c.player.Character, "bot": c.conn == nil, "pos": [3]float64{c.pos.X, c.pos.Y, c.pos.Z}}
+		"char": c.player.Character, "bot": c.conn == nil, "pos": [3]float64{c.pos.X, c.pos.Y, c.pos.Z}, "look": c.look}
 }
 
 func (c *client) sendJSON(v any) { c.enqueue(outMsg{websocket.MessageText, marshal(v)}) }
@@ -233,8 +240,10 @@ func (h *Hub) validateMove(c *client, to world.Vec3, flags uint8, now time.Time)
 	mv := h.rules.Movement
 	dt := now.Sub(c.lastMove).Seconds()
 	c.lastMove = now
-	limit := mv.Burst + mv.MaxSpeed*0.25
-	c.allow = math.Min(c.allow+mv.MaxSpeed*dt, limit)
+	// A velocidade máxima acompanha o corpo (fase 4.0): bônus das necessidades e da comida.
+	maxSpeed := mv.MaxSpeed * math.Max(1, c.speed)
+	limit := mv.Burst + maxSpeed*0.25
+	c.allow = math.Min(c.allow+maxSpeed*dt, limit)
 	noclip := flags&FlagNoclip != 0 && h.dev
 	d := groundDistance(h.world, c.pos, to)
 	if !noclip && d > c.allow+0.05 {

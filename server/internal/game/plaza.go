@@ -12,6 +12,8 @@ import "math"
 const (
 	plazaCounterU, plazaCounterV = 0.0, 3.6
 	plazaShopU, plazaShopV       = -7.6, 3.4
+	// Chafariz da praça (enche o cantil; fase 4.0).
+	plazaFountainU, plazaFountainV = -3.9, 3.2
 )
 
 // Escala mínima da praça nos hexágonos pequenos e o passo da procura.

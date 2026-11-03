@@ -1,5 +1,5 @@
 {
-  "_doc": "Receitas da bancada. ingredients: item → quantidade; \"#flower\" aceita qualquer item com a tag flower. count: quantos itens a receita dá.",
+  "_doc": "Receitas da bancada. ingredients: item → quantidade; \"#flower\" aceita qualquer item com a tag flower. count: quantos itens a receita dá. Fase 4.0: station fire = receita de fogueira (perto de uma fogueira acesa ou colocada); sem station = bancada.",
   "recipes": [
     {
       "id": "axe",
@@ -203,6 +203,357 @@
       "ingredients": {
         "seeds": 2,
         "wood": 1
+      }
+    },
+    {
+      "id": "canteen",
+      "result": "canteen",
+      "count": 1,
+      "ingredients": {
+        "wood": 2,
+        "stone": 1,
+        "#flower": 1
+      }
+    },
+    {
+      "id": "campfire",
+      "result": "campfire",
+      "count": 1,
+      "ingredients": {
+        "branch": 4,
+        "stone": 3,
+        "wood": 1
+      }
+    },
+    {
+      "id": "well",
+      "result": "well",
+      "count": 1,
+      "ingredients": {
+        "stone": 12,
+        "wood": 4
+      }
+    },
+    {
+      "id": "mirror",
+      "result": "mirror",
+      "count": 1,
+      "ingredients": {
+        "wood": 3,
+        "stone": 2,
+        "flower_white": 1
+      }
+    },
+    {
+      "id": "roasted_berries",
+      "result": "roasted_berries",
+      "count": 1,
+      "ingredients": {
+        "berries": 3
+      },
+      "station": "fire"
+    },
+    {
+      "id": "mushroom_skewer",
+      "result": "mushroom_skewer",
+      "count": 1,
+      "ingredients": {
+        "mushroom": 2,
+        "branch": 1
+      },
+      "station": "fire"
+    },
+    {
+      "id": "herb_soup",
+      "result": "herb_soup",
+      "count": 1,
+      "ingredients": {
+        "herbs": 2,
+        "mushroom": 1,
+        "coconut": 1
+      },
+      "station": "fire"
+    },
+    {
+      "id": "berry_juice",
+      "result": "berry_juice",
+      "count": 1,
+      "ingredients": {
+        "berries": 2,
+        "coconut": 1
+      },
+      "station": "fire"
+    },
+    {
+      "id": "herb_tea",
+      "result": "herb_tea",
+      "count": 1,
+      "ingredients": {
+        "herbs": 2,
+        "canteen_full": 1
+      },
+      "station": "fire"
+    },
+    {
+      "id": "grain_bread",
+      "result": "grain_bread",
+      "count": 1,
+      "ingredients": {
+        "grain": 3
+      },
+      "station": "fire"
+    },
+    {
+      "id": "cloth",
+      "result": "cloth",
+      "count": 1,
+      "ingredients": {
+        "#flower": 3
+      }
+    },
+    {
+      "id": "beanie",
+      "result": "beanie",
+      "count": 1,
+      "ingredients": {
+        "cloth": 2
+      }
+    },
+    {
+      "id": "straw_hat",
+      "result": "straw_hat",
+      "count": 1,
+      "ingredients": {
+        "grain": 3,
+        "branch": 1
+      }
+    },
+    {
+      "id": "cap",
+      "result": "cap",
+      "count": 1,
+      "ingredients": {
+        "cloth": 1,
+        "flower_blue": 1
+      }
+    },
+    {
+      "id": "scarf",
+      "result": "scarf",
+      "count": 1,
+      "ingredients": {
+        "cloth": 2
+      }
+    },
+    {
+      "id": "coat",
+      "result": "coat",
+      "count": 1,
+      "ingredients": {
+        "cloth": 4,
+        "wood": 1
+      }
+    },
+    {
+      "id": "tank_top",
+      "result": "tank_top",
+      "count": 1,
+      "ingredients": {
+        "cloth": 2
+      }
+    },
+    {
+      "id": "pants",
+      "result": "pants",
+      "count": 1,
+      "ingredients": {
+        "cloth": 3
+      }
+    },
+    {
+      "id": "shorts",
+      "result": "shorts",
+      "count": 1,
+      "ingredients": {
+        "cloth": 2
+      }
+    },
+    {
+      "id": "boots",
+      "result": "boots",
+      "count": 1,
+      "ingredients": {
+        "cloth": 1,
+        "wood": 2
+      }
+    },
+    {
+      "id": "sandals",
+      "result": "sandals",
+      "count": 1,
+      "ingredients": {
+        "branch": 2,
+        "cloth": 1
+      }
+    },
+    {
+      "id": "paint_red_0",
+      "result": "paint_red",
+      "count": 1,
+      "ingredients": {
+        "flower_red": 2
+      }
+    },
+    {
+      "id": "paint_red_1",
+      "result": "paint_red",
+      "count": 1,
+      "ingredients": {
+        "flower_poppy": 2
+      }
+    },
+    {
+      "id": "paint_red_2",
+      "result": "paint_red",
+      "count": 1,
+      "ingredients": {
+        "flower_hibiscus": 2
+      }
+    },
+    {
+      "id": "paint_yellow_0",
+      "result": "paint_yellow",
+      "count": 1,
+      "ingredients": {
+        "flower_yellow": 2
+      }
+    },
+    {
+      "id": "paint_yellow_1",
+      "result": "paint_yellow",
+      "count": 1,
+      "ingredients": {
+        "flower_sunflower": 2
+      }
+    },
+    {
+      "id": "paint_yellow_2",
+      "result": "paint_yellow",
+      "count": 1,
+      "ingredients": {
+        "flower_ipe": 2
+      }
+    },
+    {
+      "id": "paint_white_0",
+      "result": "paint_white",
+      "count": 1,
+      "ingredients": {
+        "flower_white": 2
+      }
+    },
+    {
+      "id": "paint_white_1",
+      "result": "paint_white",
+      "count": 1,
+      "ingredients": {
+        "flower_daisy": 2
+      }
+    },
+    {
+      "id": "paint_white_2",
+      "result": "paint_white",
+      "count": 1,
+      "ingredients": {
+        "flower_snowdrop": 2
+      }
+    },
+    {
+      "id": "paint_white_3",
+      "result": "paint_white",
+      "count": 1,
+      "ingredients": {
+        "flower_edelweiss": 2
+      }
+    },
+    {
+      "id": "paint_purple_0",
+      "result": "paint_purple",
+      "count": 1,
+      "ingredients": {
+        "flower_purple": 2
+      }
+    },
+    {
+      "id": "paint_purple_1",
+      "result": "paint_purple",
+      "count": 1,
+      "ingredients": {
+        "flower_lavender": 2
+      }
+    },
+    {
+      "id": "paint_purple_2",
+      "result": "paint_purple",
+      "count": 1,
+      "ingredients": {
+        "flower_heather": 2
+      }
+    },
+    {
+      "id": "paint_purple_3",
+      "result": "paint_purple",
+      "count": 1,
+      "ingredients": {
+        "flower_orchid": 2
+      }
+    },
+    {
+      "id": "paint_blue_0",
+      "result": "paint_blue",
+      "count": 1,
+      "ingredients": {
+        "flower_blue": 2
+      }
+    },
+    {
+      "id": "paint_blue_1",
+      "result": "paint_blue",
+      "count": 1,
+      "ingredients": {
+        "flower_bluebell": 2
+      }
+    },
+    {
+      "id": "paint_blue_2",
+      "result": "paint_blue",
+      "count": 1,
+      "ingredients": {
+        "flower_gentian": 2
+      }
+    },
+    {
+      "id": "paint_pink_0",
+      "result": "paint_pink",
+      "count": 1,
+      "ingredients": {
+        "flower_tulip": 2
+      }
+    },
+    {
+      "id": "paint_pink_1",
+      "result": "paint_pink",
+      "count": 1,
+      "ingredients": {
+        "flower_cactus_flower": 2
+      }
+    },
+    {
+      "id": "paint_pink_2",
+      "result": "paint_pink",
+      "count": 1,
+      "ingredients": {
+        "flower_lotus": 2
       }
     }
   ]

@@ -117,6 +117,9 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	}
 	conn.SetReadLimit(int64(h.rules.Network.MaxMessageBytes))
 	c := newClient(h, conn, p, st)
+	if lv, err := h.svc.LookOf(r.Context(), p); err == nil {
+		c.look = lv
+	}
 	for _, id := range blocked {
 		c.blocked[id] = true
 	}
@@ -161,6 +164,7 @@ func (h *Hub) unregister(c *client) {
 	}
 	delete(h.clients, c.id)
 	h.dropTrade(c)
+	h.saveBodyOnExit(c.id)
 	if c.spawned {
 		h.last[c.id] = lastKnown{pos: c.pos, cell: c.cell, at: time.Now()}
 	} else if c.lastKnown != nil {
@@ -274,6 +278,9 @@ func (h *Hub) OnEvent(e game.Event) {
 	case "passports":
 		go h.refreshState(e.PlayerID)
 		return
+	case "look":
+		h.onLook(e.PlayerID, e.Data)
+		return
 	}
 	if e.Cell < 0 || e.Cell >= len(h.world.Cells) {
 		return
@@ -286,6 +293,8 @@ func (h *Hub) OnEvent(e game.Event) {
 		msg = map[string]any{"t": "obj", "by": e.PlayerID, "data": e.Data}
 	case "lot":
 		msg = map[string]any{"t": "lot", "by": e.PlayerID, "lot": e.Data}
+	case "fire":
+		msg = map[string]any{"t": "fire", "by": e.PlayerID, "fire": e.Data}
 	default:
 		return
 	}
@@ -313,6 +322,10 @@ func (h *Hub) refreshState(player int64) {
 	h.mu.Lock()
 	c.state = st
 	h.mu.Unlock()
+	// Carimbo novo: a capa de bandeiras dos outros também muda (fase 4.0).
+	if lv, err := h.svc.LookOf(context.Background(), c.player); err == nil {
+		h.onLook(player, *lv)
+	}
 }
 
 // --- Modo dev ------------------------------------------------------------------------------

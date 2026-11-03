@@ -727,3 +727,20 @@ func (s *Store) ClearPassports(ctx context.Context, player int64) error {
 	_, err := s.q.ExecContext(ctx, `DELETE FROM stamps WHERE player_id = ?`, player)
 	return err
 }
+
+// --- Corpo (fase 4.0) -----------------------------------------------------------------------
+
+func (s *Store) Body(ctx context.Context, player int64) (string, error) {
+	var data string
+	err := s.q.QueryRowContext(ctx, `SELECT data FROM player_body WHERE player_id = ?`, player).Scan(&data)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return data, err
+}
+
+func (s *Store) SaveBody(ctx context.Context, player int64, data string) error {
+	_, err := s.q.ExecContext(ctx, `INSERT INTO player_body (player_id, data, updated_at) VALUES (?, ?, ?)
+		ON CONFLICT(player_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`, player, data, time.Now().Unix())
+	return err
+}

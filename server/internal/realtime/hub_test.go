@@ -618,3 +618,52 @@ func TestDevTradeBot(t *testing.T) {
 	}
 	e.hub.RemoveBots()
 }
+
+// Corpo (fase 4.0): com as necessidades no máximo e o bônus "pernas leves", o servidor aceita
+// a velocidade maior sem acusar movimento inválido; o mesmo ritmo sem bônus é corrigido. O
+// cliente recebe a mensagem body.
+func TestBodySpeedBonusAccepted(t *testing.T) {
+	e := newEnv(t, true)
+	go e.hub.RunBody()
+	fast, _ := e.join(t, "Ligeirinho", "BRA")
+	slow, _ := e.join(t, "Devagar", "BRA")
+	mv := content.Rules.Movement
+	full := 100.0
+	if _, err := e.svc.DevBody(e.ctx, fast.player, game.DevBodyRequest{Need: "all", Value: &full, Buff: "fast", Minutes: 5}); err != nil {
+		t.Fatal(err)
+	}
+	half := 50.0
+	e.svc.DevBody(e.ctx, slow.player, game.DevBodyRequest{Need: "all", Value: &half})
+	speed := mv.MaxSpeed * 1.15 // acima do limite sem bônus, abaixo do limite com bônus (×1,23)
+	for i, c := range []*conn{fast, slow} {
+		start := ground(-15.8+float64(i)*3, -50.0) // no interior (a corrida vai uns 4° para o leste)
+		if !c.tp("dev", start) {
+			t.Fatal("teleporte recusado")
+		}
+	}
+	// Espera o primeiro tick do corpo (multiplicador do servidor).
+	body := fast.waitText("body", 3*time.Second)
+	if lv, _ := body["body"].(map[string]any)["level"].(string); lv != game.LevelOptimal {
+		t.Fatalf("corpo do rápido: %v", body)
+	}
+	slow.waitText("body", 3*time.Second)
+	run := func(c *conn, latOffset float64) []byte {
+		p := ground(-15.8+latOffset, -50.0)
+		last := time.Now()
+		for i := 0; i < 80; i++ {
+			time.Sleep(50 * time.Millisecond)
+			now := time.Now()
+			p = step(p, speed*now.Sub(last).Seconds(), 1)
+			last = now
+			c.move(p)
+		}
+		time.Sleep(200 * time.Millisecond)
+		return c.corrections()
+	}
+	if corr := run(fast, 0); len(corr) != 0 {
+		t.Fatalf("com bônus, %.1f unidades/s foi corrigido: %v", speed, corr)
+	}
+	if corr := run(slow, 3); len(corr) == 0 {
+		t.Fatalf("sem bônus, %.1f unidades/s não foi corrigido", speed)
+	}
+}

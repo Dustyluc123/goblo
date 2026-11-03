@@ -183,6 +183,13 @@ type PassportRepository interface {
 	ClearPassports(ctx context.Context, player int64) error // passaportes e carimbos
 }
 
+// BodyRepository guarda o corpo do jogador (fase 4.0) como JSON: necessidades, bônus, modo
+// tranquilo, visual e roupas.
+type BodyRepository interface {
+	Body(ctx context.Context, player int64) (string, error) // "" se ainda não existe
+	SaveBody(ctx context.Context, player int64, data string) error
+}
+
 // Store junta os repositórios. As regras só conhecem esta interface; a implementação
 // atual é SQLite (internal/store/sqlite), e dá para trocar por PostgreSQL (ADR 0018).
 type Store interface {
@@ -194,6 +201,7 @@ type Store interface {
 	WalletRepository
 	PediaRepository
 	PassportRepository
+	BodyRepository
 	// InTx roda fn numa transação: ou tudo é gravado, ou nada.
 	InTx(ctx context.Context, fn func(Store) error) error
 }

@@ -58,6 +58,8 @@ type Service struct {
 	// Estoque da loja adiantado pelo modo dev (país → dias).
 	shopMu     sync.Mutex
 	shopOffset map[string]int64
+	// Corpos carregados e fogueiras acesas no chão (fase 4.0).
+	body bodies
 }
 
 // NewService monta as regras. clock nil = relógio real.
@@ -446,6 +448,21 @@ type ObjectView struct {
 // cellObjects gera os objetos da célula e tira os que caem em lotes ocupados. No hexágono
 // de um aeroporto não há objetos (o prédio e a pista ocupam tudo).
 func (s *Service) cellObjects(cell int, lots []Lot) []Object {
+	return seasonal(s.cellObjectsAll(cell, lots), SeasonFor(s.clock.Now(), s.world.Cells[cell].Lat, s.world.Cells[cell].Biome))
+}
+
+// seasonal tira as flores fora de estação (fase 4.0). Os ids continuam os mesmos.
+func seasonal(objs []Object, season string) []Object {
+	out := objs[:0:0]
+	for _, o := range objs {
+		if o.inSeason(season) {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+func (s *Service) cellObjectsAll(cell int, lots []Lot) []Object {
 	if s.airportCells[cell] {
 		return nil
 	}
@@ -605,6 +622,7 @@ func (s *Service) Interact(ctx context.Context, p *Player, objectID int64, actio
 		return nil
 	})
 	if err == nil {
+		s.exertBody(p.ID)
 		// Os outros veem a árvore balançar (o estado de coleta continua por jogador).
 		s.emit(Event{Kind: "object", Cell: cell, PlayerID: p.ID, Data: map[string]any{"id": objectID, "action": action}})
 	}
@@ -650,7 +668,7 @@ func (s *Service) checkAction(o *Object, action string, inv []Stack) error {
 			}
 			return nil
 		}
-	case KindFlower, KindPebble, KindBranch:
+	case KindFlower, KindPebble, KindBranch, KindForage:
 		if action == "pick" {
 			return nil
 		}
@@ -689,6 +707,8 @@ func (s *Service) reward(p *Player, o *Object, action string, day int64, done in
 		return []StackView{{Item: "branch", Count: 1 + r.intn(3)}}
 	case o.Kind == KindBush:
 		return []StackView{{Item: "berries", Count: 1 + r.intn(3)}}
+	case o.Kind == KindForage:
+		return []StackView{{Item: o.Item, Count: 1 + r.intn(2)}}
 	case o.Kind == KindFlower:
 		item := o.Item
 		if item == "" {
@@ -844,18 +864,29 @@ func consume(ctx context.Context, tx Store, player int64, items []StackView) err
 	return nil
 }
 
-// Craft fabrica uma receita `times` vezes. Com o tempo real ligado, o jogador precisa estar
-// numa bancada do próprio lote (ADR 0040).
+// Craft fabrica uma receita da bancada `times` vezes. Com o tempo real ligado, o jogador
+// precisa estar numa bancada do próprio lote (ADR 0040). Receitas de fogueira vão por Cook.
 func (s *Service) Craft(ctx context.Context, p *Player, recipeID string, times int) (*CraftResult, error) {
 	r := s.content.Recipe(recipeID)
 	if r == nil {
 		return nil, ErrNotFound.with("Receita desconhecida.")
+	}
+	if r.Station == StationFire {
+		return nil, ErrWrongAction.with("Essa receita é de fogueira.")
 	}
 	if times <= 0 || times > 99 {
 		return nil, ErrInvalid
 	}
 	if err := s.requireWorkbench(ctx, p); err != nil {
 		return nil, err
+	}
+	return s.craft(ctx, p, r, times)
+}
+
+// craft gasta os ingredientes e entrega o resultado (bancada ou fogueira).
+func (s *Service) craft(ctx context.Context, p *Player, r *Recipe, times int) (*CraftResult, error) {
+	if times <= 0 || times > 99 {
+		return nil, ErrInvalid
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -869,23 +900,33 @@ func (s *Service) Craft(ctx context.Context, p *Player, recipeID string, times i
 		if err != nil {
 			return err
 		}
-		made := StackView{Item: r.Result, Count: r.Count * times}
-		after := applyDelta(applyDelta(inv, used, -1), []StackView{made}, 1)
+		made := []StackView{{Item: r.Result, Count: r.Count * times}}
+		// O que volta ao bolso (o cantil do chá) entra junto.
+		if it := s.content.Item(r.Result); it != nil && it.Food != nil && it.Food.Returns != "" {
+			made = append(made, StackView{Item: it.Food.Returns, Count: times})
+		}
+		after := applyDelta(applyDelta(inv, used, -1), made, 1)
 		if s.slotsUsed(after) > InventorySlots {
 			return ErrInventoryFull
 		}
 		if err := consume(ctx, tx, p.ID, used); err != nil {
 			return err
 		}
-		if err := tx.AddItem(ctx, p.ID, made.Item, made.Count); err != nil {
-			return err
+		for _, m := range made {
+			if err := tx.AddItem(ctx, p.ID, m.Item, m.Count); err != nil {
+				return err
+			}
 		}
 		inv, err = tx.Inventory(ctx, p.ID)
 		if err != nil {
 			return err
 		}
-		res = &CraftResult{Crafted: made, Consumed: used, Message: fmt.Sprintf("Você fabricou %d× %s!", made.Count, s.itemName(made.Item))}
-		if res.IntroTask, res.IntroReward, err = s.introProgress(ctx, tx, p, "", recipeID); err != nil {
+		verb := "fabricou"
+		if r.Station == StationFire {
+			verb = "cozinhou"
+		}
+		res = &CraftResult{Crafted: made[0], Consumed: used, Message: fmt.Sprintf("Você %s %d× %s!", verb, made[0].Count, s.itemName(made[0].Item))}
+		if res.IntroTask, res.IntroReward, err = s.introProgress(ctx, tx, p, "", r.ID); err != nil {
 			return err
 		}
 		res.Inventory, res.SlotsUsed = s.inventoryView(inv)

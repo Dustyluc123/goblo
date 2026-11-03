@@ -45,7 +45,14 @@ func TestPediaRewardOnlyOnce(t *testing.T) {
 			t.Fatalf("%s descoberto sem foto", e.ID)
 		}
 	}
-	if !found || len(list) != len(f.svc.Content().Animals.Species)+3 {
+	flowers := 0
+	for _, it := range f.svc.Content().Items {
+		if it.HasTag("flower") {
+			flowers++
+		}
+	}
+	// Animais, uma página por flor (fase 4.0) e as duas árvores de estação.
+	if !found || len(list) != len(f.svc.Content().Animals.Species)+flowers+2 {
 		t.Fatalf("%d páginas", len(list))
 	}
 }
