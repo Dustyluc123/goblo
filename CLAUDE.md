@@ -56,6 +56,8 @@ godot --headless --path . -- --camera-test --profile=t3                # distân
 godot --headless --path . -s tests/test_minimapa.gd                    # seta do mini mapa (N, S, L, O); sem servidor
 godot --headless --path . -s tests/test_animais.gd                     # trajeto dos animais igual ao do servidor; sem servidor
 godot --headless --path . -s tests/test_estacoes.gd                    # estações iguais às do servidor; sem servidor
+godot --headless --path . -s tests/test_frestas.gd                     # raios nas bordas dos hexágonos (sem frestas) e resgate; sem servidor (mundo em cache)
+godot --headless --path . -s tools/montar_bandeiras.gd -- --svg=PASTA/package/flags/4x3   # regera o atlas de bandeiras (flag-icons baixado fora do projeto)
 godot --headless --path . -- --border-test --profile=t4                # país exato nas fronteiras, linha no chão, travessia
 godot --headless --path . -- --animal-test --profile=t5                # animais: trajeto comum, carinho, frutinha, fuga, custo (servidor dev)
 godot --headless --path . -- --photo-test --profile=t6                 # câmera fotográfica e Goblopédia (servidor dev)
@@ -71,7 +73,7 @@ godot --headless --path . -- --crowd-test --profile=t13                # CPU com
 tools/dois_clientes.sh http://127.0.0.1:8081                          # dois clientes headless se vendo: interesse, interpolação, chat (servidor dev)
 godot --headless --path . --export-release "macOS" export/Goblo-macOS.zip     # exportar (precisa dos modelos de exportação; docs/DEPLOY.md)
 godot --headless --path . --export-release "Windows" export/windows/Goblo.exe
-godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, dev-viagem, dev-natureza, build, settings, perf, pedia, pedia-full, passport, passport-full, photo, selfie, hearts, welcome, airport, travel, flight, shop, sell, dialog, intro, trade; + --season=winter, --look=GRAUS, --country=XXX, --wait=SEG no flight)
+godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, dev-viagem, dev-natureza, build, settings, perf, pedia, pedia-full, passport, passport-full, photo, selfie, hearts, welcome, airport, travel, flight, shop, sell, dialog, intro, trade; + --season=winter, --look=GRAUS, --country=XXX, --wait=SEG no flight, --plaza=U,V no airport)
 godot --headless --path . -s tools/montar_casas.gd                     # regera as cenas das casas (sobrescreve!)
 tools/sem_foco.sh -s tools/montar_casas.gd -- --fotos=/tmp/casas --so-fotos   # fotos das casas (oitões, 4 lados), sem foco
 ```
@@ -97,7 +99,9 @@ Teclas no jogo: E interagir (também caixa de vendas, balcão do aeroporto, conv
 - **Animais (ADR 0032):** o servidor sorteia por célula e manda os pontos de passeio; a posição é `AnimalAt(animal, horário do servidor)` em Go e `AnimalPath.at` em GDScript, que precisam continuar iguais (arquivo de referência `testdata/animal_paths.json` + `tests/test_animais.gd`). Reações (fugir, seguir, carinho) são desvios só no cliente.
 - **Estações (ADR 0034):** `game.SeasonAt` (Go) e `Seasons` (GDScript) com a mesma conta; o chão calcula no shader pela latitude (alfa da cor do vértice marca os biomas que mudam). Árvores trocam só o modelo desenhado (`drawn_model`), nunca o id. Nada de carregar modelo no meio do jogo: as versões de estação que valem hoje entram no pré-carregamento.
 - **Preço e dinheiro (ADR 0041):** todo preço (caixa de vendas, loja, passaporte, passagem) sai de `Service.Price(contexto, item, país)`, com os modificadores de `countries.json`; todo pagamento passa por `pay` (histórico com país, preço e imposto; imposto vai para o cofre do país). Nada de calcular preço fora dela. O dinheiro se chama gobolar (`economy.json` → `currency`); no cliente, `Session.coins_text` e `price_text`.
-- **Loja e praça (ADR 0042):** estoque do dia sorteado pelo país e pelo dia (`ShopStock`, vira às 5h na longitude do aeroporto); o mesmo para todos. A praça é montada em `airports.gd` em coordenadas do hexágono do aeroporto; a loja fica em `ShopPoint` (servidor) = `SHOP_POINT` (cliente).
+- **Loja e praça (ADR 0042, 0047):** estoque do dia sorteado pelo país e pelo dia (`ShopStock`, vira às 5h na longitude do aeroporto); o mesmo para todos. A praça é desenhada em (u, v), com a pista na diagonal do hexágono: o servidor escolhe o ângulo e a escala (`game/plaza.go`, `Airport.Rot/Scale`) e confere o balcão e a loja em `COUNTER_UV`/`SHOP_UV` (cliente) = `plazaCounter`/`plazaShop` (servidor). Mudou um ponto da praça que o servidor confere? Mude nos dois e rode `TestPlazaFitsInEveryAirportCell`. As peças da praça viram pedidos de geometria juntados numa thread (nada de nó por peça); pisos em alturas diferentes (nada no mesmo plano).
+- **Chão sem frestas (ADR 0046):** cantos das células por `WorldData.corner` (soma na ordem dos ids, igual nos três vizinhos); a colisão cresce `GlobeBuilder.COLLISION_GROW` para fora e vale dos dois lados; `Player._rescue_if_below` põe de volta em cima quem ficar abaixo do chão. Mexeu na malha do chão? Rode `tests/test_frestas.gd`.
+- **Bandeiras (ADR 0048):** sempre pelo `FlagAtlas` (atlas do flag-icons, MIT, em `assets/lipis/flag-icons/`); país sem bandeira cai na neutra. Nos marcos, cada face do pano mostra o país do outro lado.
 - **NPCs, diálogos e apresentação (ADR 0043):** NPCs ficam parados (nada de NPC andando pelo mundo). Um sistema de diálogo só (`DialogUi`), com textos em `dialogs.json` e ações conhecidas (`dialogActions` em `npcs.go`; ação nova = acrescentar lá e tratar em `GameMain._on_dialog_action`). Tarefas da apresentação são detectadas no servidor (`introProgress`) e pagas uma vez só; o modo dev pula a apresentação.
 - **Troca (ADR 0044):** a negociação fica na memória do hub (`realtime/trade.go`); só `Service.ExecuteTrade` mexe no banco, numa transação, conferindo bolso, distância (`reach.trade`) e bloqueio. Qualquer mudança na oferta desfaz os "pronto".
 - **Textos e tradução (ADR 0045):** o português é a chave. Textos fixos de Label/Button são traduzidos sozinhos pelo Godot; textos montados com `%` passam por `tr()` no modelo antes do `%`. Falas e nomes dos dados passam por `tr()` (`DialogUi`, `Session.item_name`). Depois de mudar textos, rode `client/tools/extrair_textos.py`.
@@ -138,7 +142,7 @@ Teclas no jogo: E interagir (também caixa de vendas, balcão do aeroporto, conv
 | gobolares e caixa de vendas | `server/internal/game/money.go`; cliente: `sell_ui.gd`, `coin_icon.gd` |
 | preço por país, cofre, histórico | `server/internal/game/pricing.go`, `server/data/game/countries.json` |
 | loja da praça (estoque do dia) | `server/internal/game/shop.go`, `server/data/game/shop.json`; cliente: `shop_ui.gd` |
-| praça central (terminal, torre, pista, avião, loja) | `client/scripts/airports.gd`, `plane_model.gd` |
+| praça central (terminal, torre, pista, avião, loja) | `client/scripts/airports.gd`, `plane_model.gd`; ângulo, escala e pontos conferidos: `server/internal/game/plaza.go` |
 | NPCs, diálogos e apresentação do guia | `server/internal/game/npcs.go`, `server/data/game/npcs.json`, `dialogs.json`; cliente: `npc.gd`, `dialog_ui.gd`, apresentação em `main.gd` (`start_intro`) |
 | troca entre jogadores | `server/internal/game/trade.go`, `server/internal/realtime/trade.go`; cliente: `trade_ui.gd`, `players_ui.gd` |
 | textos para tradução | `client/tools/extrair_textos.py`, `client/i18n/goblo.pot` |
@@ -173,7 +177,9 @@ Teclas no jogo: E interagir (também caixa de vendas, balcão do aeroporto, conv
 | distâncias e presença no servidor | `server/internal/game/presence.go`; lotes e fronteiras: `territory.go` |
 | bots externos e teste de carga | `server/cmd/bots`, `server/scripts/teste-de-carga.sh` |
 | tempo real (cliente): conexão, outros jogadores, chat, emotes, jogadores por perto | `client/scripts/net.gd`, `remote_players.gd`, `chat_ui.gd`, `emote_wheel.gd`, `players_ui.gd` |
-| fronteira viva (cortina, bandeirolas, cadeado) | `client/scripts/border_lines.gd`, `client/shaders/border_curtain.gdshader` |
+| fronteira viva (cortina, bandeirolas, cadeado, bandeiras nos marcos) | `client/scripts/border_lines.gd`, `client/shaders/border_curtain.gdshader`, `border_flag.gdshader` |
+| atlas de bandeiras dos países | `client/scripts/flag_atlas.gd`, `client/tools/montar_bandeiras.gd`, `client/assets/lipis/flag-icons/` |
+| frestas do chão e resgate de quem cai | `client/scripts/globe_builder.gd` (`COLLISION_GROW`), `world_data.gd` (`corner`), `player.gd` (`_rescue_if_below`), `tests/test_frestas.gd` |
 | hospedagem, exportação, endereço do servidor | `docs/DEPLOY.md`, `server/Dockerfile`, `client/export_presets.cfg`, `client/scripts/server_setup.gd` |
 | HUD, bússola, mini mapa (seta e casinha) | `client/scripts/hud.gd`, `compass.gd`, `minimap.gd`, `home_icon.gd` |
 | câmera (mouse, zoom, chão) e objetos pontilhados na frente dela | `client/scripts/camera_rig.gd`, `camera_occlusion.gd`, caixas em `neighborhood.gd` (`occluders`) |

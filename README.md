@@ -130,6 +130,20 @@ O ciclo central é tranquilo e diário: **coletar materiais → fabricar ferrame
 - [x] **Troca entre jogadores** ([ADR 0044](docs/decisoes/0044-troca-entre-jogadores.md)): **E** perto de outro jogador ou **J → Propor troca**; os dois montam a oferta (itens e gobolares) vendo tudo na hora, marcam **Pronto** (qualquer mudança desfaz) e confirmam. O servidor executa de uma vez só, conferindo bolso, distância e bloqueio. F6 liga e desliga os pedidos
 - [x] **Pronto para traduzir** ([ADR 0045](docs/decisoes/0045-textos-prontos-para-traducao.md)): os textos em português são as chaves; `client/tools/extrair_textos.py` gera `client/i18n/goblo.pot` com a interface e os dados do servidor
 
+Encerrada do jeito que está; o que ficou de fora está em [`docs/BACKLOG.md`](docs/BACKLOG.md) ([progresso](docs/progresso-fase-3-5.md)).
+
+**Fase 3.6: polimento** ✅
+
+- [x] **Aeroporto na escala do personagem** ([ADR 0047](docs/decisoes/0047-aeroporto-na-escala-do-personagem.md)): avião ~4× maior (porta mais alta que o personagem, asa maior que a casa grande; 10× não caberia no hexágono), com porta, escadinha e trem de pouso; pista mais larga e comprida na diagonal do hexágono; carros na altura do personagem; terminal e torre de concreto, vidro azulado, branco e um toque de verde; pisos sem faces no mesmo plano (acabou o piscar da pista). A praça é juntada numa thread (~4 ms no quadro, antes ~30 ms)
+- [x] **Sem frestas entre hexágonos** ([ADR 0046](docs/decisoes/0046-chao-fechado-e-resgate.md)): cantos iguais bit a bit nos vizinhos, colisão sobreposta e dos dois lados e, se mesmo assim o personagem for parar abaixo do chão, ele volta para cima do hexágono. Teste com 83 mil raios nas bordas, cantos, litoral, montanhas e pentágonos (inclui a célula 20575 do Chile)
+- [x] **Bandeiras nas fronteiras** ([ADR 0048](docs/decisoes/0048-bandeiras-nos-marcos.md)): em cada marco, um mastro com uma bandeirinha tremulando; de cada lado, a bandeira do país vizinho, visível de longe, aberta ou fechada. Atlas com os 240 países (flag-icons, MIT), bandeira neutra para as áreas sem código ISO
+
+| Aeroporto de longe | Ao lado do avião |
+| --- | --- |
+| ![Aeroporto de longe](docs/imagens/aeroporto-de-longe.jpg) | ![Personagem ao lado do avião](docs/imagens/aeroporto-aviao.jpg) |
+| **Carros e pista** | **Bandeiras na fronteira (do Brasil, vendo o Paraguai e a Argentina)** |
+| ![Carros e pista de perto](docs/imagens/aeroporto-carros-pista.jpg) | ![Bandeiras na fronteira](docs/imagens/fronteira-bandeiras.jpg) |
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -218,6 +232,14 @@ Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto. No modo dev a apresentação 
 7. **Diálogos soltos:** F1 → Loja e NPCs → escolha um diálogo e **Abrir diálogo**.
 
 Automações sem janela: `godot --headless --path . -- --npc-test --profile=t14` (apresentação, loja, atendente e troca com bot).
+
+## Como testar a fase 3.6
+
+Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto.
+
+1. **Aeroporto:** F1 → Mundo → teleporte para o país (ou F1 → Viagem → voar de graça). O avião fica na pista, com a escadinha na porta; os carros estão no pátio. Ande em volta, passe embaixo da asa e veja a pista de perto (não pisca mais). Viaje para ver o avião no arco do voo. Captura: `tools/sem_foco.sh -- --ui=airport --country=BRA --plaza=2.6,-0.6 --look=150 --zoom=0.12 --screenshot=/tmp/a.png`.
+2. **Fresta do Chile:** F1 → Mundo → lat **-52.19**, lon **-72.99** → Teleportar (célula 20575, montanha ao lado do mar e de hexágonos mais baixos). Ande e pule pelas beiradas e desça os degraus: nada de cair por dentro. Sem servidor: `godot --headless --path . -s tests/test_frestas.gd`.
+3. **Bandeiras:** F1 → Mundo → lat **-25.5**, lon **-54.47** (Brasil, perto do Paraguai e da Argentina). De longe dá para ver as bandeiras do outro lado; atravesse (F1 → Viagem → passaporte) e olhe para trás: agora aparece a do Brasil. `--border-test` confere os lados.
 
 ## Medições
 
@@ -494,6 +516,7 @@ godot --headless --path . -- --season-test --profile=teste7               # esta
 godot --headless --path . -- --travel-test --profile=teste8               # barreira, passaporte, carimbo, aeroporto e voo
 godot --headless --path . -- --dev-test --profile=teste9                  # botões novos do painel dev
 godot --headless --path . -- --npc-test --profile=teste14                 # apresentação, loja, atendente e troca com bot (fase 3.5)
+godot --headless --path . -s tests/test_frestas.gd                        # sem frestas entre hexágonos e resgate de quem cai (fase 3.6; sem servidor, mundo em cache)
 python3 tools/extrair_textos.py                                           # (da raiz: client/tools/…) gera client/i18n/goblo.pot
 godot --headless --path . -- --cursor-test --profile=teste10              # cursor volta depois do voo, H, teleporte, menus
 godot --headless --path . -- --hitch-test --profile=teste11               # passeio com o registro de travadas (travadas.log)
@@ -538,7 +561,7 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 3. **Fase 2: coletar e construir.** Jogador e país, lotes, coleta, inventário, bancada, decoração, casa em níveis, bairro, banco de dados e modo dev. ✅
 4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, gobolares e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
 5. **Fase 3: fronteiras vivas e multiplayer.** Lotes longe das fronteiras, fronteira que abre com o passaporte, outros jogadores em tempo real no nosso servidor (sem Nakama, [ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md)), chat, emotes, validações no servidor e preparo para jogar com amigos. ✅
-6. **Fase 3.5: economia viva e os primeiros personagens.** Gobolar, preço por país, vender tudo, praça central com loja e aeroporto novo, NPCs com diálogo, apresentação do guia e troca entre jogadores. ✅
+6. **Fase 3.5: economia viva e os primeiros personagens.** Gobolar, preço por país, vender tudo, praça central com loja e aeroporto novo, NPCs com diálogo, apresentação do guia e troca entre jogadores. ✅ **Fase 3.6: polimento.** Aeroporto na escala do personagem, chão sem frestas e bandeiras nas fronteiras. ✅
 7. **Fase 4.0:** temperatura, sede, roupas e mais flores. **Fase 4.5:** cavernas e folclore. **Fase 5.0:** redesenho da interface, música e sons.
 
 ## Sobre mim

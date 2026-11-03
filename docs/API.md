@@ -58,7 +58,7 @@ Todo erro de regra responde com um status HTTP e o corpo:
 | `GET /world.bin` | o mundo no formato binário (o que o jogo usa), com gzip, `ETag` e `304` |
 | `GET /world` | o mesmo mundo em JSON, para depuração |
 | `GET /borders?cells=1,2,3` | fronteiras exatas por célula (ADR 0031): `{"countries": [{"code","name"}], "cells": [{"cell", "country"} \| {"cell", "segs"}]}`. Célula longe de qualquer fronteira vem com `country` (a célula inteira); as outras vêm com `segs`, seis números por segmento: `lat1, lon1, lat2, lon2, índice em countries, 1 se separa dois países (linha no chão) ou 0 se é costa`. O país fica à esquerda de 1 → 2 |
-| `GET /airports` | os aeroportos (um por país com hexágono): `{"airports": [{"country", "country_name", "name", "city", "cell", "lat", "lon", "x", "y", "small"}]}`; `x, y` é o balcão no plano da célula; `small` = só um ponto de chegada (país pequeno) |
+| `GET /airports` | os aeroportos (um por país com hexágono): `{"airports": [{"country", "country_name", "name", "city", "cell", "lat", "lon", "x", "y", "rot", "scale", "shop_x", "shop_y", "small", "npcs"}]}`; `x, y` é o balcão no plano da célula; `small` = só um ponto de chegada (país pequeno). Nos grandes (fase 3.6, ADR 0047): `rot` é o ângulo da pista (diagonal do hexágono) no plano da célula, `scale` a escala da praça (1, ou até 0,75 nos hexágonos pequenos) e `shop_x, shop_y` a loja |
 | `GET /passport/prices` | preço do passaporte de cada país (todos, com ou sem aeroporto): `{"countries": [{"country", "name", "price"}]}` |
 
 ## Conteúdo e país (sem token)
