@@ -127,7 +127,9 @@ func _show_line() -> void:
 		c.queue_free()
 	var line: Dictionary = _lines[_index]
 	_name.text = "%s · %s" % [speaker_name, speaker_title] if not speaker_title.is_empty() else speaker_name
-	_text = tr(_fill(str(line.get("text", ""))))
+	# A fala em português é a chave da tradução (ADR 0045): traduz o modelo e depois troca
+	# os {nomes}.
+	_text = _fill(tr(str(line.get("text", ""))))
 	_body.text = _text
 	_shown = 0.0
 	_body.visible_characters = 0
@@ -147,7 +149,7 @@ func _show_options() -> void:
 	_hint.visible = false
 	for i in opts.size():
 		var o: Dictionary = opts[i]
-		var b := UiStyle.button("%d  %s" % [i + 1, _fill(str(o.get("text", "")))], i == 0)
+		var b := UiStyle.button("%d  %s" % [i + 1, _fill(tr(str(o.get("text", ""))))], i == 0)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(func() -> void: choose(i))
 		_options.add_child(b)

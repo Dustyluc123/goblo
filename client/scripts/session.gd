@@ -195,7 +195,7 @@ func count(item: String) -> int:
 
 
 func item_name(id: String) -> String:
-	return str(items.get(id, {}).get("name", id))
+	return tr(str(items.get(id, {}).get("name", id)))
 
 
 func is_tool(id: String) -> bool:

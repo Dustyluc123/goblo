@@ -1,0 +1,2494 @@
+# Textos do Goblo para tradução (gerado por client/tools/extrair_textos.py).
+# O português é a chave; não edite este arquivo à mão.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: pt_BR\n"
+
+#: client/scripts/hud.gd:185
+msgid "  (×%d)"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:133
+msgid "  ·  + passaporte"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:133
+msgid "  ·  passaporte ✓"
+msgstr ""
+
+#: client/scripts/interaction.gd:165
+msgid "  ·  segure o machado (1–5) para cortar"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:118
+msgid "  ×%d"
+msgstr ""
+
+#: client/scripts/main.gd:764
+msgid " (bot)"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:86
+msgid " (residência)"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:91
+msgid " e mais %d"
+msgstr ""
+
+#: client/scripts/animals.gd:445
+msgid " · amigo"
+msgstr ""
+
+#: client/scripts/world_data.gd:355
+msgid "%.2f° %s · %.2f° %s"
+msgstr ""
+
+#: client/scripts/dialog_ui.gd:150 client/scripts/emote_wheel.gd:23
+msgid "%d  %s"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:107 client/scripts/passport_ui.gd:96 client/scripts/session.gd:169
+msgid "%d %s"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:89
+msgid "%d %s: %s"
+msgstr ""
+
+#: client/scripts/main.gd:965
+msgid "%d animais carregados"
+msgstr ""
+
+#: client/scripts/animals.gd:447
+msgid "%d animais carregados (até %d):\n%s"
+msgstr ""
+
+#: client/scripts/main.gd:753
+msgid "%d bots criados perto de você."
+msgstr ""
+
+#: client/scripts/main.gd:753
+msgid "%d bots tirados."
+msgstr ""
+
+#: client/scripts/main.gd:769
+msgid "%d conectados, %d bots · servidor mandou %.1f KB/s e recebeu %.1f KB/s em média"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:107
+msgid "%d de %d páginas descobertas  ·  %d amigos"
+msgstr ""
+
+#: client/scripts/fps_limit.gd:26
+msgid "%d fps"
+msgstr ""
+
+#: client/scripts/main.gd:1204
+msgid "%d fps · %.1f ms\n%d draw calls · %d mil triângulos\n%d objetos · %d lotes · %d animais · %d pedidos\nqualidade %s"
+msgstr ""
+
+#: client/scripts/main.gd:964
+msgid "%d pedidos ao servidor em andamento"
+msgstr ""
+
+#: client/scripts/main.gd:1724
+msgid "%d vizinhos falsos criados aqui perto."
+msgstr ""
+
+#: client/scripts/sell_ui.gd:140
+msgid "%d× %s"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:126
+msgid "%s  %5.1f ms  %s  |  %s"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:145
+msgid "%s  %d ms  %s"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:267 client/scripts/dev_panel.gd:346
+msgid "%s  (%s)"
+msgstr ""
+
+#: client/scripts/photo_mode.gd:207
+msgid "%s  +%s"
+msgstr ""
+
+#: client/scripts/players_ui.gd:60
+msgid "%s  ·  %s  ·  %d m"
+msgstr ""
+
+#: client/scripts/hud.gd:200
+msgid "%s  ·  %s  ·  célula %d"
+msgstr ""
+
+#: client/scripts/interaction.gd:155
+msgid "%s  ·  E: dar frutinha"
+msgstr ""
+
+#: client/scripts/interaction.gd:156
+msgid "%s  ·  E: fazer carinho"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:171 client/scripts/trade_ui.gd:299
+msgid "%s  ×%d"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:182
+msgid "%s  —  %s"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:134
+msgid "%s  —  %s%s"
+msgstr ""
+
+#: client/scripts/animals.gd:445
+msgid "%s #%d · %.0f m · %s%s"
+msgstr ""
+
+#: client/scripts/neighborhood.gd:198
+msgid "%s %.1f"
+msgstr ""
+
+#: client/scripts/session.gd:165
+msgid "%s %d"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:43
+msgid "%s (%.1f ms)"
+msgstr ""
+
+#: client/scripts/game_ui.gd:213 client/scripts/trade_ui.gd:254
+msgid "%s (%d)"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:178
+msgid "%s cada"
+msgstr ""
+
+#: client/scripts/main.gd:1687
+msgid "%s criado aqui perto (só neste computador)."
+msgstr ""
+
+#: client/scripts/main.gd:3019
+msgid "%s na frente sem transparência"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:198
+msgid "%s oferece"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:174
+msgid "%s quer trocar com você."
+msgstr ""
+
+#: client/scripts/dialog_ui.gd:129
+msgid "%s · %s"
+msgstr ""
+
+#: client/scripts/main.gd:950
+msgid "%s · célula %d (%s) · %s · %d fps · qualidade %s"
+msgstr ""
+
+#: client/scripts/main.gd:764
+msgid "%s%s · %s · %s · vê %d"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:150
+msgid "%s: %d/%d"
+msgstr ""
+
+#: client/scripts/main.gd:590
+msgid "%s\nFeche este jogo ou entre de novo."
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:182
+msgid "(a foto ficou em outro computador)"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:289
+msgid "(nada ainda)"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:87
+msgid "(residência)"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:156
+msgid "(sem ele não dá para entrar no país)"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:207
+msgid "+ %s"
+msgstr ""
+
+#: client/scripts/interaction.gd:239 client/scripts/main.gd:1570
+msgid "+%d %s"
+msgstr ""
+
+#: client/scripts/main.gd:1681
+msgid ", com os polígonos de debug"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:78
+msgid "== sessão %s · %s"
+msgstr ""
+
+#: client/scripts/build_mode.gd:250
+msgid "A casa não cabe aí (ou faltam materiais)."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "A casa você constrói pela bancada; a obra fica pronta no dia seguinte. Aperte B para decorar o lote."
+msgstr ""
+
+#: client/scripts/sell_ui.gd:104
+msgid "A loja paga um pouquinho mais que a caixa de vendas."
+msgstr ""
+
+#: client/scripts/build_mode.gd:265
+msgid "A obra começou! Fica pronta amanhã às 5h."
+msgstr ""
+
+#: client/scripts/craft_ui.gd:196
+msgid "A obra fica pronta no dia seguinte, às 5h."
+msgstr ""
+
+#: client/scripts/main.gd:1594
+msgid "A reforma começou! Fica pronta amanhã às 5h."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:471
+msgid "Abrir diálogo"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:492
+msgid "Abrir uma troca com um bot"
+msgstr ""
+
+#: client/scripts/api.gd:42
+msgid "Accept: application/json"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:54
+msgid "Aceitar"
+msgstr ""
+
+#: client/scripts/emote_wheel.gd:8
+msgid "Acenar"
+msgstr ""
+
+#: client/scripts/first_access.gd:76
+msgid "Achamos que você está em %s (pela sua conexão). Confirme ou escolha outro."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:461
+msgid "Adianta a loja para o estoque do dia seguinte (só neste servidor)"
+msgstr ""
+
+#: client/scripts/airports.gd:328 client/scripts/travel_ui.gd:112 client/scripts/travel_ui.gd:33
+msgid "Aeroporto"
+msgstr ""
+
+#: client/scripts/airports.gd:328
+msgid "Aeroporto de "
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Agora fabrique um machado na bancada: chegue perto dela e aperte E."
+msgstr ""
+
+#: client/scripts/main.gd:1729
+msgid "Agora você mora em %s."
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:194
+msgid "Ainda não fotografado. Equipe a câmera, botão direito para mirar e clique para fotografar."
+msgstr ""
+
+#: client/scripts/airports.gd:184
+msgid "Airport_%s"
+msgstr ""
+
+#: client/scripts/main.gd:213
+msgid "Airports"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Alce-macho"
+msgstr ""
+
+#: client/scripts/main.gd:2651
+msgid "Alemanha (floresta, estação)"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Alpaca"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:186
+msgid "Amigos: ainda não (dê uma frutinha)"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:186
+msgid "Amigos: sim ♥"
+msgstr ""
+
+#: client/scripts/animals.gd:158
+msgid "Animal_%d"
+msgstr ""
+
+#: client/scripts/main.gd:202
+msgid "Animals"
+msgstr ""
+
+#: client/scripts/animals.gd:163 client/scripts/main.gd:898 client/scripts/npc.gd:49 client/scripts/pedia_art.gd:91 client/scripts/player.gd:149 client/scripts/remote_players.gd:154
+msgid "AnimationPlayer"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:380
+msgid "Apagar o jogador inteiro (volta à tela inicial)"
+msgstr ""
+
+#: client/scripts/first_access.gd:35
+msgid "Apelido"
+msgstr ""
+
+#: client/scripts/build_mode.gd:289
+msgid "Aponte o cursor para um objeto do seu lote."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:478
+msgid "Apresentação do guia"
+msgstr ""
+
+#: client/scripts/main.gd:3411
+msgid "Apresentação marcada como não vista: aparece no próximo login."
+msgstr ""
+
+#: client/scripts/main.gd:3480
+msgid "Apresentação pulada. Dá para rever pelo F6."
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Arbusto de frutinhas"
+msgstr ""
+
+#: server/data/game/npcs.json
+msgid "Atendente do aeroporto"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:418
+msgid "Atraso: %d ms"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:410
+msgid "Atraso: 0 ms"
+msgstr ""
+
+#: client/scripts/main.gd:2292
+msgid "Attack"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:432
+msgid "Atualizar quem está conectado"
+msgstr ""
+
+#: client/scripts/seasons.gd:93
+msgid "Autumn"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:370
+msgid "Avançar para o dia seguinte (limites e obra)"
+msgstr ""
+
+#: client/scripts/main.gd:237
+msgid "Baixando o mundo de %s…"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:25 server/data/game/items.json
+msgid "Bancada"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Banco"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Banco de praça"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Bandeira verde"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Bandeira vermelha"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Banquinho"
+msgstr ""
+
+#: server/data/game/houses.json
+msgid "Barraca"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Barraquinha"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Barraquinha verde"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Barraquinha vermelha"
+msgstr ""
+
+#: client/scripts/main.gd:1669
+msgid "Barreira da fronteira %s."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:169
+msgid "Barreira da fronteira (passaporte) ligada"
+msgstr ""
+
+#: client/scripts/first_access.gd:33
+msgid "Bem-vindo ao Goblo!"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Bem-vindo ao aeroporto! Eu sou {name}. Para onde vamos hoje?"
+msgstr ""
+
+#: client/scripts/main.gd:1342
+msgid "Bem-vindo de volta para casa!"
+msgstr ""
+
+#: client/scripts/hud.gd:285
+msgid "Bem-vindo!"
+msgstr ""
+
+#: client/scripts/players_ui.gd:76
+msgid "Bloquear"
+msgstr ""
+
+#: client/scripts/main.gd:3480
+msgid "Boas aventuras no Goblo!"
+msgstr ""
+
+#: client/scripts/inventory_ui.gd:24
+msgid "Bolso"
+msgstr ""
+
+#: client/scripts/inventory_ui.gd:65
+msgid "Bolso  ·  %d/%d"
+msgstr ""
+
+#: client/scripts/main.gd:1710
+msgid "Bom dia! Os limites diários voltaram e as obras ficaram prontas."
+msgstr ""
+
+#: client/scripts/main.gd:514
+msgid "Bom dia! Um novo dia começou no Goblo."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Bora!"
+msgstr ""
+
+#: client/scripts/main.gd:197
+msgid "BorderLines"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:498
+msgid "Bots criados pela aba Rede: os de número par aceitam pedidos de troca."
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Burro"
+msgstr ""
+
+#: client/scripts/seasons.gd:101
+msgid "Bush_Snow_"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Cada país novo que você visita ganha um carimbo no livro (tecla P), e o primeiro carimbo ainda rende uns {slang}."
+msgstr ""
+
+#: client/scripts/sell_ui.gd:102 client/scripts/sell_ui.gd:35 server/data/game/items.json
+msgid "Caixa de vendas"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Caminho de pedra"
+msgstr ""
+
+#: client/scripts/world_data.gd:21
+msgid "Campo"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:75 client/scripts/trade_ui.gd:141
+msgid "Cancelar"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Canteiro de flores"
+msgstr ""
+
+#: client/scripts/main.gd:1923 client/scripts/main.gd:647 client/scripts/main.gd:881
+msgid "Carimbo novo no passaporte!  +%s"
+msgstr ""
+
+#: client/scripts/shop_ui.gd:63
+msgid "Carregando o estoque…"
+msgstr ""
+
+#: client/scripts/main.gd:283
+msgid "Carregando árvores e casas…"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Carrinho"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:48
+msgid "Casa"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:295
+msgid "Casa (H)"
+msgstr ""
+
+#: server/data/game/houses.json
+msgid "Casa grande"
+msgstr ""
+
+#: server/data/game/houses.json
+msgid "Casinha"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Cavalo"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Cavalo branco"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Cerca curva"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Cerca de madeira"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Cerca viva"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Cerca viva alta"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Cerca viva curva"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Cervo"
+msgstr ""
+
+#: client/scripts/inventory_ui.gd:31
+msgid "Clique numa ferramenta para segurar, ou num objeto para colocar no lote."
+msgstr ""
+
+#: client/scripts/photo_mode.gd:211
+msgid "Clique!"
+msgstr ""
+
+#: client/scripts/game_ui.gd:202
+msgid "Clique: colocar · R: girar · X: guardar o objeto embaixo do cursor · B ou Esc: sair"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Coco"
+msgstr ""
+
+#: client/scripts/terrain.gd:44
+msgid "Collision"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:103
+msgid "Coloque itens na caixa e receba na hora."
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Coluna de pedra"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:84
+msgid "Com o passaporte de um país, você entra nele a pé ou de avião."
+msgstr ""
+
+#: client/scripts/emote_wheel.gd:8
+msgid "Comemorar"
+msgstr ""
+
+#: client/scripts/first_access.gd:63
+msgid "Começar"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Como funciona o passaporte?"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:249
+msgid "Completar a Goblopédia"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:208
+msgid "Completar o passaporte"
+msgstr ""
+
+#: client/scripts/shop_ui.gd:109
+msgid "Comprar"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:88
+msgid "Comprar passaporte"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:162
+msgid "Comprar passaporte e viajar"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Comprar um passaporte"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:369
+msgid "Concluir a obra agora"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Cone de trânsito"
+msgstr ""
+
+#: client/scripts/main.gd:823
+msgid "Conectando a %s…"
+msgstr ""
+
+#: client/scripts/hud.gd:122
+msgid "Conectando ao servidor…"
+msgstr ""
+
+#: client/scripts/server_setup.gd:27
+msgid "Conectar"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:32
+msgid "Configurações"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:138
+msgid "Confirmar troca"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Conta de novo!"
+msgstr ""
+
+#: client/scripts/api.gd:47
+msgid "Content-Type: application/json"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:493
+msgid "Cria um bot parado do seu lado (ele oferece 3 madeiras e acompanha o Pronto e a confirmação)"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:402
+msgid "Criar %d bot%s perto"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:372
+msgid "Criar 20 vizinhos falsos aqui perto"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:238
+msgid "Criar perto de mim"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Câmera fotográfica"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:109
+msgid "Dar"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:130
+msgid "Dar gobolares"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:147
+msgid "Dar passaporte"
+msgstr ""
+
+#: client/scripts/main.gd:1499
+msgid "Data forçada: %02d/%02d (%s no norte, %s no sul)."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:226
+msgid "Data real"
+msgstr ""
+
+#: client/scripts/main.gd:2292
+msgid "Death"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Deixa comigo!"
+msgstr ""
+
+#: client/scripts/players_ui.gd:76
+msgid "Desbloquear"
+msgstr ""
+
+#: client/scripts/world_data.gd:21
+msgid "Deserto"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:464
+msgid "Diálogos"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "E você não está sozinho: tem outros jogadores por aí! Enter abre o chat, T faz um aceno e J mostra quem está perto."
+msgstr ""
+
+#: client/scripts/interaction.gd:146
+msgid "E: balcão do aeroporto (viagens e passaportes)"
+msgstr ""
+
+#: client/scripts/interaction.gd:142
+msgid "E: bancada"
+msgstr ""
+
+#: client/scripts/interaction.gd:144
+msgid "E: caixa de vendas"
+msgstr ""
+
+#: client/scripts/interaction.gd:175
+msgid "E: colher flor"
+msgstr ""
+
+#: client/scripts/interaction.gd:173
+msgid "E: colher frutinhas"
+msgstr ""
+
+#: client/scripts/interaction.gd:151
+msgid "E: conversar com %s (%s)"
+msgstr ""
+
+#: client/scripts/interaction.gd:163
+msgid "E: cortar (%d hoje)"
+msgstr ""
+
+#: client/scripts/interaction.gd:179
+msgid "E: pegar galho"
+msgstr ""
+
+#: client/scripts/interaction.gd:177
+msgid "E: pegar pedrinha"
+msgstr ""
+
+#: client/scripts/interaction.gd:148
+msgid "E: propor troca com %s"
+msgstr ""
+
+#: client/scripts/interaction.gd:171
+msgid "E: quebrar (%d hoje)"
+msgstr ""
+
+#: client/scripts/interaction.gd:166
+msgid "E: sacudir"
+msgstr ""
+
+#: client/scripts/animals.gd:244 client/scripts/animals.gd:32 client/scripts/animals.gd:350
+msgid "Eating"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:181
+msgid "Eles estão marcados em vermelho no lote."
+msgstr ""
+
+#: client/scripts/craft_ui.gd:168
+msgid "Em obras: %s. Fica pronta na próxima virada do dia (5h no seu horário)."
+msgstr ""
+
+#: client/scripts/neighborhood.gd:487
+msgid "Em obras: %s\npronta amanhã às 5h"
+msgstr ""
+
+#: client/scripts/airports.gd:372
+msgid "Embarque"
+msgstr ""
+
+#: client/scripts/emote_wheel.gd:17
+msgid "Emotes"
+msgstr ""
+
+#: client/scripts/server_setup.gd:20
+msgid "Endereço do servidor"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Entendi, valeu!"
+msgstr ""
+
+#: client/scripts/main.gd:278
+msgid "Entrando no Goblo…"
+msgstr ""
+
+#: client/scripts/api.gd:91
+msgid "Erro %d no servidor."
+msgstr ""
+
+#: client/scripts/api.gd:87
+msgid "Erro %d."
+msgstr ""
+
+#: client/scripts/main.gd:1621 client/scripts/main.gd:1648 client/scripts/main.gd:1697
+msgid "Erro: %s"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:25 client/scripts/sell_ui.gd:36 client/scripts/shop_ui.gd:26 client/scripts/travel_ui.gd:34
+msgid "Esc"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:44
+msgid "Esc cancela"
+msgstr ""
+
+#: client/scripts/game_ui.gd:204
+msgid "Escolha o lugar da casa · clique: construir · R: girar · Esc: cancelar"
+msgstr ""
+
+#: client/scripts/first_access.gd:34
+msgid "Escolha um apelido e o país onde você vai morar."
+msgstr ""
+
+#: client/scripts/travel_ui.gd:147
+msgid "Escolha um destino na lista.\n\nVocê tem %s."
+msgstr ""
+
+#: client/scripts/travel_ui.gd:59
+msgid "Escolha um destino."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:274
+msgid "Escolha um item na lista."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:353
+msgid "Escolha um país na lista (aba Mundo)."
+msgstr ""
+
+#: client/scripts/first_access.gd:104
+msgid "Escolha um país na lista."
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:63
+msgid "Escolha uma página."
+msgstr ""
+
+#: client/scripts/craft_ui.gd:187
+msgid "Escolher o lugar e construir"
+msgstr ""
+
+#: client/scripts/main.gd:1386
+msgid "Esse país não tem células no mundo."
+msgstr ""
+
+#: client/scripts/interaction.gd:171
+msgid "Esta pedra já deu tudo hoje"
+msgstr ""
+
+#: client/scripts/interaction.gd:163
+msgid "Esta árvore já deu madeira hoje"
+msgstr ""
+
+#: client/scripts/main.gd:1494
+msgid "Estações pela data real."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Este lote é seu. A bancada e a caixa de vendas já estão aqui esperando você."
+msgstr ""
+
+#: client/scripts/main.gd:3417
+msgid "Estoque de %s reposto."
+msgstr ""
+
+#: client/scripts/shop_ui.gd:77
+msgid "Estoque de hoje (chega coisa nova em %dh%02d, às 5h daqui). Os itens do dia e os exclusivos daqui mudam todo dia!"
+msgstr ""
+
+#: client/scripts/main.gd:2361
+msgid "F liga o selfie: câmera na frente, corpo à vista, pose (%.2f), parado"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:37
+msgid "F1 ou Esc"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:32
+msgid "F6 ou Esc"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:130
+msgid "Fabricar"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Fardo de feno"
+msgstr ""
+
+#: client/scripts/ui_style.gd:67
+msgid "Fechar"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Flor amarela"
+msgstr ""
+
+#: server/data/game/goblopedia.json
+msgid "Flor azul"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Flor azul (rara)"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Flor branca"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Flor roxa"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Flor vermelha"
+msgstr ""
+
+#: client/scripts/session.gd:239
+msgid "Flores (qualquer cor)"
+msgstr ""
+
+#: client/scripts/world_data.gd:21
+msgid "Floresta"
+msgstr ""
+
+#: client/scripts/world_data.gd:20
+msgid "Floresta tropical"
+msgstr ""
+
+#: client/scripts/model_library.gd:85
+msgid "Flowers.fbx"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Fonte"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Fonte quadrada"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:223
+msgid "Forçar a estação (no hemisfério norte; o sul fica com a oposta):"
+msgstr ""
+
+#: client/scripts/photo_mode.gd:211
+msgid "Foto salva!"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:180
+msgid "Fotografado %d %s"
+msgstr ""
+
+#: client/scripts/main.gd:1676
+msgid "Fronteiras pelos seus passaportes."
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Frutinhas"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:32
+msgid "G ou Esc"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Galho"
+msgstr ""
+
+#: client/scripts/animals.gd:238 client/scripts/animals.gd:32 client/scripts/main.gd:2283
+msgid "Gallop"
+msgstr ""
+
+#: client/scripts/world_data.gd:22
+msgid "Gelo"
+msgstr ""
+
+#: client/scripts/neighborhood.gd:95
+msgid "GeometryInstance3D"
+msgstr ""
+
+#: client/scripts/hud.gd:46
+msgid "Goblo"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:31
+msgid "Goblopédia"
+msgstr ""
+
+#: client/scripts/main.gd:1702
+msgid "Goblopédia completa."
+msgstr ""
+
+#: client/scripts/main.gd:1702
+msgid "Goblopédia zerada (as fotos continuam em user://fotos/)."
+msgstr ""
+
+#: client/scripts/main.gd:2376
+msgid "Goblopédia: vaca descoberta na Argentina, 3 fotos (%s)"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:123 client/scripts/trade_ui.gd:106
+msgid "Gobolares"
+msgstr ""
+
+#: client/scripts/build_mode.gd:298
+msgid "Guardado: %s"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:182
+msgid "Guardar no bolso e melhorar"
+msgstr ""
+
+#: client/scripts/main.gd:1612
+msgid "Guardei %d objeto%s no bolso."
+msgstr ""
+
+#: server/data/game/npcs.json
+msgid "Guia"
+msgstr ""
+
+#: client/scripts/main.gd:217
+msgid "HitchLog"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Hoje não, obrigado"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:329
+msgid "Hora real (F4)"
+msgstr ""
+
+#: client/scripts/main.gd:1421
+msgid "Horário real"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Husky"
+msgstr ""
+
+#: client/scripts/animals.gd:170 client/scripts/animals.gd:172 client/scripts/animals.gd:232 client/scripts/animals.gd:244 client/scripts/animals.gd:246 client/scripts/animals.gd:32
+msgid "Idle"
+msgstr ""
+
+#: client/scripts/animals.gd:244 client/scripts/animals.gd:32 client/scripts/animals.gd:341
+msgid "Idle_2"
+msgstr ""
+
+#: client/scripts/main.gd:3520
+msgid "IntroArrow"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:226 client/scripts/seasons.gd:17
+msgid "Inverno"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:126
+msgid "Inverter eixo vertical: %s"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:307
+msgid "Ir"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:292
+msgid "Ir para o país"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Isso! Com galhos, madeira, pedras e flores você fabrica tudo na bancada."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Isto aqui é a Terra inteirinha, como um globo de sala de aula. Dá para andar por todos os países de verdade!"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:86
+msgid "Itens"
+msgstr ""
+
+#: client/scripts/players_ui.gd:22
+msgid "J ou Esc"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:140
+msgid "Janela %d × %d · 3D em %d × %d (%d%%%s) · a interface fica sempre na resolução cheia."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:366
+msgid "Jogador"
+msgstr ""
+
+#: client/scripts/main.gd:576
+msgid "Jogador bloqueado: vocês não veem mais o chat nem os emotes um do outro."
+msgstr ""
+
+#: client/scripts/main.gd:576
+msgid "Jogador desbloqueado."
+msgstr ""
+
+#: client/scripts/main.gd:673
+msgid "Jogador silenciado."
+msgstr ""
+
+#: client/scripts/remote_players.gd:93
+msgid "Jogador_%d"
+msgstr ""
+
+#: client/scripts/players_ui.gd:22
+msgid "Jogadores por perto"
+msgstr ""
+
+#: client/scripts/interaction.gd:173
+msgid "Já colhido hoje"
+msgstr ""
+
+#: client/scripts/interaction.gd:165
+msgid "Já sacudida hoje"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:112
+msgid "Kit inicial"
+msgstr ""
+
+#: client/scripts/main.gd:1637
+msgid "Kit inicial entregue."
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Lampião"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Lanterna de vidro"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:312
+msgid "Lat e lon precisam ser números (ex.: -23.5 e -46.6)."
+msgstr ""
+
+#: client/scripts/settings_ui.gd:48
+msgid "Limite de fps (o V-Sync fica sempre ligado; menos fps esquenta menos)"
+msgstr ""
+
+#: client/scripts/main.gd:1681
+msgid "Linhas de fronteira %s%s."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:179
+msgid "Linhas de fronteira no chão"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:243
+msgid "Listar carregados"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Lobo"
+msgstr ""
+
+#: client/scripts/airports.gd:247 client/scripts/shop_ui.gd:25 client/scripts/shop_ui.gd:62
+msgid "Loja"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:459
+msgid "Loja da praça"
+msgstr ""
+
+#: client/scripts/shop_ui.gd:75
+msgid "Loja da praça · %s"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:457
+msgid "Loja e NPCs"
+msgstr ""
+
+#: server/data/game/npcs.json
+msgid "Lojista"
+msgstr ""
+
+#: client/scripts/neighborhood.gd:207
+msgid "Lot%d"
+msgstr ""
+
+#: client/scripts/hud.gd:129
+msgid "MODO DEV · F1 abre o painel"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Machado"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:113
+msgid "Machado, picareta, 99 madeiras, 99 pedras, 30 galhos e 20 flores"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Madeira"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:486
+msgid "Marcar como não vista"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:187
+msgid "Melhorar a casa"
+msgstr ""
+
+#: client/scripts/neighborhood.gd:368
+msgid "Merged"
+msgstr ""
+
+#: client/scripts/model_library.gd:163 client/scripts/neighborhood.gd:254 client/scripts/pedia_art.gd:96 client/scripts/player.gd:133 client/scripts/remote_players.gd:149
+msgid "MeshInstance3D"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:37
+msgid "Modo dev"
+msgstr ""
+
+#: client/scripts/main.gd:1238
+msgid "Modo dev desligado. Rode o servidor com GOBLO_DEV=1."
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Moinho de vento"
+msgstr ""
+
+#: client/scripts/world_data.gd:22
+msgid "Montanha"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:481
+msgid "Mostrar a apresentação agora"
+msgstr ""
+
+#: client/scripts/main.gd:2186
+msgid "MultiMeshInstance3D"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:281
+msgid "Mundo"
+msgstr ""
+
+#: client/scripts/npc.gd:28
+msgid "NPC_%s"
+msgstr ""
+
+#: client/scripts/main.gd:1165
+msgid "Na mão: %s"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Na praça central do país ficam a loja e o aeroporto. Para viajar, você precisa do passaporte do destino (tecla P)."
+msgstr ""
+
+#: client/scripts/game_ui.gd:221
+msgid "Nada para colocar. Fabrique decorações na bancada! · X: guardar · B: sair"
+msgstr ""
+
+#: client/scripts/main.gd:1517
+msgid "Nada para vender."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:221
+msgid "Natureza"
+msgstr ""
+
+#: client/scripts/main.gd:183
+msgid "Neighborhood"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:97
+msgid "Nenhum carimbo ainda. Atravesse uma fronteira (com o passaporte) ou viaje de avião!"
+msgstr ""
+
+#: client/scripts/main.gd:221
+msgid "Net"
+msgstr ""
+
+#: client/scripts/players_ui.gd:31
+msgid "Ninguém por perto agora."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:487
+msgid "No próximo login a apresentação aparece (mesmo no modo dev)"
+msgstr ""
+
+#: client/scripts/main.gd:3150
+msgid "NÃO chegou"
+msgstr ""
+
+#: client/scripts/emote_wheel.gd:8
+msgid "Não"
+msgstr ""
+
+#: client/scripts/api.gd:57
+msgid "Não consegui falar com o servidor."
+msgstr ""
+
+#: client/scripts/first_access.gd:80
+msgid "Não conseguimos descobrir seu país. Escolha na lista."
+msgstr ""
+
+#: client/scripts/main.gd:1687
+msgid "Não coube aqui (lote ou borda do hexágono)."
+msgstr ""
+
+#: client/scripts/build_mode.gd:250
+msgid "Não dá para colocar aí."
+msgstr ""
+
+#: client/scripts/sell_ui.gd:47
+msgid "O bolso está vazio. Tudo o que você coleta ou fabrica vale gobolares!"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "O dinheiro daqui é o gobolar, mas todo mundo chama de {slang}. Você ganha vendendo coisas na caixa de vendas."
+msgstr ""
+
+#: client/scripts/server_setup.gd:21
+msgid "O jogo não achou o servidor. Se um amigo hospeda o Goblo, cole aqui o endereço que ele mandou (por exemplo https://goblo.exemplo.com)."
+msgstr ""
+
+#: client/scripts/main.gd:1716
+msgid "O relógio do servidor voltou para a hora real."
+msgstr ""
+
+#: client/scripts/main.gd:1706
+msgid "Obra concluída!"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Obrigado, {name}!"
+msgstr ""
+
+#: client/scripts/world_data.gd:20 client/scripts/world_data.gd:332
+msgid "Oceano"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Oi de novo, {player}! Esta é a praça central de {country}: aeroporto, loja e um cantinho para encontrar os amigos."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Oi, oi! Eu sou {name}, a guia do Goblo. Seja muito bem-vindo, {player}!"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Oi, {player}! Eu sou {name}, a loja da praça é minha. Hoje chegou {item_of_day}, viu?"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:179
+msgid "Onde: %s"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:215
+msgid "Os dois estão prontos. Confira tudo e confirme a troca."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:226 client/scripts/seasons.gd:17
+msgid "Outono"
+msgstr ""
+
+#: client/scripts/players_ui.gd:71
+msgid "Ouvir de novo"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:22
+msgid "P ou Esc"
+msgstr ""
+
+#: client/scripts/main.gd:1022
+msgid "Para entrar aqui, você precisa do passaporte deste país: %s. Ele pode ser comprado em qualquer aeroporto."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Para entrar num país, a pé ou de avião, você precisa do passaporte dele. O do seu país é de graça!"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:153
+msgid "Passagem: %s"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:22
+msgid "Passaporte"
+msgstr ""
+
+#: client/scripts/main.gd:1652
+msgid "Passaporte completo: %d passaportes, %d carimbos."
+msgstr ""
+
+#: client/scripts/main.gd:1651
+msgid "Passaporte de %s entregue."
+msgstr ""
+
+#: client/scripts/main.gd:1651
+msgid "Passaporte de %s retirado."
+msgstr ""
+
+#: client/scripts/travel_ui.gd:155
+msgid "Passaporte de %s: %s"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:194
+msgid "Passaporte de %s\n\n%s\n\nVocê tem %s."
+msgstr ""
+
+#: client/scripts/travel_ui.gd:68
+msgid "Passaportes"
+msgstr ""
+
+#: client/scripts/main.gd:1653
+msgid "Passaportes e carimbos zerados (fica o do seu país)."
+msgstr ""
+
+#: client/scripts/first_access.gd:49
+msgid "País"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:144
+msgid "País: o selecionado na aba Mundo."
+msgstr ""
+
+#: client/scripts/trade_ui.gd:173
+msgid "Pedido de troca"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:69 client/scripts/settings_ui.gd:72
+msgid "Pedidos de troca: aceitando"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:72
+msgid "Pedidos de troca: recusando todos"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Pedra"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Pedra decorativa grande"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Pedra decorativa pequena"
+msgstr ""
+
+#: client/scripts/interaction.gd:169
+msgid "Pedra grande  ·  precisa de uma picareta"
+msgstr ""
+
+#: client/scripts/interaction.gd:169
+msgid "Pedra grande  ·  segure a picareta (1–5)"
+msgstr ""
+
+#: client/scripts/first_access.gd:78
+msgid "Pelo idioma do seu computador, sugerimos %s. Confirme ou escolha outro."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:200
+msgid "Pelos passaportes"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:429
+msgid "Perda de pacotes de movimento: %d%%"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:421
+msgid "Perda de pacotes de movimento: 0%"
+msgstr ""
+
+#: client/scripts/player.gd:27
+msgid "Personagem %d"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:33
+msgid "Personagem (os outros jogadores veem)"
+msgstr ""
+
+#: client/scripts/first_access.gd:40
+msgid "Personagem (os outros jogadores veem; dá para trocar no F6)"
+msgstr ""
+
+#: client/scripts/main.gd:207
+msgid "PhotoMode"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Picareta"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:187
+msgid "Polígonos de debug (costa e cores por país)"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Portão"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Portão de cerca viva"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Poste de luz"
+msgstr ""
+
+#: client/scripts/world_data.gd:20
+msgid "Praia"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:125
+msgid "Precisa de:"
+msgstr ""
+
+#: client/scripts/main.gd:1453
+msgid "Preparando a estação…"
+msgstr ""
+
+#: client/scripts/main.gd:401
+msgid "Preparando o seu lote…"
+msgstr ""
+
+#: client/scripts/main.gd:290
+msgid "Preparando os gráficos…"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:195
+msgid "Preço: %s"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:226 client/scripts/seasons.gd:17
+msgid "Primavera"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:177
+msgid "Primeira foto: %02d/%02d/%04d"
+msgstr ""
+
+#: client/scripts/game_ui.gd:63
+msgid "Prompt"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:134 client/scripts/trade_ui.gd:210
+msgid "Pronto"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:210
+msgid "Pronto ✓"
+msgstr ""
+
+#: client/scripts/main.gd:1654
+msgid "Pronto."
+msgstr ""
+
+#: client/scripts/main.gd:1736
+msgid "Pronto: %s resetado."
+msgstr ""
+
+#: client/scripts/players_ui.gd:65
+msgid "Propor troca"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:175
+msgid "Próximo nível: %s (%d × %d quadradinhos)"
+msgstr ""
+
+#: client/scripts/dialog_ui.gd:63
+msgid "Pular apresentação"
+msgstr ""
+
+#: client/scripts/main.gd:3296
+msgid "Pular apresentação  (Alt + clique)"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:96
+msgid "Pôr na troca"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:44
+msgid "Qualidade gráfica"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:102
+msgid "Quantidade"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Que machado lindo! Com ele dá para cortar árvores e juntar madeira para a sua casa."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Quer dar uma olhada? Também compro qualquer coisa que você tiver, pagando um pouquinho mais que a caixa de vendas."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Quero comprar"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Quero vender"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Raposa"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:32
+msgid "Receitas"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:57
+msgid "Recusar"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:397
+msgid "Rede"
+msgstr ""
+
+#: client/scripts/main.gd:224
+msgid "RemotePlayers"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:460
+msgid "Repor o estoque agora (país onde estou)"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:379
+msgid "Resetar as coletas de hoje"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:378
+msgid "Resetar o inventário"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:377
+msgid "Resetar o lote (casa e decoração)"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:76
+msgid "Rever a apresentação"
+msgstr ""
+
+#: client/scripts/main.gd:369
+msgid "Robo %d"
+msgstr ""
+
+#: client/scripts/seasons.gd:98
+msgid "Rock_Snow_"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Roda de carroça"
+msgstr ""
+
+#: client/scripts/main.gd:1641 client/scripts/main.gd:1642
+msgid "Saldo: %s."
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Se quiser, eu conto tudo do começo outra vez."
+msgstr ""
+
+#: client/scripts/main.gd:210
+msgid "SeasonFx"
+msgstr ""
+
+#: client/scripts/main.gd:549
+msgid "Sem conexão com o servidor. Tentando de novo…"
+msgstr ""
+
+#: client/scripts/hud.gd:122
+msgid "Sem conexão: tentando de novo…"
+msgstr ""
+
+#: client/scripts/seasons.gd:17
+msgid "Sem estação"
+msgstr ""
+
+#: client/scripts/main.gd:358
+msgid "Sem resposta do servidor (%s).\nTentando de novo…"
+msgstr ""
+
+#: client/scripts/api.gd:68
+msgid "Sem resposta do servidor."
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Sementes de flores"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:56
+msgid "Sensibilidade do mouse"
+msgstr ""
+
+#: client/scripts/emote_wheel.gd:8
+msgid "Sentar"
+msgstr ""
+
+#: client/scripts/shader_warmup.gd:26
+msgid "ShaderWarmup"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Shiba"
+msgstr ""
+
+#: client/scripts/players_ui.gd:71
+msgid "Silenciar"
+msgstr ""
+
+#: client/scripts/emote_wheel.gd:8
+msgid "Sim"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:409
+msgid "Simular rede ruim (só neste computador):"
+msgstr ""
+
+#: client/scripts/npc.gd:56 client/scripts/player.gd:125
+msgid "Skeleton3D"
+msgstr ""
+
+#: client/scripts/model_library.gd:183 client/scripts/seasons.gd:93
+msgid "Snow"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:172
+msgid "Sua casa já está no nível máximo. Que linda!"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:166
+msgid "Sua casa: "
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Só passando, tchau!"
+msgstr ""
+
+#: client/scripts/emote_wheel.gd:17
+msgid "T ou Esc"
+msgstr ""
+
+#: client/scripts/inventory_ui.gd:25
+msgid "Tab ou Esc"
+msgstr ""
+
+#: client/scripts/main.gd:1865
+msgid "TabContainer"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:52
+msgid "Tamanho da interface"
+msgstr ""
+
+#: client/scripts/main.gd:3581
+msgid "Tarefa da apresentação!  +%s"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:65
+msgid "Tela cheia (F11)"
+msgstr ""
+
+#: client/scripts/main.gd:1404
+msgid "Teleportado para %s."
+msgstr ""
+
+#: client/scripts/sell_ui.gd:141
+msgid "Tem certeza? Você vai vender %s (ferramenta ou item raro)."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:326
+msgid "Tempo mais rápido (F3)"
+msgstr ""
+
+#: client/scripts/main.gd:1416
+msgid "Tempo ×%d"
+msgstr ""
+
+#: client/scripts/world_data.gd:332
+msgid "Terra sem país"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:133 client/scripts/trade_ui.gd:303
+msgid "Tirar"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:405
+msgid "Tirar os bots"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:153
+msgid "Tirar passaporte"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:200
+msgid "Todas abertas"
+msgstr ""
+
+#: client/scripts/main.gd:1676
+msgid "Todas as fronteiras abertas (só a visão)."
+msgstr ""
+
+#: client/scripts/main.gd:1676
+msgid "Todas as fronteiras fechadas (só a visão)."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:200
+msgid "Todas fechadas"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:209
+msgid "Todos os passaportes e um carimbo de cada país com aeroporto (sem gobolares)"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:158
+msgid "Total: %s"
+msgstr ""
+
+#: server/data/game/animals.json
+msgid "Touro"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:138
+msgid "Travadas (> %d ms): %d nesta sessão"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:137
+msgid "Travadas (> %d ms): nenhuma"
+msgstr ""
+
+#: client/scripts/seasons.gd:105
+msgid "TreeStump"
+msgstr ""
+
+#: client/scripts/seasons.gd:105
+msgid "TreeStump_Moss"
+msgstr ""
+
+#: client/scripts/seasons.gd:106
+msgid "TreeStump_Snow"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:491 client/scripts/trade_ui.gd:43
+msgid "Troca"
+msgstr ""
+
+#: client/scripts/main.gd:3426
+msgid "Troca aberta com %s."
+msgstr ""
+
+#: client/scripts/trade_ui.gd:197
+msgid "Troca com %s"
+msgstr ""
+
+#: client/scripts/trade_ui.gd:228
+msgid "Troca feita!"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:373
+msgid "Trocar meu país para o selecionado na aba Mundo"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Tudo certo, obrigado!"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:189
+msgid "Tudo deste tipo"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:194
+msgid "Tudo vale %s"
+msgstr ""
+
+#: client/scripts/world_data.gd:22
+msgid "Tundra"
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:196
+msgid "Uma flor de cor rara, que aparece pouco por aí."
+msgstr ""
+
+#: client/scripts/pedia_ui.gd:198
+msgid "Uma árvore numa estação especial do ano. Fique de olho no calendário!"
+msgstr ""
+
+#: client/scripts/main.gd:2251 client/scripts/main.gd:2261 server/data/game/animals.json
+msgid "Vaca"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:160
+msgid "Vai ao aeroporto do país selecionado sem pagar nem precisar de passaporte"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Vamos começar? Chegue perto de uma árvore e aperte E para sacudir. Às vezes cai um galho!"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Vaso de flores amarelas"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Vaso de flores brancas"
+msgstr ""
+
+#: server/data/game/items.json
+msgid "Vaso de flores roxas"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:186
+msgid "Vender"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:70
+msgid "Vender mesmo assim"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:102
+msgid "Vender na loja"
+msgstr ""
+
+#: client/scripts/shop_ui.gd:43
+msgid "Vender para a loja"
+msgstr ""
+
+#: client/scripts/sell_ui.gd:55
+msgid "Vender tudo"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Ver destinos"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:226 client/scripts/seasons.gd:17
+msgid "Verão"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:142
+msgid "Viagem"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:162 client/scripts/travel_ui.gd:41 client/scripts/travel_ui.gd:63
+msgid "Viajar"
+msgstr ""
+
+#: client/scripts/main.gd:1079
+msgid "Visual"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:199
+msgid "Visão da fronteira:"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "Viu um bicho ou uma flor diferente? Fotografe com a câmera e veja tudo na Goblopédia (tecla G)."
+msgstr ""
+
+#: client/scripts/main.gd:1411
+msgid "Voando: Espaço sobe, Ctrl desce, Shift acelera"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:333
+msgid "Voando: WASD, Espaço sobe, Ctrl desce, Shift acelera."
+msgstr ""
+
+#: client/scripts/dev_panel.gd:318
+msgid "Voar (noclip)"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:159
+msgid "Voar de graça para lá"
+msgstr ""
+
+#: client/scripts/main.gd:1339
+msgid "Você ainda não tem lote."
+msgstr ""
+
+#: client/scripts/trade_ui.gd:213
+msgid "Você confirmou. Esperando %s confirmar…"
+msgstr ""
+
+#: client/scripts/main.gd:1398
+msgid "Você está em %s."
+msgstr ""
+
+#: client/scripts/main.gd:1631
+msgid "Você ganhou %d× %s."
+msgstr ""
+
+#: client/scripts/main.gd:706
+msgid "Você já está numa troca."
+msgstr ""
+
+#: client/scripts/travel_ui.gd:195
+msgid "Você já tem este passaporte."
+msgstr ""
+
+#: client/scripts/trade_ui.gd:76
+msgid "Você oferece"
+msgstr ""
+
+#: client/scripts/shop_ui.gd:56 client/scripts/shop_ui.gd:66
+msgid "Você tem %s"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:159
+msgid "Você tem %s."
+msgstr ""
+
+#: client/scripts/craft_ui.gd:122
+msgid "Você tem: %d"
+msgstr ""
+
+#: client/scripts/main.gd:673
+msgid "Você volta a ouvir esse jogador."
+msgstr ""
+
+#: client/scripts/trade_ui.gd:217
+msgid "Você: %s  ·  %s: %s  (qualquer mudança desfaz os \"pronto\")"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:371
+msgid "Voltar o relógio do servidor para a hora real"
+msgstr ""
+
+#: client/scripts/main.gd:1411
+msgid "Voltou a andar"
+msgstr ""
+
+#: client/scripts/build_mode.gd:57
+msgid "Vá até o seu lote para construir (H leva para casa)."
+msgstr ""
+
+#: client/scripts/build_mode.gd:69
+msgid "Vá até o seu lote para escolher o lugar da casa (H leva para casa)."
+msgstr ""
+
+#: client/scripts/hud.gd:70
+msgid "WASD andar · Shift correr · Espaço pular · E interagir · Tab/I bolso · 1–5 ferramentas · B construir · H casa · G Goblopédia · P passaporte\nmouse gira a câmera · roda: zoom · câmera na mão: botão direito fotografa · Alt ou Esc: soltar o cursor · F2 desempenho · F3/F4 tempo · F6 configurações · F11 tela cheia"
+msgstr ""
+
+#: client/scripts/animals.gd:241 client/scripts/animals.gd:259 client/scripts/animals.gd:32
+msgid "Walk"
+msgstr ""
+
+#: client/scripts/seasons.gd:103
+msgid "WoodLog"
+msgstr ""
+
+#: client/scripts/seasons.gd:103
+msgid "WoodLog_Moss"
+msgstr ""
+
+#: client/scripts/seasons.gd:104
+msgid "WoodLog_Snow"
+msgstr ""
+
+#: client/scripts/main.gd:2144 client/scripts/main.gd:2145 client/scripts/main.gd:2181
+msgid "WorldEnvironment"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:252
+msgid "Zerar a Goblopédia"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:212
+msgid "Zerar passaportes e carimbos"
+msgstr ""
+
+#: client/scripts/chat_ui.gd:86
+msgid "[b][color=%s]%s[/color][/b]: %s"
+msgstr ""
+
+#: client/scripts/main.gd:1065
+msgid "\nCarimbo novo no passaporte!  +%s"
+msgstr ""
+
+#: client/scripts/main.gd:815
+msgid "\nTentando de novo em %d s…"
+msgstr ""
+
+#: client/scripts/main.gd:1209
+msgid "\nrede: %s · ping %d ms · ↓%d ↑%d pacotes/s · %d jogadores visíveis"
+msgstr ""
+
+#: client/scripts/main.gd:3009
+msgid "abaixo do chão"
+msgstr ""
+
+#: client/scripts/main.gd:2128
+msgid "antisserrilhado (MSAA/FXAA)"
+msgstr ""
+
+#: client/scripts/main.gd:325
+msgid "automação"
+msgstr ""
+
+#: client/scripts/main.gd:2776
+msgid "aviso da fronteira"
+msgstr ""
+
+#: client/scripts/main.gd:252
+msgid "cache (versão %s)"
+msgstr ""
+
+#: client/scripts/hud.gd:47
+msgid "carregando o mundo…"
+msgstr ""
+
+#: client/scripts/main.gd:2669
+msgid "casa (H)"
+msgstr ""
+
+#: client/scripts/main.gd:2133
+msgid "casas e lotes"
+msgstr ""
+
+#: client/scripts/main.gd:2134
+msgid "chão e oceano"
+msgstr ""
+
+#: client/scripts/main.gd:2735
+msgid "clique depois do Esc"
+msgstr ""
+
+#: client/scripts/dialog_ui.gd:76
+msgid "clique ou E para continuar"
+msgstr ""
+
+#: client/scripts/photo_mode.gd:111
+msgid "clique: tirar foto  ·  roda: zoom  ·  F: %s  ·  botão direito ou Esc: sair"
+msgstr ""
+
+#: client/scripts/vegetation.gd:228
+msgid "colisão dos objetos"
+msgstr ""
+
+#: client/scripts/main.gd:2941
+msgid "com o passaporte, abre com animação (%.2f no meio, %.2f no fim)"
+msgstr ""
+
+#: client/scripts/main.gd:2716
+msgid "começo do jogo"
+msgstr ""
+
+#: client/scripts/main.gd:2644
+msgid "correndo perto de casa"
+msgstr ""
+
+#: client/scripts/main.gd:960
+msgid "câmera afastada %.0f%%"
+msgstr ""
+
+#: client/scripts/main.gd:2646
+msgid "câmera afastada até o globo e de volta"
+msgstr ""
+
+#: client/scripts/main.gd:2144
+msgid "céu"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:101
+msgid "da interface"
+msgstr ""
+
+#: client/scripts/first_access.gd:36
+msgid "de 3 a 16 letras"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:100
+msgid "de malha"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:100
+msgid "de superfície"
+msgstr ""
+
+#: client/scripts/chat_ui.gd:30
+msgid "diga algo… (Enter manda, Esc fecha)"
+msgstr ""
+
+#: client/scripts/neighborhood.gd:234
+msgid "distância"
+msgstr ""
+
+#: client/scripts/main.gd:3007
+msgid "distância mudou sozinha (%.2f, zoom pede %.2f)"
+msgstr ""
+
+#: client/scripts/shop_ui.gd:96
+msgid "do dia"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:101
+msgid "especialização"
+msgstr ""
+
+#: client/scripts/shop_ui.gd:96
+msgid "exclusivo daqui"
+msgstr ""
+
+#: client/scripts/main.gd:2722
+msgid "fechar o bolso"
+msgstr ""
+
+#: client/scripts/main.gd:2761
+msgid "fim do voo (%s)"
+msgstr ""
+
+#: client/scripts/main.gd:2132
+msgid "grama e plantinhas (cliente)"
+msgstr ""
+
+#: client/scripts/main.gd:2672
+msgid "inverno forçado e volta"
+msgstr ""
+
+#: client/scripts/main.gd:967
+msgid "janela sem foco (o Mac desacelera)"
+msgstr ""
+
+#: client/scripts/neighborhood.gd:232
+msgid "junção"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:301
+msgid "lat (ex.: -3)"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:303
+msgid "lon (ex.: -60)"
+msgstr ""
+
+#: client/scripts/main.gd:962
+msgid "modo foto"
+msgstr ""
+
+#: client/scripts/main.gd:2657
+msgid "modo foto e selfie"
+msgstr ""
+
+#: client/scripts/quality.gd:18
+msgid "média"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:99
+msgid "na hora de desenhar"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:126 client/scripts/hitch_log.gd:142
+msgid "nada anotado"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:165
+msgid "nenhuma (só o terreno)"
+msgstr ""
+
+#: client/scripts/main.gd:3067
+msgid "nenhuma casa por perto"
+msgstr ""
+
+#: client/scripts/settings_ui.gd:126
+msgid "não"
+msgstr ""
+
+#: client/scripts/main.gd:2136
+msgid "névoa"
+msgstr ""
+
+#: client/scripts/main.gd:2594 client/scripts/main.gd:2618
+msgid "oi do a"
+msgstr ""
+
+#: client/scripts/main.gd:2589 client/scripts/main.gd:2602
+msgid "oi do b"
+msgstr ""
+
+#: client/scripts/main.gd:3027
+msgid "ok   "
+msgstr ""
+
+#: client/scripts/main.gd:2654
+msgid "pampa com animais"
+msgstr ""
+
+#: client/scripts/player.gd:520
+msgid "para cima"
+msgstr ""
+
+#: client/scripts/craft_ui.gd:120
+msgid "para colocar no lote"
+msgstr ""
+
+#: client/scripts/main.gd:2526
+msgid "passaporte da Argentina comprado junto e carimbo na chegada (%d → %d gobolares, passagem + passaporte %d)"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:96
+msgid "país visitado"
+msgstr ""
+
+#: client/scripts/passport_ui.gd:96
+msgid "países visitados"
+msgstr ""
+
+#: client/scripts/main.gd:2778
+msgid "plaquinha de boas-vindas"
+msgstr ""
+
+#: client/scripts/main.gd:2342
+msgid "primeira foto da vaca registra e paga (%d → %d gobolares)"
+msgstr ""
+
+#: client/scripts/photo_mode.gd:111
+msgid "primeira pessoa"
+msgstr ""
+
+#: client/scripts/main.gd:2352
+msgid "primeira pessoa: câmera nos olhos (%.2f) e corpo escondido"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:117
+msgid "processo %.1f ms, física %.1f ms, %d draw calls"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:47
+msgid "procurar destino…"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:88
+msgid "procurar item… (Enter dá o primeiro)"
+msgstr ""
+
+#: client/scripts/dev_panel.gd:283 client/scripts/first_access.gd:53 client/scripts/travel_ui.gd:74
+msgid "procurar país…"
+msgstr ""
+
+#: client/scripts/main.gd:323
+msgid "qualidade %s · janela %d × %d · limite %s · V-Sync %s · %s"
+msgstr ""
+
+#: client/scripts/main.gd:548 client/scripts/net.gd:105 client/scripts/net.gd:12 client/scripts/net.gd:155 client/scripts/net.gd:47
+msgid "sem conexão"
+msgstr ""
+
+#: client/scripts/fps_limit.gd:26
+msgid "sem limite"
+msgstr ""
+
+#: client/scripts/hitch_log.gd:108
+msgid "shaders compilados: "
+msgstr ""
+
+#: client/scripts/main.gd:2764
+msgid "tecla H"
+msgstr ""
+
+#: client/scripts/main.gd:3213
+msgid "tela cheia"
+msgstr ""
+
+#: client/scripts/main.gd:2741
+msgid "teleporte até o aeroporto"
+msgstr ""
+
+#: client/scripts/main.gd:2771
+msgid "teleporte do modo dev"
+msgstr ""
+
+#: client/scripts/main.gd:2138
+msgid "tonemapping AgX e ajuste de cor"
+msgstr ""
+
+#: client/scripts/main.gd:3326
+msgid "uma novidade"
+msgstr ""
+
+#: client/scripts/main.gd:2090
+msgid "vender 2 madeiras: %d → %d gobolares"
+msgstr ""
+
+#: client/scripts/main.gd:2143
+msgid "vento e variação (shader de folhagem)"
+msgstr ""
+
+#: client/scripts/travel_ui.gd:182
+msgid "você tem ✓"
+msgstr ""
+
+#: client/scripts/main.gd:2666
+msgid "voo até o Japão"
+msgstr ""
+
+#: client/scripts/photo_mode.gd:83
+msgid "zoom %d°"
+msgstr ""
+
+#: server/data/game/goblopedia.json
+msgid "Árvore com neve"
+msgstr ""
+
+#: server/data/game/goblopedia.json
+msgid "Árvore de outono"
+msgstr ""
+
+#: server/data/game/dialogs.json
+msgid "É isso! Qualquer coisa, dá para rever esta conversa nas configurações (F6). Divirta-se, {player}!"
+msgstr ""
+
+#: client/scripts/vegetation.gd:228
+msgid "árvores e pedras"
+msgstr ""
+
+#: client/scripts/main.gd:2131
+msgid "árvores e pedras (servidor)"
+msgstr ""
