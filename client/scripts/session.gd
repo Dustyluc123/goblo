@@ -56,6 +56,8 @@ var intro_cfg := {}
 var intro := {"done": true, "tasks": []}
 ## Livro de passaporte (GET /passport): {"passports": [...], "stamps": [{country, name, first_at}]}.
 var passport_book := {}
+## Corpo (fase 4.0): body.json do servidor (clima, necessidades, bônus, opções do editor).
+var body := {}
 
 
 func token_path() -> String:
@@ -102,6 +104,7 @@ func set_content(data: Dictionary) -> void:
 	npc_names = data.get("npc_names", {})
 	dialogs = data.get("dialogs", {})
 	intro_cfg = data.get("intro", {})
+	body = data.get("body", {}) if data.get("body") is Dictionary else {}
 
 
 func set_me(data: Dictionary) -> void:

@@ -31,6 +31,10 @@ signal trade_changed(view: Dictionary)
 signal trade_finished(result: Dictionary)
 signal trade_closed(reason: String)
 signal kicked(reason: String)
+## Fase 4.0: o corpo do jogador (necessidades, temperatura), o visual de alguém e fogueiras.
+signal body_received(body: Dictionary)
+signal look_changed(id: int, look: Dictionary)
+signal fire_lit(fire: Dictionary)
 
 const MSG_MOVE := 1
 const MSG_SNAPSHOT := 2
@@ -322,6 +326,12 @@ func _on_text(text: String) -> void:
 			trade_finished.emit(d)
 		"trade_closed":
 			trade_closed.emit(str(d.get("reason", "")))
+		"body":
+			body_received.emit(d.get("body", {}))
+		"look":
+			look_changed.emit(int(d.get("id", 0)), d.get("look", {}) if d.get("look") is Dictionary else {})
+		"fire":
+			fire_lit.emit(d.get("fire", {}))
 		"kick":
 			_kicked = true
 			kicked.emit(str(d.get("reason", "")))

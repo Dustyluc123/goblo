@@ -120,6 +120,11 @@ var _tracker: CountryTracker
 ## Marcador da casa no globo, visível na visão afastada.
 var _home_marker: Sprite3D
 
+## Fase 4.0: corpo, visual dos personagens, guarda-roupa e editor.
+var body: BodyGame
+var wardrobe: WardrobeUi
+var look_editor: LookEditor
+var _looks := CharacterLook.new()
 @onready var _terrain: Terrain = $Terrain
 @onready var _vegetation: Vegetation = $Vegetation
 @onready var _sun: DirectionalLight3D = $Sun
@@ -290,6 +295,7 @@ func _on_world_downloaded(result: int, code: int, headers: PackedStringArray, bo
 	await ModelLibrary.preload_all(_models_to_preload(), get_tree())
 	await Animals.preload_scenes(_session.animal_species, get_tree())
 	await RemotePlayers.preload_characters(_session.rules.get("characters", []), get_tree())
+	CharacterLook.prepare(_session.body.get("look", {}).get("parts", []))
 	load_stats["models_ms"] = Time.get_ticks_msec() - tm
 	_setup_game()
 	_hud.show_status("Preparando os gráficos…")
@@ -456,6 +462,21 @@ func _setup_game() -> void:
 	_icons.setup(_session.items)
 	_ui.setup(self, _session, _icons, world.countries)
 	_ui.inventory.place_requested.connect(func(item: String) -> void: _build.enter(item))
+	_ui.inventory.use_requested.connect(use_item)
+	# Fase 4.0: corpo (necessidades, fogueiras), visual dos personagens, guarda-roupa e editor.
+	add_child(_looks)
+	body = BodyGame.new()
+	body.name = "Body"
+	add_child(body)
+	body.setup(self, _session, _api, _ui, _player, _data, _airports)
+	wardrobe = _ui.add_window(WardrobeUi.new()) as WardrobeUi
+	wardrobe.setup(self, _session)
+	look_editor = _ui.add_window(LookEditor.new()) as LookEditor
+	look_editor.setup(self, _session)
+	_ui.settings.on_quiet = func() -> void:
+		await body.set_quiet(not body.quiet())
+		_ui.settings.show_quiet(body.quiet())
+	_ui.settings.on_editor = open_look_editor
 	_build.game = self
 	_build.session = _session
 	_build.data = _data
@@ -542,6 +563,14 @@ func _setup_net() -> void:
 	_ui.settings.on_character = set_character
 	_ui.settings.show_character(_player.character)
 	_ui.chat.max_chars = int(_session.rules.get("chat", {}).get("max_chars", 120))
+	_net.body_received.connect(func(b: Dictionary) -> void:
+		body.set_body(b)
+		_ui.settings.show_quiet(body.quiet()))
+	_net.look_changed.connect(func(id: int, lv: Dictionary) -> void:
+		if id == _net.player_id:
+			_player.set_look(lv))
+	_net.fire_lit.connect(body.add_fire)
+	_load_look_and_body()
 	_ui.chat.sent.connect(func(text: String) -> void: _net.send_json({"t": "chat", "text": text}))
 	_ui.emotes.picked.connect(emote)
 	_net.welcomed.connect(func(_info: Dictionary) -> void:
@@ -748,6 +777,75 @@ func set_character(c: String) -> void:
 	_player.set_character(c)
 	_on_equipped()
 	_net.send_json({"t": "char", "c": c})
+
+
+# --- Corpo, roupas e visual (fase 4.0) -----------------------------------------------------
+
+func _load_look_and_body() -> void:
+	var r := await _api.request("GET", "/look")
+	if r["ok"]:
+		_player.set_look(r["data"])
+	await body.load_body()
+	_ui.settings.show_quiet(body.quiet())
+
+
+## Aplica a resposta das ações de roupa e visual.
+func _apply_wear(r: Dictionary) -> bool:
+	if not r["ok"]:
+		_ui.toast(str(r["message"]))
+		return false
+	var d: Dictionary = r["data"]
+	_session.set_inventory(d["inventory"], int(d.get("slots_used", 0)))
+	_player.set_look(d.get("look", {}))
+	body.set_body(d.get("body", {}))
+	if not str(d.get("message", "")).is_empty():
+		_ui.toast(str(d["message"]))
+	if wardrobe.visible:
+		wardrobe.refresh()
+	return true
+
+
+func wear(item: String) -> bool:
+	return _apply_wear(await _api.request("POST", "/wear", {"item": item}))
+
+
+func unwear(slot: String) -> bool:
+	return _apply_wear(await _api.request("POST", "/wear/remove", {"slot": slot}))
+
+
+func dye(slot: String, paint: String) -> bool:
+	return _apply_wear(await _api.request("POST", "/wear/dye", {"slot": slot, "paint": paint}))
+
+
+func save_look(look: Dictionary) -> bool:
+	return _apply_wear(await _api.request("POST", "/look", look))
+
+
+func open_look_editor() -> void:
+	_ui.close_windows()
+	look_editor.open()
+
+
+## Clique num item do bolso que se usa (comer, beber, vestir, tinta, fogueira, cantil).
+func use_item(item: String) -> void:
+	var it: Dictionary = _session.items.get(item, {})
+	if it.get("wear") is Dictionary:
+		await wear(item)
+	elif (it.get("tags", []) as Array).has("paint"):
+		_ui.close_windows()
+		wardrobe.toggle()
+	elif item == "campfire":
+		# No próprio lote, coloca como decoração; fora dele, acende no chão por uns minutos.
+		if not _session.lot().is_empty() and _in_own_lot_area(_session.lot(), _player.global_position):
+			_ui.close_windows()
+			_build.enter(item)
+		else:
+			_ui.close_windows()
+			await body.light_fire()
+	elif body.is_food(item):
+		await body.consume(item)
+	elif item in ["canteen", "canteen_half"]:
+		_ui.toast("Chegue perto de uma fonte ou de um poço e aperte E para encher o cantil.")
 
 
 ## Modo dev: cria n bots perto (0 = tira todos).
@@ -1236,6 +1334,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F11:
 			SettingsUi.toggle_fullscreen()
 	if not _ready_to_play:
+		return
+	if key == KEY_C and not _ui.chat.is_open() and (not _ui.menu_open() or wardrobe.visible):
+		var was_open := wardrobe.visible
+		_ui.close_windows()
+		if not was_open:
+			wardrobe.toggle()
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("dev_panel"):
 		if _session.dev:

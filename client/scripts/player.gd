@@ -82,6 +82,16 @@ var posing := false
 var pose_blend := 0.0
 ## Emote em pose (sentar): fica até o personagem se mexer.
 var emote_pose := ""
+## Corpo (fase 4.0): multiplicador da velocidade que o servidor manda (necessidades e bônus),
+## tremor de frio (ângulo) e abanar-se no calor.
+var speed_mult := 1.0
+var shiver := 0.0
+var fanning := false
+var _fan_t := 0.0
+## Visual do editor (LookView do servidor: look, wear, cape) e a malha montada.
+var look_view := {}
+var _look_mi: MeshInstance3D
+var _model: Node3D
 ## Correção do servidor (fase 3): o corpo desliza até aqui em poucos quadros.
 var _correction := Vector3.INF
 var _correction_left := 0
@@ -126,10 +136,44 @@ func _load_character() -> void:
 	if height > 0.0:
 		model.scale = Vector3.ONE * (model_height / height)
 	_visual.add_child(model)
+	_model = model
 	_setup_animation(model)
 	var sks := model.find_children("*", "Skeleton3D", true, false)
 	_skeleton = sks[0] if not sks.is_empty() else null
 	_tool_holder = null
+	_look_mi = null
+	if not look_view.is_empty():
+		_request_look()
+
+
+## Visual do editor e roupas (fase 4.0, ADR 0051). O esqueleto e as animações são do
+## personagem do corpo; a malha vem do CharacterLook (numa thread na primeira vez).
+func set_look(view: Dictionary) -> void:
+	if view.is_empty():
+		return
+	look_view = view
+	var body_part := "character-" + str((view.get("look", {}) as Dictionary).get("body", ""))
+	if body_part != character and CHARACTERS.has(body_part):
+		character = body_part
+		_load_character()
+	else:
+		_request_look()
+
+
+func _request_look() -> void:
+	var look: Dictionary = look_view.get("look", {})
+	var wear: Dictionary = look_view.get("wear", {}) if look_view.get("wear") is Dictionary else {}
+	var cape: Array = look_view.get("cape", []) if look_view.get("cape") is Array else []
+	var model := _model
+	CharacterLook.request(look, wear, func(mesh: ArrayMesh) -> void:
+		if is_instance_valid(model) and model.get_parent() == _visual:
+			_look_mi = CharacterLook.apply(model, mesh, look, cape))
+
+
+## A capa balança mais andando.
+func _process(_delta: float) -> void:
+	if _look_mi and is_instance_valid(_look_mi) and _look_mi.mesh and _look_mi.mesh.get_surface_count() > 1:
+		_look_mi.set_instance_shader_parameter("wave", clampf(get_real_velocity().length() / 8.0, 0.2, 1.0))
 
 
 ## Altura do modelo na pose de repouso, somando as malhas (a origem fica nos pés).
@@ -390,7 +434,7 @@ func _physics_process(delta: float) -> void:
 
 	var wish := auto_wish.limit_length(1.0) if autopilot else _wish_direction(up)
 	var running := auto_run if autopilot else (Input.is_action_pressed("run") and not input_blocked)
-	var speed := walk_speed * (run_multiplier if running else 1.0)
+	var speed := walk_speed * (run_multiplier if running else 1.0) * speed_mult
 	var accel := acceleration if is_on_floor() else air_acceleration
 	horizontal = horizontal.lerp(wish * speed, clampf(accel * delta, 0.0, 1.0))
 	horizontal = _block_ocean(horizontal, up, delta)
@@ -419,6 +463,9 @@ func _physics_process(delta: float) -> void:
 	_rescue_if_below()
 
 	_update_animation(delta, up)
+	# Frio: treme; calor: balança devagar, abanando-se.
+	_fan_t += delta
+	_visual.rotation.z = shiver + (0.05 * sin(_fan_t * 5.0) if fanning else 0.0)
 
 	var new_up := global_position.normalized()
 	if wish.length() > 0.1:

@@ -5,6 +5,8 @@ extends PanelContainer
 ## construção com ele.
 
 signal place_requested(item: String)
+## Fase 4.0: usar um item (comer, beber, vestir, tinta, acender fogueira, cantil).
+signal use_requested(item: String)
 
 const COLUMNS := 5
 
@@ -28,7 +30,9 @@ func _ready() -> void:
 	_grid.add_theme_constant_override("h_separation", 8)
 	_grid.add_theme_constant_override("v_separation", 8)
 	box.add_child(_grid)
-	_hint = UiStyle.label("Clique numa ferramenta para segurar, ou num objeto para colocar no lote.", 15, UiStyle.INK_SOFT)
+	_hint = UiStyle.label("Clique numa ferramenta para segurar, num objeto para colocar no lote, numa comida para comer e numa roupa para vestir (C abre o guarda-roupa).", 15, UiStyle.INK_SOFT)
+	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hint.custom_minimum_size = Vector2(460, 0)
 	box.add_child(_hint)
 	visible = false
 
@@ -106,6 +110,11 @@ func _slot(entry: Array) -> Control:
 
 
 func _clicked(item: String) -> void:
+	var it: Dictionary = session.items.get(item, {})
+	var tags: Array = it.get("tags", [])
+	if it.get("food") is Dictionary or it.get("wear") is Dictionary or tags.has("paint") or tags.has("canteen") or item == "campfire":
+		use_requested.emit(item)
+		return
 	if session.is_tool(item):
 		session.equip("" if session.equipped == item else item)
 	elif session.is_placeable(item):

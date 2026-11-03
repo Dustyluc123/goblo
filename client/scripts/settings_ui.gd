@@ -12,6 +12,10 @@ var _char: OptionButton
 var on_character := Callable()
 ## Rever a apresentação do guia (fase 3.5).
 var on_intro := Callable()
+## Fase 4.0: modo tranquilo (sem necessidades) e o editor de personagem.
+var on_quiet := Callable()
+var on_editor := Callable()
+var _quiet: Button
 ## Aceitar pedidos de troca (fase 3.5): recebe o novo valor.
 var on_trades := Callable()
 var accept_trades := true
@@ -79,6 +83,21 @@ func _ready() -> void:
 		if on_intro.is_valid():
 			on_intro.call())
 	box.add_child(intro)
+	var row4 := HBoxContainer.new()
+	row4.add_theme_constant_override("separation", 8)
+	_quiet = UiStyle.button("Modo tranquilo: desligado", false)
+	_quiet.tooltip_text = tr("Desliga sede, fome e conforto: sem bônus e sem cansaço. Fica salvo.")
+	_quiet.pressed.connect(func() -> void:
+		if on_quiet.is_valid():
+			on_quiet.call())
+	row4.add_child(_quiet)
+	var ed := UiStyle.button("Editar personagem", false)
+	ed.pressed.connect(func() -> void:
+		visible = false
+		if on_editor.is_valid():
+			on_editor.call())
+	row4.add_child(ed)
+	box.add_child(row4)
 	_info = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_info)
@@ -146,3 +165,9 @@ static func toggle_fullscreen() -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+
+## Texto do botão do modo tranquilo (fase 4.0).
+func show_quiet(on: bool) -> void:
+	if _quiet:
+		_quiet.text = tr("Modo tranquilo: ligado") if on else tr("Modo tranquilo: desligado")

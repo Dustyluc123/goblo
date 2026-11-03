@@ -61,6 +61,7 @@ func setup(n: Net, cam: Camera3D) -> void:
 	net.emote_received.connect(play_emote)
 	net.act_received.connect(_on_act)
 	net.char_changed.connect(_on_char)
+	net.look_changed.connect(_on_look)
 	net.state_changed.connect(func(s: String) -> void:
 		if s != "conectado":
 			clear())
@@ -95,7 +96,10 @@ func _on_enter(d: Dictionary) -> void:
 	var a := {"node": root, "info": d, "samples": [], "anim": "", "emote": "", "emote_left": 0,
 		"bubble_t": 0.0, "lod_acc": 0.0}
 	_avatars[id] = a
-	_build_model(a, str(d.get("char", "")))
+	var lv: Variant = d.get("look")
+	if lv is Dictionary and not (lv as Dictionary).is_empty():
+		a["look"] = lv
+	_build_model(a, _char_of(a, str(d.get("char", ""))))
 	var label := Label3D.new()
 	label.text = str(d.get("nick", "?"))
 	label.font_size = 36
@@ -160,6 +164,44 @@ func _build_model(a: Dictionary, character: String) -> void:
 		ap.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	a["ap"] = ap
 	a["anim"] = ""
+	_apply_look(a)
+
+
+## Personagem do esqueleto: o do corpo no editor (fase 4.0), ou o escolhido antes.
+func _char_of(a: Dictionary, fallback: String) -> String:
+	var lv: Dictionary = a.get("look", {})
+	var part := str((lv.get("look", {}) as Dictionary).get("body", "")) if lv.get("look") is Dictionary else ""
+	return "character-" + part if not part.is_empty() else fallback
+
+
+## Monta o visual do editor e as roupas por cima do modelo (CharacterLook, numa thread).
+func _apply_look(a: Dictionary) -> void:
+	var lv: Dictionary = a.get("look", {})
+	if lv.is_empty() or not a.has("model"):
+		return
+	var model: Node3D = a["model"]
+	var look: Dictionary = lv.get("look", {})
+	var wear: Dictionary = lv.get("wear", {}) if lv.get("wear") is Dictionary else {}
+	var cape: Array = lv.get("cape", []) if lv.get("cape") is Array else []
+	CharacterLook.request(look, wear, func(mesh: ArrayMesh) -> void:
+		if is_instance_valid(model) and a.get("model") == model:
+			var mi := CharacterLook.apply(model, mesh, look, cape)
+			if mi:
+				mi.visibility_range_end = MODEL_RANGE
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(a.get("shadow", false)) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				a["meshes"] = [mi])
+
+
+func _on_look(id: int, look: Dictionary) -> void:
+	if not _avatars.has(id) or look.is_empty():
+		return
+	var a: Dictionary = _avatars[id]
+	var before := _char_of(a, "")
+	a["look"] = look
+	if _char_of(a, "") != before:
+		_build_model(a, _char_of(a, DEFAULT_CHAR))
+	else:
+		_apply_look(a)
 
 
 func _on_leave(id: int) -> void:

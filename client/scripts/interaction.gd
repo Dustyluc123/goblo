@@ -8,7 +8,7 @@ extends Node
 ## a animação do personagem e os efeitos (árvore balançando, item fazendo "pop").
 
 ## Até onde o personagem alcança, por tipo (a partir do centro do objeto).
-const REACH := {"tree": 1.7, "rock": 1.6, "bush": 1.4, "flower": 1.1, "pebble": 1.0, "branch": 1.0}
+const REACH := {"tree": 1.7, "rock": 1.6, "bush": 1.4, "flower": 1.1, "pebble": 1.0, "branch": 1.0, "forage": 1.1}
 const WORKBENCH_REACH := 1.8
 ## Até onde alcança um animal (a partir da borda dele).
 const ANIMAL_REACH := 1.3
@@ -95,6 +95,12 @@ func _find_target() -> Dictionary:
 		if rid >= 0 and best_score > 0.8:
 			best = {"type": "player", "id": rid, "pos": game.remote_position(rid)}
 			best_score = 0.8
+	# Fase 4.0: fogueira (cozinhar), fonte ou poço (encher o cantil), espelho (editor).
+	if game and game.body:
+		for t: Dictionary in game.body.targets_near(pos):
+			if float(t["dist"]) < best_score:
+				best_score = float(t["dist"])
+				best = t
 	for kind: String in ["workbench", "sell_box"]:
 		for wb: Vector3 in _own_placements(kind):
 			var dist := wb.distance_to(pos)
@@ -130,7 +136,7 @@ func _action(o: Dictionary) -> String:
 			return "mine" if session.equipped == "pickaxe" else ""
 		"bush":
 			return "shake"
-		"flower", "pebble", "branch":
+		"flower", "pebble", "branch", "forage":
 			return "pick"
 	return ""
 
@@ -140,6 +146,12 @@ func _prompt_text(t: Dictionary) -> String:
 		return ""
 	if t["type"] == "workbench":
 		return "E: bancada"
+	if t["type"] == "fire":
+		return "E: cozinhar na fogueira"
+	if t["type"] == "water":
+		return "E: encher o cantil"
+	if t["type"] == "mirror":
+		return "E: espelho (mudar o visual)"
 	if t["type"] == "sell_box":
 		return "E: caixa de vendas"
 	if t["type"] == "airport":
@@ -177,6 +189,8 @@ func _prompt_text(t: Dictionary) -> String:
 			return "E: pegar pedrinha"
 		"branch":
 			return "E: pegar galho"
+		"forage":
+			return tr("E: colher %s") % session.item_name(str(o.get("item", ""))).to_lower()
 	return ""
 
 
@@ -197,6 +211,17 @@ func interact() -> Dictionary:
 	if target["type"] == "sell_box":
 		player.face(target["pos"])
 		ui.sell.open()
+		return {"ok": true}
+	if target["type"] == "fire":
+		player.face(target["pos"])
+		game.body.open_cook()
+		return {"ok": true}
+	if target["type"] == "water":
+		player.face(target["pos"])
+		return {"ok": await game.body.fill()}
+	if target["type"] == "mirror":
+		player.face(target["pos"])
+		game.open_look_editor()
 		return {"ok": true}
 	if target["type"] == "animal":
 		return await _animal(target["animal"])
