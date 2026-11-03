@@ -44,6 +44,8 @@ var _focus := Vector3.ZERO
 var _generation := 0
 ## Fase da estação no norte usada no que está montado (Seasons); < 0 = sem estações.
 var season_north := -1.0
+## Densidade das flores decorativas (multiplica a da grama; da qualidade, fase 4.1).
+var flower_density := 1.0
 ## Hexágonos sem grama (aeroportos: pista e terminal).
 var bare_cells := {}
 ## Modelos da camada "big" esperando a vez: {"key", "node", "models": [[modelo, objetos]]}.
@@ -224,6 +226,7 @@ func _build_layer(key: int, layer: String, now: bool) -> bool:
 		"small":
 			var lots := _lot_rects(key)
 			var density := float(Quality.current()["small_density"])
+			flower_density = float(Quality.current()["flower_density"])
 			var north := season_north
 			if now:
 				_apply_small(key, _generate_small(key, density, lots, north))
@@ -305,6 +308,12 @@ func _build_model(node: Node3D, model: String, list: Array) -> void:
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
 	var shadows: bool = Quality.current()["big_shadows"]
+	# Objetos pequenos (flores para colher, galhos, pedrinhas, ingredientes): sem sombra e
+	# só até small_objects_radius (fase 4.1: a 4.0 dobrou os modelos pequenos por pedaço).
+	if _is_small_object(list[0]):
+		shadows = false
+		mmi.visibility_range_end = float(Quality.current()["small_objects_radius"])
+		mmi.visibility_range_end_margin = 6.0
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if ModelLibrary.is_baked(lib):
 		mmi.material_override = ModelLibrary.foliage_material(_wind_kind(list[0]))
@@ -322,6 +331,10 @@ static func _wind_kind(o: Dictionary) -> String:
 		"flower", "bush":
 			return "plant"
 	return "still"
+
+
+static func _is_small_object(o: Dictionary) -> bool:
+	return str(o["kind"]) in ["flower", "pebble", "branch", "forage"]
 
 
 static func _hidden_transform(t: Transform3D) -> Transform3D:
@@ -479,7 +492,8 @@ func _cell_decor(cell: int, density: float, lots: Array, lists: Dictionary, nort
 			var s := lerpf(e["scale"][0], e["scale"][1], rng.next_float())
 			var model: String = models[rng.next_u32() % models.size()]
 			var keep := rng.next_float()
-			if keep >= density:
+			# Flores decorativas: densidade própria por qualidade (fase 4.1).
+			if keep >= (density * flower_density if e.has("flower") or e.has("spring") else density):
 				continue
 			if u + v > 1.0:
 				u = 1.0 - u
@@ -531,6 +545,11 @@ func _build_small_model(node: Node3D, name: String, count: int, buffer: PackedFl
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.set_meta("model", name)
+	if name.contains("flower"):
+		# Flores decorativas somem antes da grama (fase 4.1, distância por qualidade).
+		mmi.visibility_range_end = float(Quality.current()["flower_radius"])
+		mmi.visibility_range_end_margin = 4.0
 	if ModelLibrary.is_baked(lib):
 		mmi.material_override = ModelLibrary.foliage_material("grass")
 	node.add_child(mmi)

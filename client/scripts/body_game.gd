@@ -42,6 +42,10 @@ var _sweat: CPUParticles3D
 var _shiver_t := 0.0
 var _fire_mesh: Mesh
 var _flame_mat: StandardMaterial3D
+var _placements := {}  # tag → [msec, Array de pontos]
+var _budget_t := 0.0
+## Segundos que a lista de fogueiras, fontes e espelhos dos lotes fica em cache.
+const PLACEMENTS_TTL := 0.5
 
 
 func setup(g: GameMain, s: Session, a: Api, u: GameUi, p: Player, d: ChunkData, ap: Airports) -> void:
@@ -148,8 +152,19 @@ func is_food(item: String) -> bool:
 
 # --- Lugares (fogueira, água, espelho) -------------------------------------------------------
 
-## Centros dos objetos colocados (de todos os lotes carregados) com a tag.
+## Centros dos objetos colocados (de todos os lotes carregados) com a tag. Fica em cache
+## por PLACEMENTS_TTL segundos (a interação pergunta a cada quadro; fase 4.1).
 func placements_with(tag: String) -> Array:
+	var now := Time.get_ticks_msec()
+	var c: Variant = _placements.get(tag)
+	if c is Array and now - int(c[0]) < PLACEMENTS_TTL * 1000.0:
+		return c[1]
+	var out := _scan_placements(tag)
+	_placements[tag] = [now, out]
+	return out
+
+
+func _scan_placements(tag: String) -> Array:
 	var out: Array = []
 	for lot: Dictionary in data.all_lots():
 		var f := data.frame(int(lot["cell"]))
@@ -210,14 +225,26 @@ func add_fire(f: Dictionary) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = lib["mesh"]
 		node.add_child(mi)
-	node.add_child(_flames())
+	var flames := _flames()
+	node.add_child(flames)
+	# Luz sem sombra e de alcance pequeno; só as fire_lights mais perto acendem (_budget).
 	var light := OmniLight3D.new()
 	light.light_color = Color("ffb05a")
 	light.light_energy = 1.4
-	light.omni_range = 5.0
+	light.omni_range = 4.0
+	light.shadow_enabled = false
+	light.visible = false
 	light.position = Vector3(0, 0.6, 0)
 	node.add_child(light)
-	fires[id] = {"node": node, "until": Time.get_ticks_msec() / 1000.0 + float(f.get("left", 600)), "pos": pos}
+	fires[id] = {"node": node, "until": Time.get_ticks_msec() / 1000.0 + float(f.get("left", 600)), "pos": pos,
+		"light": light, "flames": flames}
+	_budget_t = 0.0
+
+
+## Medição (profile-scene): esconde ou mostra todas as fogueiras.
+func visible_fires(on: bool) -> void:
+	for f: Dictionary in fires.values():
+		(f["node"] as Node3D).visible = on
 
 
 func set_fires(list: Array) -> void:
@@ -228,7 +255,8 @@ func set_fires(list: Array) -> void:
 
 func _flames() -> CPUParticles3D:
 	var p := CPUParticles3D.new()
-	p.amount = 14
+	p.amount = maxi(4, roundi(14 * float(Quality.current()["particles"])))
+	p.emitting = false
 	p.lifetime = 0.7
 	p.mesh = _fire_mesh
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
@@ -401,7 +429,7 @@ func _puffs(col: Color, at: Vector3, dir: Vector3, life: float) -> CPUParticles3
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	p.mesh = BorderLines._baked(s, m)
-	p.amount = 6
+	p.amount = maxi(2, roundi(6 * float(Quality.current()["particles"])))
 	p.lifetime = life
 	p.position = at
 	p.direction = dir
@@ -421,8 +449,13 @@ func _process(delta: float) -> void:
 	var air := float(body.get("air", 20.0))
 	var cold := bool(body.get("cold", false)) and not q
 	var hot := bool(body.get("hot", false)) and not q
-	_breath.emitting = air < BREATH_BELOW and player.visible
-	_sweat.emitting = hot and player.visible
+	var fx := float(Quality.current()["particles"]) > 0.0
+	_breath.emitting = fx and air < BREATH_BELOW and player.visible
+	_sweat.emitting = fx and hot and player.visible
+	_budget_t -= delta
+	if _budget_t <= 0.0:
+		_budget_t = 0.5
+		_budget()
 	# Treme de frio: o corpo balança de leve (só o visual).
 	_shiver_t += delta
 	player.shiver = 0.035 * sin(_shiver_t * 38.0) if cold else 0.0
@@ -439,6 +472,24 @@ func _process(delta: float) -> void:
 		if now > float(fires[id]["until"]):
 			(fires[id]["node"] as Node).queue_free()
 			fires.erase(id)
+
+
+## Orçamento das fogueiras (2×/s): só as fire_lights mais perto da câmera acendem a luz, e
+## só as que estão a até fx_radius soltam fogo (as outras ficam com a lenha).
+func _budget() -> void:
+	var cam := get_viewport().get_camera_3d()
+	var focus := cam.global_position if cam else player.global_position
+	var q := Quality.current()
+	var lights := int(q["fire_lights"])
+	var fx_r := float(q["fx_radius"])
+	var list: Array = fires.values()
+	list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return (a["pos"] as Vector3).distance_squared_to(focus) < (b["pos"] as Vector3).distance_squared_to(focus))
+	for i in list.size():
+		var f: Dictionary = list[i]
+		var d := (f["pos"] as Vector3).distance_to(focus)
+		(f["light"] as OmniLight3D).visible = i < lights and d < fx_r
+		(f["flames"] as CPUParticles3D).emitting = d < fx_r and float(q["particles"]) > 0.0
 
 
 # --- Cozinhar ----------------------------------------------------------------------------

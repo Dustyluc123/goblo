@@ -26,24 +26,34 @@ const LABELS := {"low": "baixa", "medium": "média", "high": "alta"}
 ##   weather: partículas de folhas caindo (outono) e neve (inverno) em volta da câmera
 ##   max_3d_lines: no máximo quantas linhas o 3D tem (fase 3): numa tela maior que a de
 ##     referência (3136 × 1930), scale_3d baixa sozinho, e a placa trabalha o mesmo tanto
+##   fase 4.1 (ADR 0052):
+##   flower_radius / flower_density: flores decorativas (somem antes da grama)
+##   small_objects_radius: até onde aparecem os objetos pequenos do servidor (flores para
+##     colher, galhos, pedrinhas, ingredientes); nunca fazem sombra
+##   fire_lights: quantas fogueiras acesas iluminam o chão ao mesmo tempo (as mais perto)
+##   particles: fogo, vapor da respiração e suor (multiplica a quantidade; 0 = desligado)
+##   fx_radius: até onde o fogo das fogueiras solta partículas
 const PRESETS := {
 	"low": {
 		"small_density": 0.4, "small_radius": 30.0, "big_radius": 70.0,
 		"collider_radius": 35.0, "shadows": false, "big_shadows": false, "shadow_splits": 1,
 		"shadow_distance": 0.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": false, "clouds": 30,
 		"scale_3d": 0.5, "lod_threshold": 6.0, "lot_radius": 90.0, "glow": false, "weather": 0, "max_3d_lines": 1000,
+		"flower_radius": 18.0, "flower_density": 0.35, "small_objects_radius": 35.0, "fire_lights": 0, "particles": 0.5, "fx_radius": 25.0,
 	},
 	"medium": {
 		"small_density": 0.7, "small_radius": 40.0, "big_radius": 100.0,
 		"collider_radius": 40.0, "shadows": true, "big_shadows": false, "shadow_splits": 2,
 		"shadow_distance": 40.0, "msaa": Viewport.MSAA_DISABLED, "fxaa": true, "clouds": 50,
 		"scale_3d": 0.67, "lod_threshold": 3.0, "lot_radius": 120.0, "glow": true, "weather": 160, "max_3d_lines": 1300,
+		"flower_radius": 26.0, "flower_density": 0.6, "small_objects_radius": 50.0, "fire_lights": 2, "particles": 0.75, "fx_radius": 35.0,
 	},
 	"high": {
 		"small_density": 1.0, "small_radius": 60.0, "big_radius": 140.0,
 		"collider_radius": 45.0, "shadows": true, "big_shadows": true, "shadow_splits": 2,
 		"shadow_distance": 60.0, "msaa": Viewport.MSAA_2X, "fxaa": false, "clouds": 80,
 		"scale_3d": 0.75, "lod_threshold": 1.5, "lot_radius": 160.0, "glow": true, "weather": 320, "max_3d_lines": 1450,
+		"flower_radius": 38.0, "flower_density": 0.85, "small_objects_radius": 70.0, "fire_lights": 3, "particles": 1.0, "fx_radius": 45.0,
 	},
 }
 const DEFAULT := "medium"

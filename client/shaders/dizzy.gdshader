@@ -1,16 +1,17 @@
 shader_type canvas_item;
-// Tela levemente zonza (fome no mínimo, fase 4.0): ondulação bem suave da imagem e cantos
-// um pouco escuros. amount vai de 0 a 1 (entra e sai devagar). Sem enjoar: pouca amplitude
-// e devagar.
+// Tela levemente zonza (fome no mínimo, fase 4.0; mais leve na 4.1, ADR 0052): cantos um
+// pouco escuros que respiram devagar. Não lê a tela (nada de hint_screen_texture): uma
+// cópia da imagem inteira a cada quadro custava caro na janela Retina. Só fica visível com
+// amount > 0 (BodyGame esconde o retângulo no resto do tempo). amount vai de 0 a 1.
 
-uniform sampler2D screen : hint_screen_texture, filter_linear;
 uniform float amount = 0.0;
 
 void fragment() {
-	vec2 uv = SCREEN_UV;
 	float t = TIME * 0.6;
-	uv += amount * 0.0035 * vec2(sin(uv.y * 9.0 + t), cos(uv.x * 7.0 + t * 0.8));
-	vec3 c = texture(screen, uv).rgb;
-	float v = smoothstep(0.95, 0.35, distance(SCREEN_UV, vec2(0.5)));
-	COLOR = vec4(mix(c, c * v, amount * 0.45), 1.0);
+	vec2 d = SCREEN_UV - vec2(0.5);
+	// Borda que ondula um tico (sem distorcer a imagem: só a máscara mexe).
+	d += 0.012 * vec2(sin(SCREEN_UV.y * 9.0 + t), cos(SCREEN_UV.x * 7.0 + t * 0.8));
+	float r = length(d) * (1.0 + 0.03 * sin(t * 1.7));
+	float v = smoothstep(0.35, 0.95, r);
+	COLOR = vec4(0.12, 0.08, 0.1, v * amount * 0.5);
 }
