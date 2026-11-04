@@ -2119,7 +2119,7 @@ func dev_reset(what: String) -> void:
 # --- Automação para testes e screenshots ---------------------------------------------------
 
 func _is_automation() -> bool:
-	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test", "npc-test", "body-test", "cpu-test"]:
+	for k in ["smoke-test", "screenshot", "route", "perf-test", "tour", "play-test", "camera-test", "profile-scene", "border-test", "animal-test", "photo-test", "season-test", "travel-test", "dev-test", "cursor-test", "hitch-test", "mp-test", "crowd-test", "npc-test", "body-test", "cpu-test", "cave-test"]:
 		if _args.has(k):
 			return true
 	return false
@@ -2176,6 +2176,9 @@ func _run_automation() -> void:
 		return
 	if _args.has("npc-test"):
 		await _npc_test()
+		return
+	if _args.has("cave-test"):
+		await _cave_test()
 		return
 	if _args.has("body-test"):
 		await _body_test()
@@ -2339,6 +2342,11 @@ func _screenshot_setup() -> void:
 				await get_tree().create_timer(0.5).timeout
 			_camera.snap_behind_target()
 			await get_tree().create_timer(1.0).timeout
+		"legend":
+			# Fase 4.5: uma lenda aparecendo na frente do personagem (--legend=ID).
+			await get_tree().create_timer(1.0).timeout
+			await dev_legend(str(_args.get("legend", "legend_saci")))
+			await get_tree().create_timer(2.5).timeout
 		"cape":
 			# Fase 4.5: escolha das bandeiras da capa (todos os carimbos, cinco escolhidos).
 			await dev_wear()
@@ -4502,4 +4510,94 @@ func _body_test() -> void:
 		print("Goblo: body-test OK")
 	else:
 		print("Goblo: body-test FALHOU: %s" % ", ".join(fails))
+	get_tree().quit(0 if fails.is_empty() else 1)
+
+
+## Fase 4.5: o ciclo das cavernas (servidor dev): boca no globo, entrar pelo E, minerar até
+## quebrar, tocha na parede e de volta, fornalha antiga, sala do chefe (invencível), dormir e
+## vencer, sair pela boca; e uma lenda aparecendo no globo.
+func _cave_test() -> void:
+	var fails: Array[String] = []
+	var check := func(ok: bool, what: String) -> void:
+		print("Goblo: cave-test %s %s" % ["ok   " if ok else "FALHOU", what])
+		if not ok:
+			fails.append(what)
+	check.call(_session.dev, "servidor em modo dev")
+	check.call(cave.caves.size() > 100, "bocas de caverna do servidor (%d)" % cave.caves.size())
+	await dev_cave_kit()
+	await dev_cave_mouth()
+	await get_tree().create_timer(1.0).timeout
+	_interaction._timer = 0.0
+	await get_tree().create_timer(0.3).timeout
+	var t := _interaction.target
+	check.call(not t.is_empty() and str(t.get("what", "")) == "enter", "E na boca da caverna: %s" % _interaction._prompt_text(t))
+	if not t.is_empty() and str(t.get("what", "")) == "enter":
+		await _interaction.interact()
+	else:
+		await dev_cave_enter(-1)
+	await get_tree().create_timer(0.8).timeout
+	check.call(cave.active and cave.cw != null and _player.cave_mode, "dentro da caverna (%s)" % str(cave.view.get("name", "")))
+	check.call(not _terrain.visible and not _sun.visible, "globo e sol escondidos")
+	var bag_before := _session.count("coal") + _session.count("iron_ore")
+	# Minério da entrada (carvão ou ferro): golpes até quebrar.
+	var ore := {}
+	for id: int in cave.cw.ores:
+		var o: Dictionary = cave.cw.ores[id]["ore"]
+		if int(o["min_tier"]) <= 1:
+			ore = {"id": id, "node": cave.cw.ores[id]["node"], "ore": o}
+			break
+	check.call(not ore.is_empty(), "minério na caverna")
+	if not ore.is_empty():
+		var node: Node3D = ore["node"]
+		var up := node.global_position.normalized()
+		var side := up.cross(cave.cw.global_basis.x).normalized()
+		_player.teleport(node.global_position + side * 1.6)
+		net_teleport("dev", _player.global_position)
+		await get_tree().create_timer(0.4).timeout
+		_session.equip(_session.tools()[0])
+		for k in 8:
+			var r := await cave.interact({"type": "cave", "what": "ore", "id": int(ore["id"]), "ore": ore["ore"], "pos": node.global_position})
+			if cave.mined.has(int(ore["id"])) or (r.has("ok") and not bool(r["ok"])):
+				break
+			await get_tree().create_timer(0.1).timeout
+		check.call(cave.mined.has(int(ore["id"])), "minério quebrou com a picareta")
+		check.call(_session.count("coal") + _session.count("iron_ore") > bag_before, "minério no bolso")
+	# Tocha na parede e de volta.
+	var torches := _session.count("torch")
+	_session.equip("torch")
+	await get_tree().create_timer(0.2).timeout
+	await cave.place_torch()
+	await get_tree().create_timer(0.3).timeout
+	check.call(cave.torches.size() == 1 and _session.count("torch") == torches - 1, "tocha acesa na caverna")
+	check.call(cave._player_light.visible, "luz da tocha na mão")
+	if cave.torches.size() == 1:
+		await cave._take_torch(int(cave.torches[0]["id"]))
+		check.call(cave.torches.is_empty() and _session.count("torch") == torches, "tocha de volta ao bolso")
+	# Fornalha antiga.
+	_player.teleport(cave.cw.furnace_point + cave.cw.global_basis.x.normalized() * 1.6)
+	net_teleport("dev", _player.global_position)
+	await get_tree().create_timer(0.4).timeout
+	var bars := _session.count("iron_bar")
+	var r2 := await api_request("POST", "/furnace/smelt", {"recipe": "iron_bar", "times": 1, "cave": cave.cave_id})
+	check.call(r2["ok"], "fornalha antiga derrete ferro (%s)" % str(r2.get("message", "")))
+	# Chefe: invencível, ataques, dormir e vencer.
+	await dev_cave_god(true)
+	await dev_cave_boss(false)
+	await get_tree().create_timer(5.0).timeout
+	check.call(str(cave.boss["phase"]) == "awake" and cave._warnings.size() + int(cave.boss["hits"]) >= 0, "golem acorda com o jogador na sala")
+	check.call(int(cave.boss["hits"]) == 0, "invencível: nenhum acerto")
+	await dev_cave_boss(true)
+	await get_tree().create_timer(0.4).timeout
+	var coins := _session.coins
+	var res := await cave._wake_boss()
+	check.call(res.get("ok", false) and bool(res["data"].get("won", false)) and _session.coins > coins, "vencer o golem dormindo paga (%d → %d)" % [coins, _session.coins])
+	check.call(_session.count("golem_heart") >= 1, "coração de cristal no bolso")
+	# Sair pela boca.
+	await cave.exit()
+	await get_tree().create_timer(0.8).timeout
+	check.call(not cave.active and not _player.cave_mode and _terrain.visible, "de volta ao globo")
+	check.call(_player.global_position.length() < world.radius + 30.0, "no chão do planeta")
+	await get_tree().create_timer(0.3).timeout
+	check.call(_net.state == "conectado", "tempo real continua conectado")
+	print("Goblo: cave-test %s (%d falhas)" % ["ok" if fails.is_empty() else "FALHOU", fails.size()])
 	get_tree().quit(0 if fails.is_empty() else 1)

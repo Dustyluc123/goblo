@@ -22,6 +22,8 @@ var _status: Label
 var _countries: Array = []
 var _coins: SpinBox
 var _species: OptionButton
+var _legends: OptionButton
+var _cave_n: SpinBox
 
 
 func _ready() -> void:
@@ -48,6 +50,7 @@ func _ready() -> void:
 	tabs.add_child(_npc_tab())
 	tabs.add_child(_body_tab())
 	tabs.add_child(_look_tab())
+	tabs.add_child(_cave_tab())
 	_status = UiStyle.label("", 15, UiStyle.INK_SOFT)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
@@ -64,6 +67,11 @@ func setup(g: GameMain, s: Session, i: ItemIcons, countries: Dictionary) -> void
 	_countries.sort_custom(func(a: Array, b: Array) -> bool: return str(a[1]).naturalnocasecmp_to(b[1]) < 0)
 	_fill_items()
 	_fill_countries()
+	if _legends:
+		_legends.clear()
+		for l: Dictionary in s.folklore.get("legends", []):
+			_legends.add_item("%s (%s)" % [tr(str(l["name"])), str(l["country"])])
+			_legends.set_item_metadata(_legends.item_count - 1, str(l["id"]))
 	_species.clear()
 	var ids: Array = s.animal_species.keys()
 	ids.sort_custom(func(a: String, b: String) -> bool: return str(s.animal_species[a]["name"]) < str(s.animal_species[b]["name"]))
@@ -558,6 +566,72 @@ func _body_tab() -> Control:
 	var give := UiStyle.button("Dar ingredientes, fogueira e cantil", false)
 	give.pressed.connect(func() -> void: game.dev_body_kit())
 	r5.add_child(give)
+	return box
+
+
+## Fase 4.5: cavernas, chefe, baú e folclore.
+func _cave_tab() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "Cavernas"
+	box.add_theme_constant_override("separation", 6)
+	var r1 := _row(box, "Ir e entrar")
+	var mouth := UiStyle.button("Boca mais perto", false)
+	mouth.pressed.connect(func() -> void:
+		visible = false
+		game.dev_cave_mouth())
+	r1.add_child(mouth)
+	var near := UiStyle.button("Entrar na mais perto")
+	near.pressed.connect(func() -> void:
+		visible = false
+		game.dev_cave_enter(-1))
+	r1.add_child(near)
+	_cave_n = SpinBox.new()
+	_cave_n.min_value = 0
+	_cave_n.max_value = 999
+	r1.add_child(_cave_n)
+	var go := UiStyle.button("Entrar nesta", false)
+	go.pressed.connect(func() -> void:
+		visible = false
+		game.dev_cave_enter(int(_cave_n.value)))
+	r1.add_child(go)
+	var r2 := _row(box, "Chefe")
+	var boss := UiStyle.button("Ir até o chefe", false)
+	boss.pressed.connect(func() -> void:
+		visible = false
+		game.dev_cave_boss(false))
+	r2.add_child(boss)
+	var sleep := UiStyle.button("Chefe dormindo (pronto para vencer)", false)
+	sleep.pressed.connect(func() -> void:
+		visible = false
+		game.dev_cave_boss(true))
+	r2.add_child(sleep)
+	var god := CheckButton.new()
+	god.text = tr("Invencível")
+	god.toggled.connect(func(on: bool) -> void: game.dev_cave_god(on))
+	r2.add_child(god)
+	var r3 := _row(box, "Itens")
+	var kit := UiStyle.button("Minérios e ferramentas", false)
+	kit.pressed.connect(func() -> void: game.dev_cave_kit())
+	r3.add_child(kit)
+	var chest := UiStyle.button("Encher o baú do lote", false)
+	chest.pressed.connect(func() -> void: game.dev_fill_chest())
+	r3.add_child(chest)
+	var out := UiStyle.button("Sair da caverna", false)
+	out.pressed.connect(func() -> void:
+		visible = false
+		game.cave.exit())
+	r3.add_child(out)
+	var r4 := _row(box, "Folclore")
+	_legends = OptionButton.new()
+	_legends.focus_mode = Control.FOCUS_NONE
+	_legends.add_theme_font_size_override("font_size", 17)
+	r4.add_child(_legends)
+	var appear := UiStyle.button("Fazer aparecer na frente", false)
+	appear.pressed.connect(func() -> void:
+		if _legends.item_count > 0:
+			game.dev_legend(str(_legends.get_item_metadata(_legends.selected))))
+	r4.add_child(appear)
+	box.add_child(UiStyle.label("Animais novos: aba Natureza → escolha a espécie → Criar perto de mim.", 14, UiStyle.INK_SOFT))
 	return box
 
 
