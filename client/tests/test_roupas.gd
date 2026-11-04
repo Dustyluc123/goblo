@@ -87,11 +87,29 @@ func _run() -> void:
 	var skel := (model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D)
 	_check(skel.get_bone_name(CharacterLook.B_HEAD) == "head" and skel.get_bone_name(CharacterLook.B_TORSO) == "torso",
 		"ossos fora da ordem esperada: %s, %s" % [skel.get_bone_name(CharacterLook.B_HEAD), skel.get_bone_name(CharacterLook.B_TORSO)])
+	_check_bare()
 	var placed := _check_bones(wear)
 	var skins := _check_skin(wear)
 	model.queue_free()
 	print("roupas: %d combinações, %d peças presas a ossos e %d visuais de pele conferidos, %s" % [checked, placed, skins, "ok" if _fails == 0 else "%d falhas" % _fails])
 	quit(1 if _fails else 0)
+
+
+## Fase 4.5 (ADR 0054): todo corpo tem o corpo base (dois braços, duas pernas, dois pés) e o
+## objeto da mão da Personagem 1 sai. Com regata, nada da pele do braço passa da seção da mão.
+func _check_bare() -> void:
+	for part: String in PARTS:
+		var d: Dictionary = CharacterLook._parts[part]
+		var bare: Dictionary = d["bare"]
+		_check((bare["arm"] as Dictionary).size() == 2 and (bare["leg"] as Dictionary).size() == 2 and (bare["foot"] as Dictionary).size() == 2,
+			"%s: corpo base incompleto" % part)
+		var look := {"head": part, "body": part, "legs": part, "skin": "", "accessory": "none"}
+		var g: Dictionary = CharacterLook._build(CharacterLook._job(look, {}))[0]
+		var far := 0.0
+		for i in (g["v"] as PackedVector3Array).size():
+			if g["r"][i] == CharacterLook.R_BODY:
+				far = maxf(far, absf((g["v"][i] as Vector3).x))
+		_check(far <= CharacterLook.HAND_END, "%s: algo passa da ponta da mão (%.3f)" % [part, far])
 
 
 ## Compara as regiões que o espaço não pode mudar, vértice por vértice.

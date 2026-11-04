@@ -261,6 +261,7 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 		held_tris[t / 3] = 1 if (tb == B_ARM_L or tb == B_ARM_R) and held.has(_cell(buv[bidx_all[t]])) else 0
 	for c: Vector2i in held:
 		arm_keep.erase(c)
+	var bare := _bare_body(bv, bidx_all, bones, weights, held_tris, foot)
 	# Tampas de cima das pernas (escondidas dentro do quadril do próprio personagem; com o
 	# tronco de outro, apareciam como um aro escuro): ficam de fora.
 	var bidx: PackedInt32Array = ba[Mesh.ARRAY_INDEX]
@@ -279,7 +280,7 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 	return {"head": ha, "body": ba, "hair_tris": hair_tris, "skins": skins, "skin_main": main,
 		"skin_color": Color(skin_col.r, skin_col.g, skin_col.b, 1.0),
 		"skin_uv": skin_uv, "base_uv": base_uv, "leg_skin": leg_skin, "arm_keep": arm_keep,
-		"leg_caps": caps, "held_tris": held_tris, "arm_low": arm_low, "arm_high": arm_high, "hand_y": hand_y,
+		"leg_caps": caps, "held_tris": held_tris, "bare": bare, "arm_low": arm_low, "arm_high": arm_high, "hand_y": hand_y,
 		"torso_top": torso_top, "torso_back": torso_back, "torso_w": torso_w, "foot": foot, "leg_top": leg_top}
 
 
@@ -351,6 +352,157 @@ static func _sample(uv: Vector2) -> Color:
 	var x := clampi(int(uv.x * _palette.get_width()), 0, _palette.get_width() - 1)
 	var y := clampi(int(uv.y * _palette.get_height()), 0, _palette.get_height() - 1)
 	return _palette.get_pixel(x, y)
+
+
+## Corpo base "sem roupa" (fase 4.5, ADR 0054), medido em cada corpo: as roupas do pacote
+## vêm desenhadas no corpo (mangas, barras, sapatos). Quando uma peça deixa a pele à mostra
+## (regata, short, sandália), as partes cobertas trocam a forma da roupa original por caixas
+## no formato do braço, da perna e do pé, presas ao mesmo osso.
+## Volta: "sleeve" (triângulos das mangas), "pants" (das pernas da calça), "shoe" (dos
+## sapatos), e as caixas: "arm" (por lado, do ombro até a mão), "leg" e "foot" (por lado).
+static func _bare_body(v: PackedVector3Array, idx: PackedInt32Array, bones: PackedInt32Array, weights: PackedFloat32Array, held: PackedByteArray, foot: float) -> Dictionary:
+	var isl := _islands(v, idx)
+	var n := idx.size() / 3
+	var info := {}  # ilha → {bone, min, max}
+	var tri_bone := PackedInt32Array()
+	tri_bone.resize(n)
+	for t in n:
+		var counts := {}
+		for k in 3:
+			var b := _dominant(bones, weights, idx[t * 3 + k])
+			counts[b] = int(counts.get(b, 0)) + 1
+		var bone := -1
+		var best := 0
+		for b: int in counts:
+			if counts[b] > best:
+				best = counts[b]
+				bone = b
+		tri_bone[t] = bone
+		if held[t] == 1:
+			continue
+		var i := isl[t]
+		if not info.has(i):
+			info[i] = {"bone": bone, "min": Vector3(INF, INF, INF), "max": -Vector3(INF, INF, INF)}
+		for k in 3:
+			var p := v[idx[t * 3 + k]]
+			info[i]["min"] = (info[i]["min"] as Vector3).min(p)
+			info[i]["max"] = (info[i]["max"] as Vector3).max(p)
+	var sleeve := PackedByteArray()
+	var pants := PackedByteArray()
+	var shoe := PackedByteArray()
+	for arr: PackedByteArray in [sleeve, pants, shoe]:
+		arr.resize(n)
+	var hands := {-1: [], 1: []}
+	var shoes := {-1: [], 1: []}
+	var uppers := {-1: [], 1: []}
+	for i: int in info:
+		var d: Dictionary = info[i]
+		var mn: Vector3 = d["min"]
+		var mx: Vector3 = d["max"]
+		var side := 1 if mn.x + mx.x > 0.0 else -1
+		var b := int(d["bone"])
+		if b == B_ARM_L or b == B_ARM_R:
+			if maxf(absf(mn.x), absf(mx.x)) >= HAND_END - 0.03:
+				(hands[side] as Array).append(d)
+		elif b == B_LEG_L or b == B_LEG_R:
+			if mn.y <= foot + 0.005:
+				(shoes[side] as Array).append(d)
+			else:
+				(uppers[side] as Array).append(d)
+	var hand_isl := {}
+	var shoe_isl := {}
+	for i: int in info:
+		var d: Dictionary = info[i]
+		for side: int in [-1, 1]:
+			if (hands[side] as Array).has(d):
+				hand_isl[i] = true
+			if (shoes[side] as Array).has(d):
+				shoe_isl[i] = true
+	for t in n:
+		if held[t] == 1:
+			continue
+		var b := tri_bone[t]
+		if b == B_ARM_L or b == B_ARM_R:
+			sleeve[t] = 0 if hand_isl.has(isl[t]) else 1
+		elif b == B_LEG_L or b == B_LEG_R:
+			if shoe_isl.has(isl[t]):
+				shoe[t] = 1
+			else:
+				pants[t] = 1
+	var arm := {}
+	var leg := {}
+	var feet := {}
+	for side: int in [-1, 1]:
+		var hb := _union(hands[side])
+		if not hb.is_empty():
+			# Do ombro (onde o tronco acaba) até dentro da mão; seção um pouco menor que a mão.
+			var inner := minf(absf(hb["min"].x), absf(hb["max"].x))
+			var x0 := 0.11
+			var x1 := inner + 0.03
+			var sz := Vector3(x1 - x0, (hb["max"].y - hb["min"].y) * 0.8, (hb["max"].z - hb["min"].z) * 0.8)
+			var c := Vector3(side * (x0 + x1) * 0.5, (hb["min"].y + hb["max"].y) * 0.5, (hb["min"].z + hb["max"].z) * 0.5)
+			arm[side] = {"xf": Transform3D(Basis().scaled(sz), c), "bone": hb["bone"]}
+		var sb := _union(shoes[side])
+		var ub := _union(uppers[side])
+		if not sb.is_empty():
+			var smin: Vector3 = sb["min"]
+			var smax: Vector3 = sb["max"]
+			# Pé: o comprimento e a largura do sapato, mais baixo (sem sola nem cano).
+			var fh := (smax.y - smin.y) * 0.45
+			feet[side] = {"xf": Transform3D(Basis().scaled(Vector3((smax.x - smin.x) * 0.86, fh, (smax.z - smin.z) * 0.9)),
+				Vector3((smin.x + smax.x) * 0.5, smin.y + fh * 0.5, (smin.z + smax.z) * 0.5)), "bone": sb["bone"]}
+			# Perna: a seção da coxa (a ilha mais alta da perna) ou a do sapato, do pé até o quadril.
+			var src: Dictionary = ub if not ub.is_empty() else sb
+			var lmin: Vector3 = src["min"]
+			var lmax: Vector3 = src["max"]
+			var top: float = lmax.y if not ub.is_empty() else smax.y
+			var y0 := smin.y + fh * 0.6
+			leg[side] = {"x": (lmin.x + lmax.x) * 0.5, "z": (lmin.z + lmax.z) * 0.5, "w": (lmax.x - lmin.x) * 0.9,
+				"d": (lmax.z - lmin.z) * 0.9, "y0": y0, "y1": top, "bone": sb["bone"]}
+	return {"sleeve": sleeve, "pants": pants, "shoe": shoe, "arm": arm, "leg": leg, "foot": feet}
+
+
+## Caixa que envolve várias ilhas ({} se nenhuma).
+static func _union(list: Array) -> Dictionary:
+	if list.is_empty():
+		return {}
+	var mn := Vector3(INF, INF, INF)
+	var mx := -mn
+	for d: Dictionary in list:
+		mn = mn.min(d["min"])
+		mx = mx.max(d["max"])
+	return {"min": mn, "max": mx, "bone": int((list[0] as Dictionary)["bone"])}
+
+
+## Ilhas (pedaços soltos) da malha: um número por triângulo. Vértices na mesma posição
+## contam como ligados (as peças do pacote têm vértices repetidos nas quinas).
+static func _islands(v: PackedVector3Array, idx: PackedInt32Array) -> PackedInt32Array:
+	var id := {}  # posição arredondada → índice
+	var parent: Array[int] = []  # Array (referência): a função abaixo muda o mesmo
+	var vid := PackedInt32Array()
+	vid.resize(v.size())
+	for i in v.size():
+		var k := Vector3i(roundi(v[i].x * 2000.0), roundi(v[i].y * 2000.0), roundi(v[i].z * 2000.0))
+		if not id.has(k):
+			id[k] = parent.size()
+			parent.append(parent.size())
+		vid[i] = id[k]
+	var find := func(x: int) -> int:
+		while parent[x] != x:
+			parent[x] = parent[parent[x]]
+			x = parent[x]
+		return x
+	for t in range(0, idx.size(), 3):
+		var a: int = find.call(vid[idx[t]])
+		for k in [1, 2]:
+			var b: int = find.call(vid[idx[t + k]])
+			if a != b:
+				parent[b] = a
+	var out := PackedInt32Array()
+	out.resize(idx.size() / 3)
+	for t in range(0, idx.size(), 3):
+		out[t / 3] = find.call(vid[idx[t]])
+	return out
 
 
 static func _dominant(bones: PackedInt32Array, weights: PackedFloat32Array, v: int) -> int:
@@ -556,15 +708,46 @@ static func _build(job: Dictionary) -> Array:
 	var top_col: Color = wear.get("body", {}).get("color", Color.WHITE)
 	var bottom := str(wear.get("legs", {}).get("item", ""))
 	var bottom_col: Color = wear.get("legs", {}).get("color", Color.WHITE)
-	_add_part(g, body["body"], body["held_tris"], false, R_BODY, func(p: Vector3, _n: Vector3, uv: Vector2, b: int) -> Color:
+	var body_bare: Dictionary = body["bare"]
+	var legs_bare: Dictionary = legs["bare"]
+	var body_skip: PackedByteArray = body["held_tris"]
+	if top == "tank_top":
+		body_skip = _or(body_skip, body_bare["sleeve"])
+	_add_part(g, body["body"], body_skip, false, R_BODY, func(p: Vector3, _n: Vector3, uv: Vector2, b: int) -> Color:
 		return _body_color(body, top, top_col, p, uv, b, bottom, bottom_col), Callable(),
 		func(b: int) -> bool: return b != B_LEG_L and b != B_LEG_R, body["skin_uv"], waist_of(body), body["base_uv"])
 	# Pernas e pés, com as peças dos espaços pernas e pés.
 	var shoe := str(wear.get("feet", {}).get("item", ""))
 	var shoe_col: Color = wear.get("feet", {}).get("color", Color.WHITE)
-	_add_part(g, legs["body"], legs["leg_caps"], false, R_LEGS, func(p: Vector3, _n: Vector3, uv: Vector2, _b: int) -> Color:
+	var legs_skip: PackedByteArray = legs["leg_caps"]
+	if bottom == "shorts":
+		legs_skip = _or(legs_skip, legs_bare["pants"])
+	if shoe == "sandals":
+		legs_skip = _or(legs_skip, legs_bare["shoe"])
+	_add_part(g, legs["body"], legs_skip, false, R_LEGS, func(p: Vector3, _n: Vector3, uv: Vector2, _b: int) -> Color:
 		return _legs_color(legs, bottom, bottom_col, shoe, shoe_col, p, uv), Callable(),
 		func(b: int) -> bool: return b == B_LEG_L or b == B_LEG_R, legs["skin_uv"], -INF, legs["base_uv"])
+	# Corpo base onde a peça deixa a pele à mostra (ADR 0054).
+	if top == "tank_top":
+		for side: int in body_bare["arm"]:
+			var a: Dictionary = body_bare["arm"][side]
+			_add_skin_box(g, prims["box"], a["xf"], int(a["bone"]), body, R_BODY)
+	if bottom == "shorts":
+		var lf := float(legs["foot"])
+		var y_sb := lf + (float(legs["leg_top"]) - lf) * SHORTS_BOTTOM
+		for side: int in legs_bare["leg"]:
+			var l: Dictionary = legs_bare["leg"][side]
+			var y0 := float(l["y0"])
+			var y1 := float(l["y1"])
+			var lb := int(l["bone"])
+			var sz := Vector3(float(l["w"]), y_sb - y0, float(l["d"]))
+			_add_skin_box(g, prims["box"], Transform3D(Basis().scaled(sz), Vector3(float(l["x"]), (y0 + y_sb) * 0.5, float(l["z"]))), lb, legs, R_LEGS)
+			var sz2 := Vector3(float(l["w"]) * 1.08, y1 - y_sb, float(l["d"]) * 1.08)
+			_add_rigid(g, prims["box"], Transform3D(Basis().scaled(sz2), Vector3(float(l["x"]), (y_sb + y1) * 0.5, float(l["z"]))), lb, _solid(bottom_col), R_LEGS)
+	if shoe == "sandals":
+		for side: int in legs_bare["foot"]:
+			var f: Dictionary = legs_bare["foot"][side]
+			_add_skin_box(g, prims["box"], f["xf"], int(f["bone"]), legs, R_LEGS)
 	# Formas por cima, na ordem dos espaços.
 	if not hat.is_empty():
 		_add_hat(g, prims, hat, job, _solid(wear["head"]["color"]))
@@ -588,6 +771,32 @@ static func _build(job: Dictionary) -> Array:
 	if str(wear.get("back", {}).get("item", "")) == "flag_cape":
 		_add_cape(cape, body)
 	return [g, cape]
+
+
+## Junta duas máscaras de triângulos (1 em qualquer uma = 1).
+static func _or(a: PackedByteArray, b: PackedByteArray) -> PackedByteArray:
+	if a.is_empty():
+		return b
+	if b.is_empty():
+		return a
+	var out := a.duplicate()
+	for i in mini(out.size(), b.size()):
+		if b[i] == 1:
+			out[i] = 1
+	return out
+
+
+## Caixa do corpo base com a pele da parte (o mesmo tom e referência da pele dela).
+static func _add_skin_box(g: Dictionary, arrays: Array, xf: Transform3D, bone: int, part: Dictionary, region: int) -> void:
+	var start := (g["v"] as PackedVector3Array).size()
+	_add_arrays(g, arrays, xf, bone, Color(1, 1, 1, MODE_SKIN), region)
+	var guv: PackedVector2Array = g["uv"]
+	var guv2: PackedVector2Array = g["uv2"]
+	for i in range(start, guv.size()):
+		guv[i] = part["skin_uv"]
+		guv2[i] = part["base_uv"]
+	g["uv"] = guv
+	g["uv2"] = guv2
 
 
 static func _solid(c: Color) -> Color:
