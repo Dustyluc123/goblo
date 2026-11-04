@@ -40,7 +40,7 @@ func _run() -> void:
 			if not by_slot.has(slot):
 				by_slot[slot] = []
 			(by_slot[slot] as Array).append(it["id"])
-	_check(wear.size() == 14, "esperava 14 peças, achei %d" % wear.size())
+	_check(wear.size() == 15, "esperava 15 peças, achei %d" % wear.size())
 	CharacterLook.prepare(PARTS)
 	var mat_params := _params(CharacterLook._material)
 	var looks := [

@@ -1036,6 +1036,12 @@ static func _add_hat(g: Dictionary, prims: Dictionary, item: String, job: Dictio
 			put.call("cyl", Vector3(0, -0.045, 0), Vector3(r * 1.98, 0.05, r * 1.98), col)
 			put.call("hemi", Vector3(0, 0.035, 0), Vector3(r * 1.96, 0.11, r * 1.96), col)
 			put.call("box", Vector3(0, -0.06, SKULL_MAX.z + 0.07), Vector3(0.27, 0.02, 0.15), col.darkened(0.06))
+		"lamp_helmet":
+			# Fase 4.5: capacete de mineração com a lanterninha na frente (a luz é do jogo).
+			put.call("cyl", Vector3(0, -0.045, 0), Vector3(r * 2.1, 0.03, r * 2.1), col.darkened(0.15))
+			put.call("hemi", Vector3(0, 0.035, 0), Vector3(r * 2.0, 0.13, r * 2.0), col)
+			put.call("box", Vector3(0, 0.0, SKULL_MAX.z + 0.01), Vector3(0.1, 0.08, 0.05), Color(0.2, 0.2, 0.22, MODE_COLOR))
+			put.call("cyl", Vector3(0, 0.0, SKULL_MAX.z + 0.04), Vector3(0.07, 0.02, 0.07), Color(1.0, 0.95, 0.7, MODE_COLOR))
 
 
 ## Capa: um pano atrás das costas (preso ao tronco), com UV para a textura das bandeiras.

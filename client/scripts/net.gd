@@ -35,6 +35,8 @@ signal kicked(reason: String)
 signal body_received(body: Dictionary)
 signal look_changed(id: int, look: Dictionary)
 signal fire_lit(fire: Dictionary)
+## Fase 4.5: cavernas (minério, tochas) e o chefe (fase, ataque, acerto).
+signal cave_message(msg: Dictionary)
 
 const MSG_MOVE := 1
 const MSG_SNAPSHOT := 2
@@ -341,6 +343,8 @@ func _on_text(text: String) -> void:
 			look_changed.emit(int(d.get("id", 0)), d.get("look", {}) if d.get("look") is Dictionary else {})
 		"fire":
 			fire_lit.emit(d.get("fire", {}))
+		"cave", "boss", "boss_attack", "boss_hit":
+			cave_message.emit(d)
 		"kick":
 			_kicked = true
 			kicked.emit(str(d.get("reason", "")))

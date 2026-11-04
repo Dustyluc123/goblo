@@ -52,6 +52,9 @@ var _ground_pitch := 0.0
 ## personagem, com zoom de lente (campo de visão) na roda do mouse. Com `photo_selfie`, a
 ## câmera fica na frente do personagem, olhando para ele (o cenário aparece atrás); o mouse
 ## gira a câmera em volta dele.
+## Fase 4.5: na caverna, a câmera fica perto (sem a visão do planeta) e encosta nas paredes.
+var cave_mode := false
+const CAVE_MAX_DISTANCE := 11.0
 var photo_mode := false
 var photo_selfie := false
 var photo_fov := 50.0
@@ -179,6 +182,9 @@ func _tick(delta: float) -> void:
 	if photo_mode:
 		_photo_view(player_pos, up, delta)
 		return
+	if cave_mode:
+		_cave_view(player_pos, up)
+		return
 
 	var dist := min_distance * pow(max_distance / min_distance, _zoom)
 	var t := smoothstep(0.4, 0.9, _zoom)
@@ -232,6 +238,28 @@ func _tick(delta: float) -> void:
 	look_at_from_position(pos, look, cam_up)
 	near = clampf(dist * 0.01, 0.05, 5.0)
 	far = planet_radius * 2.0 + dist * 2.0 + 500.0
+
+
+## Caverna: atrás e acima do personagem, até CAVE_MAX_DISTANCE; se uma parede fica entre a
+## cabeça e a câmera, a câmera vem para a frente dela (dentro da caverna, ficar atrás de uma
+## parede seria só escuro).
+func _cave_view(player_pos: Vector3, up: Vector3) -> void:
+	far_amount = 0.0
+	var dist := minf(min_distance * pow(max_distance / min_distance, _zoom), CAVE_MAX_DISTANCE)
+	distance = dist
+	var head := player_pos + up * 0.6
+	var pitch := deg_to_rad(pitch_degrees)
+	var back := -_heading * cos(pitch) + up * sin(pitch)
+	var pos := head + back * dist
+	var space := get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(head, pos)
+	q.exclude = [target_body_rid()]
+	var hit := space.intersect_ray(q)
+	if not hit.is_empty():
+		pos = (hit["position"] as Vector3) + (head - pos).normalized() * 0.35
+	look_at_from_position(pos, head, up)
+	near = 0.05
+	far = 400.0
 
 
 ## Modo foto: nos olhos do personagem, olhando para a frente; ou, no selfie, na frente

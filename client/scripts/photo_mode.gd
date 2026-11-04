@@ -276,9 +276,11 @@ func take_photo() -> Array:
 	var tw := _flash.create_tween()
 	tw.tween_property(_flash, "color:a", 0.0, 0.35)
 	var here := WorldData.vec_to_lat_lon(player.global_position)
-	var path := PediaPhotos.save(session.photo_account(), img, {"country": tracker.current,
-		"country_name": game.country_name(tracker.current), "biome": world.biome_names[world.biomes[player.cell_id]],
-		"lat": snappedf(here.x, 0.01), "lon": snappedf(here.y, 0.01)})
+	var info := {"country": tracker.current, "country_name": game.country_name(tracker.current),
+		"biome": world.biome_names[world.biomes[player.cell_id]], "lat": snappedf(here.x, 0.01), "lon": snappedf(here.y, 0.01)}
+	if game.cave and game.cave.active:
+		info = {"cave": game.cave.cave_id, "country_name": str(game.cave.view.get("name", "")), "biome": ""}
+	var path := PediaPhotos.save(session.photo_account(), img, info)
 	var registered: Array = []
 	game.net_act("photo")
 	var cam_now := get_viewport().get_camera_3d()
@@ -350,6 +352,17 @@ func find_subjects() -> Array:
 			var node: Node3D = e["node"]
 			var h := float(animals.species[sp]["height"])
 			consider.call(sp, "animal", node.global_position + node.global_position.normalized() * h * 0.55, h)
+	# Fase 4.5: lendas do folclore e, na caverna, cogumelos, cristais e o golem.
+	if game and game.legends and not (game.cave and game.cave.active):
+		for lg: Dictionary in game.legends.visible_now():
+			consider.call(str(lg["entry"]), "legend", lg["pos"], 1.0)
+	if game and game.cave and game.cave.active and game.cave.cw:
+		var cw: CaveWorld = game.cave.cw
+		for gl: Dictionary in cw.glows:
+			consider.call(str(gl["kind"]), "cave", (gl["pos"] as Vector3) + (gl["pos"] as Vector3).normalized() * 0.3, 0.7)
+		var bp := cw.boss_point + cw.boss_point.normalized() * 1.6
+		consider.call(str(game.cave.boss_id()), "cave", bp, 3.2)
+		return _sorted(found)
 	var here := player.global_position
 	var flowers := _flower_entries()
 	for o: Dictionary in data.objects_near(here, maxf(_max_dist("tree"), _max_dist("flower")) + 6.0):
@@ -371,6 +384,10 @@ func find_subjects() -> Array:
 			if not item.is_empty() and flowers.has(item):
 				consider.call(item, "flower", pos + pos.normalized() * FLOWER_SIZE * 0.4, FLOWER_SIZE,
 					func() -> bool: return _grows_here(item, pos))
+	return _sorted(found)
+
+
+func _sorted(found: Dictionary) -> Array:
 	var out: Array = found.values()
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["center"]) < float(b["center"]))
 	return out

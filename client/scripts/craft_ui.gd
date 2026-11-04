@@ -86,9 +86,14 @@ func clear_blockers() -> void:
 	_blockers_message = ""
 
 
+## Só as receitas da bancada (fogueira e fornalha têm janelas próprias).
+func _bench() -> Array:
+	return session.recipes.filter(func(r: Dictionary) -> bool: return str(r.get("station", "")).is_empty())
+
+
 func refresh() -> void:
 	_list.clear()
-	for r: Dictionary in session.recipes:
+	for r: Dictionary in _bench():
 		var i := _list.add_item(session.item_name(r["result"]), icons.icon(r["result"]))
 		if not session.can_afford(r["ingredients"]):
 			_list.set_item_custom_fg_color(i, UiStyle.INK_SOFT)
@@ -102,9 +107,10 @@ func refresh() -> void:
 func _show_recipe() -> void:
 	for c in _detail.get_children():
 		c.queue_free()
-	if _selected >= session.recipes.size():
+	var bench := _bench()
+	if _selected >= bench.size():
 		return
-	var r: Dictionary = session.recipes[_selected]
+	var r: Dictionary = bench[_selected]
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
 	var icon := TextureRect.new()

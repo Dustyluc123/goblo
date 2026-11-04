@@ -61,6 +61,9 @@ var intro := {"done": true, "tasks": []}
 var passport_book := {}
 ## Corpo (fase 4.0): body.json do servidor (clima, necessidades, bônus, opções do editor).
 var body := {}
+## Fase 4.5: cavernas (caves.json) e folclore (folklore.json) do servidor.
+var caves_cfg := {}
+var folklore := {}
 
 
 ## Pasta do álbum de fotos desta conta (fase 4.5, ADR 0055): perfil + id do jogador + um
@@ -70,6 +73,14 @@ func photo_account() -> String:
 	if id == 0:
 		return ""
 	return "%s/%d_%s" % [profile.validate_filename(), id, load_token().sha256_text().left(10)]
+
+
+## Nome (traduzido) de uma lenda do folclore.
+func legend_name(id: String) -> String:
+	for l: Dictionary in folklore.get("legends", []):
+		if str(l["id"]) == id:
+			return tr(str(l["name"]))
+	return id
 
 
 func token_path() -> String:
@@ -118,6 +129,8 @@ func set_content(data: Dictionary) -> void:
 	dialogs = data.get("dialogs", {})
 	intro_cfg = data.get("intro", {})
 	body = data.get("body", {}) if data.get("body") is Dictionary else {}
+	caves_cfg = data.get("caves", {}) if data.get("caves") is Dictionary else {}
+	folklore = data.get("folklore", {}) if data.get("folklore") is Dictionary else {}
 
 
 func set_me(data: Dictionary) -> void:
@@ -223,12 +236,27 @@ func is_placeable(id: String) -> bool:
 
 
 ## Ferramentas do inventário na ordem em que chegaram (a barra rápida).
+## Ferramentas da barra rápida (1–5). Fase 4.5: de picaretas e machados, só a melhor de cada
+## (o servidor usa sempre a melhor do bolso); depois a tocha, a câmera e o resto.
 func tools() -> Array:
-	var out: Array = []
+	var best := {}  # tipo → [item, nível]
+	var rest: Array = []
 	for s: Dictionary in inventory:
-		if is_tool(s["item"]):
-			out.append(s["item"])
-	return out
+		var id := str(s["item"])
+		if not is_tool(id):
+			continue
+		var it: Dictionary = items.get(id, {})
+		var kind := str(it.get("tool", ""))
+		if kind == "pickaxe" or kind == "axe":
+			if not best.has(kind) or int(it.get("tier", 0)) > int(best[kind][1]):
+				best[kind] = [id, int(it.get("tier", 0))]
+		else:
+			rest.append(id)
+	var out: Array = []
+	for kind in ["pickaxe", "axe"]:
+		if best.has(kind):
+			out.append(best[kind][0])
+	return out + rest
 
 
 func equip(id: String) -> void:

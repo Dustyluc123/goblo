@@ -75,6 +75,11 @@ var noclip := false
 ## Barreira do passaporte (ADR 0035): func(de: Vector3, para: Vector3) -> Vector3 que devolve
 ## a direção (no chão) para dentro de um país sem passaporte, ou ZERO se pode passar.
 var border_guard := Callable()
+## Fase 4.5: dentro de uma caverna (mapa separado, longe do planeta). Sem oceano, fronteira,
+## hexágonos nem resgate do globo; `cave_rescue(pos)` devolve true e põe o personagem no
+## começo da caverna se ele caiu para fora do chão.
+var cave_mode := false
+var cave_rescue := Callable()
 ## Velocidade do voo (unidades/s), multiplicada por 4 com Shift.
 var fly_speed := 14.0
 ## Pose do selfie (modo foto) e a mistura atual dela (0 a 1).
@@ -364,6 +369,8 @@ func teleport(pos: Vector3) -> void:
 	velocity = Vector3.ZERO
 	_align(up)
 	reset_physics_interpolation()
+	if cave_mode:
+		return
 	var id := world.find_cell(global_position, cell_id)
 	if id != cell_id:
 		cell_id = id
@@ -446,8 +453,9 @@ func _tick_physics(delta: float) -> void:
 	var speed := walk_speed * (run_multiplier if running else 1.0) * speed_mult
 	var accel := acceleration if is_on_floor() else air_acceleration
 	horizontal = horizontal.lerp(wish * speed, clampf(accel * delta, 0.0, 1.0))
-	horizontal = _block_ocean(horizontal, up, delta)
-	horizontal = _block_border(horizontal, up, delta)
+	if not cave_mode:
+		horizontal = _block_ocean(horizontal, up, delta)
+		horizontal = _block_border(horizontal, up, delta)
 	_try_step_up(horizontal, up)
 
 	velocity = horizontal + up * vertical_speed
@@ -463,13 +471,16 @@ func _tick_physics(delta: float) -> void:
 		set_emote_pose("")
 	var before := global_position
 	move_and_slide()
-	# Rede de segurança: o desvio da fronteira, o degrau ou o deslize na colisão podem
-	# levar o corpo para uma célula de oceano. Se isso acontecer, volta para a terra.
-	if world.is_land(cell_id) and not world.is_land(world.find_cell(global_position, cell_id)):
-		global_position = before
-		velocity = up * minf(velocity.dot(up), 0.0)
-
-	_rescue_if_below()
+	if cave_mode:
+		if cave_rescue.is_valid():
+			cave_rescue.call(global_position)
+	else:
+		# Rede de segurança: o desvio da fronteira, o degrau ou o deslize na colisão podem
+		# levar o corpo para uma célula de oceano. Se isso acontecer, volta para a terra.
+		if world.is_land(cell_id) and not world.is_land(world.find_cell(global_position, cell_id)):
+			global_position = before
+			velocity = up * minf(velocity.dot(up), 0.0)
+		_rescue_if_below()
 
 	_update_animation(delta, up)
 	# Frio: treme; calor: balança devagar, abanando-se.
@@ -484,6 +495,8 @@ func _tick_physics(delta: float) -> void:
 		facing = f.rotated(new_up, angle * (1.0 - exp(-turn_speed * delta)))
 	_align(new_up)
 
+	if cave_mode:
+		return
 	var id := world.find_cell(global_position, cell_id)
 	if id != cell_id:
 		cell_id = id
@@ -525,6 +538,8 @@ func _fly(delta: float, up: Vector3) -> void:
 		facing = _tangent(wish, new_up).normalized()
 	_align(new_up)
 	_update_animation(delta, new_up)
+	if cave_mode:
+		return
 	var id := world.find_cell(global_position, cell_id)
 	if id != cell_id:
 		cell_id = id

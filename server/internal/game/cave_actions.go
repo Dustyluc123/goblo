@@ -129,7 +129,7 @@ func (s *Service) CaveInfo(ctx context.Context, p *Player, cave int) (*CaveView,
 	if l == nil {
 		return nil, ErrNotFound.with("Caverna desconhecida.")
 	}
-	v := &CaveView{Layout: l, Hits: map[int64]int{}, Name: s.CaveName(cave)}
+	v := &CaveView{Layout: l, Hits: map[int64]int{}, Mined: []int64{}, Name: s.CaveName(cave)}
 	day := DayIndex(s.clock.Now(), s.homeLon(ctx, s.store, p))
 	for _, o := range l.Ores {
 		mined, err := s.store.CollectionCount(ctx, p.ID, o.ID, "mine", day)

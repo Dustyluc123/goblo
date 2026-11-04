@@ -31,6 +31,7 @@ var target := {}
 
 var _timer := 0.0
 var _busy := false
+var _placement_ids := {}  # posição → id da peça (baú)
 
 
 func _process(delta: float) -> void:
@@ -104,18 +105,25 @@ func _find_target() -> Dictionary:
 		if rid >= 0 and best_score > 0.8:
 			best = {"type": "player", "id": rid, "pos": game.remote_position(rid)}
 			best_score = 0.8
+	# Fase 4.5: boca da caverna, minérios, saída, fornalha antiga, chefe, tochas; baú e
+	# fornalha do lote.
+	if game and game.cave:
+		for t: Dictionary in game.cave.targets_near(pos):
+			if float(t["dist"]) < best_score:
+				best_score = float(t["dist"])
+				best = t
 	# Fase 4.0: fogueira (cozinhar), fonte ou poço (encher o cantil), espelho (editor).
 	if game and game.body:
 		for t: Dictionary in game.body.targets_near(pos):
 			if float(t["dist"]) < best_score:
 				best_score = float(t["dist"])
 				best = t
-	for kind: String in ["workbench", "sell_box"]:
+	for kind: String in ["workbench", "sell_box", "furnace", "chest"]:
 		for wb: Vector3 in _own_placements(kind):
 			var dist := wb.distance_to(pos)
 			if dist < WORKBENCH_REACH and dist - 0.3 < best_score:
 				best_score = dist - 0.3
-				best = {"type": kind, "pos": wb}
+				best = {"type": kind, "pos": wb, "id": int(_placement_ids.get(wb, 0))}
 	return best
 
 
@@ -131,6 +139,7 @@ func _own_placements(item: String) -> Array:
 	for c in node.get_children():
 		if c is MeshInstance3D and c.has_meta("placement") and str((c.get_meta("placement") as Dictionary)["item"]) == item:
 			out.append((c as Node3D).global_position)
+			_placement_ids[(c as Node3D).global_position] = int((c.get_meta("placement") as Dictionary).get("id", 0))
 	return out
 
 
@@ -138,11 +147,11 @@ func _own_placements(item: String) -> Array:
 func _action(o: Dictionary) -> String:
 	match str(o["kind"]):
 		"tree":
-			if session.equipped == "axe" and o.get("chop", false):
+			if _holding("axe") and o.get("chop", false):
 				return "chop"
 			return "shake"
 		"rock":
-			return "mine" if session.equipped == "pickaxe" else ""
+			return "mine" if _holding("pickaxe") else ""
 		"bush":
 			return "shake"
 		"flower", "pebble", "branch", "forage":
@@ -150,9 +159,29 @@ func _action(o: Dictionary) -> String:
 	return ""
 
 
+## A ferramenta na mão é desse tipo (axe, pickaxe, torch), de qualquer nível? (fase 4.5)
+func _holding(tool: String) -> bool:
+	return str(session.items.get(session.equipped, {}).get("tool", "")) == tool
+
+
+func _has_tool(tool: String) -> bool:
+	for st: Dictionary in session.inventory:
+		if str(session.items.get(str(st["item"]), {}).get("tool", "")) == tool:
+			return true
+	return false
+
+
 func _prompt_text(t: Dictionary) -> String:
 	if t.is_empty():
+		if game and game.cave and game.cave.active and _holding("torch"):
+			return "E: pôr a tocha na parede"
 		return ""
+	if t["type"] == "cave":
+		return game.cave.prompt(t)
+	if t["type"] == "furnace":
+		return "E: fornalha"
+	if t["type"] == "chest":
+		return "E: abrir o baú"
 	if t["type"] == "workbench":
 		return "E: bancada"
 	if t["type"] == "fire":
@@ -179,15 +208,15 @@ func _prompt_text(t: Dictionary) -> String:
 	var st: Dictionary = o.get("state", {}) if o.get("state") is Dictionary else {}
 	match str(o["kind"]):
 		"tree":
-			if session.equipped == "axe" and o.get("chop", false):
+			if _holding("axe") and o.get("chop", false):
 				var left := 3 - int(st.get("chop", 0))
 				return tr("E: cortar (%d hoje)") % left if left > 0 else "Esta árvore já deu madeira hoje"
 			if int(st.get("shake", 0)) >= 1:
-				return "Já sacudida hoje" + ("  ·  segure o machado (1–5) para cortar" if session.count("axe") > 0 and o.get("chop", false) else "")
+				return "Já sacudida hoje" + ("  ·  segure o machado (1–5) para cortar" if _has_tool("axe") and o.get("chop", false) else "")
 			return "E: sacudir"
 		"rock":
-			if session.equipped != "pickaxe":
-				return "Pedra grande  ·  precisa de uma picareta" if session.count("pickaxe") == 0 else "Pedra grande  ·  segure a picareta (1–5)"
+			if not _holding("pickaxe"):
+				return "Pedra grande  ·  precisa de uma picareta" if not _has_tool("pickaxe") else "Pedra grande  ·  segure a picareta (1–5)"
 			var left := 3 - int(st.get("mine", 0))
 			return tr("E: quebrar (%d hoje)") % left if left > 0 else "Esta pedra já deu tudo hoje"
 		"bush":
@@ -211,8 +240,24 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Faz a ação no alvo atual (também usado pelos testes automáticos).
 func interact() -> Dictionary:
-	if _busy or target.is_empty():
+	if _busy:
 		return {}
+	if target.is_empty():
+		# Fase 4.5: com a tocha na mão, na caverna, o E põe a tocha na parede.
+		if game and game.cave and game.cave.active and _holding("torch"):
+			await game.cave.place_torch()
+			return {"ok": true}
+		return {}
+	if target["type"] == "cave":
+		return await game.cave.interact(target)
+	if target["type"] == "furnace":
+		player.face(target["pos"])
+		ui.furnace.open(-1)
+		return {"ok": true}
+	if target["type"] == "chest":
+		player.face(target["pos"])
+		ui.chest.open(int(target["id"]))
+		return {"ok": true}
 	if target["type"] == "workbench":
 		player.face(target["pos"])
 		ui.craft.open()

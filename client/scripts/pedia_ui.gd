@@ -22,7 +22,7 @@ var _selected := ""
 ## Seção aberta (fase 4.0): animal, flower ou tree.
 var _section := "animal"
 var _tabs: HBoxContainer
-const SECTIONS := {"animal": "Animais", "flower": "Flores", "tree": "Árvores", "photos": "Fotos"}
+const SECTIONS := {"animal": "Animais", "flower": "Flores", "tree": "Árvores", "cave": "Cavernas", "legend": "Lendas", "photos": "Fotos"}
 ## Galeria (fase 4.5): foto aberta e o "apagar" que pede confirmação.
 var _photo_sel := ""
 var _confirm_delete := false
@@ -347,6 +347,10 @@ func _show(id: String) -> void:
 			lines.append(tr("Raridade: %s") % tr(RARITY.get(str(e["rarity"]), str(e["rarity"]))))
 		if str(e["kind"]) == "animal":
 			lines.append("Amigos: sim ♥" if bool(e.get("friend", false)) else "Amigos: ainda não (dê uma frutinha)")
+		if str(e["kind"]) == "legend":
+			lines.append(tr("De: %s") % game.country_name(str(e.get("country", ""))))
+			if on:
+				lines.append(tr(str(e.get("story", ""))))
 		_detail_text.text = "\n".join(lines)
 		return
 
@@ -359,4 +363,8 @@ static func _hint(e: Dictionary) -> String:
 			return "Uma flor ainda não fotografada. Cada bioma e cada estação têm as suas: equipe a câmera e enquadre de perto."
 		"tree":
 			return "Uma árvore numa estação especial do ano. Fique de olho no calendário!"
+		"cave":
+			return "Algo que só existe dentro das cavernas. Leve a câmera (e uma tocha)."
+		"legend":
+			return "Uma lenda que aparece de vez em quando no país de origem. Chegue devagar e fotografe de longe: de perto, ela some!"
 	return ""

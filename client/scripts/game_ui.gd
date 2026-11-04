@@ -25,6 +25,8 @@ var shop: ShopUi
 var dialog: DialogUi
 var trade: TradeUi
 var pedia: PediaUi
+var furnace: FurnaceUi
+var chest: ChestUi
 var travel: TravelUi
 var passport: PassportUi
 var players: PlayersUi
@@ -118,6 +120,8 @@ func _ready() -> void:
 	dialog = add_window(DialogUi.new()) as DialogUi
 	trade = add_window(TradeUi.new()) as TradeUi
 	pedia = add_window(PediaUi.new()) as PediaUi
+	furnace = add_window(FurnaceUi.new()) as FurnaceUi
+	chest = add_window(ChestUi.new()) as ChestUi
 	travel = add_window(TravelUi.new()) as TravelUi
 	passport = add_window(PassportUi.new()) as PassportUi
 	players = add_window(PlayersUi.new()) as PlayersUi
@@ -141,6 +145,8 @@ func setup(game: GameMain, session: Session, icons: ItemIcons, countries: Dictio
 	craft.setup(game, session, icons)
 	dev.setup(game, session, icons, countries)
 	sell.setup(game, session, icons)
+	furnace.setup(game, session, icons)
+	chest.setup(game, session, icons)
 	shop.setup(game, session, icons)
 	trade.setup(game, session, icons)
 	travel.setup(game, session)

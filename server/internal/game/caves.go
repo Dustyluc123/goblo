@@ -528,8 +528,8 @@ func (s *Service) generateLayout(cv *Cave) *CaveLayout {
 	// o meio; a fornalha antiga num canto.
 	first := l.Rooms[0]
 	out := math.Atan2(l.Rooms[1].Z-first.Z, l.Rooms[1].X-first.X) + math.Pi
-	l.Exit = [3]float64{first.X + math.Cos(out)*first.R*0.72, first.Y, first.Z + math.Sin(out)*first.R*0.72}
-	l.Start = [3]float64{first.X + math.Cos(out)*first.R*0.35, first.Y, first.Z + math.Sin(out)*first.R*0.35}
+	l.Exit = [3]float64{first.X + math.Cos(out)*first.R*0.86, first.Y, first.Z + math.Sin(out)*first.R*0.86}
+	l.Start = [3]float64{first.X + math.Cos(out)*first.R*0.45, first.Y, first.Z + math.Sin(out)*first.R*0.45}
 	fa := out + math.Pi/2
 	l.Furnace = [3]float64{first.X + math.Cos(fa)*first.R*0.62, first.Y, first.Z + math.Sin(fa)*first.R*0.62}
 	boss := l.Rooms[main-1]

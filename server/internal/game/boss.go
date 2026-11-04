@@ -65,6 +65,7 @@ type bossPlayer struct {
 	hits   int
 	dodged int
 	cycle  int
+	seen   time.Time // última vez na caverna (quem sai por um tempo começa do zero)
 }
 
 // BossAttack é um ataque anunciado: círculos (x, z, raio) no chão da sala e a hora do impacto.
@@ -150,8 +151,14 @@ func (s *Service) BossTick(cave int, present map[int64][3]float64, now time.Time
 	room := bossRoom(l)
 	in := map[int64][3]float64{}
 	for id, p := range present {
+		st.player(id).seen = now
 		if inBossRoom(l, p) {
 			in[id] = p
+		}
+	}
+	for id, bp := range st.players {
+		if now.Sub(bp.seen) > 30*time.Second {
+			delete(st.players, id)
 		}
 	}
 	state := func() {

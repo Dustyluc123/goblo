@@ -563,7 +563,10 @@ static func _primitive_40(kind: String) -> Array:
 		"paint":
 			parts.append_array(_paint_pot(Color("e86a6a")))
 		_:
-			if kind.begins_with("wear_"):
+			var p45 := _primitive_45(kind)
+			if not p45.is_empty():
+				parts.append_array(p45)
+			elif kind.begins_with("wear_"):
 				parts.append_array(_wear_icon(kind.substr(5)))
 			elif kind.begins_with("paint_"):
 				parts.append_array(_paint_pot(Color(kind.substr(6))))
@@ -627,6 +630,14 @@ static func _wear_icon(item: String) -> Array:
 			if item == "coat":
 				for x in [-0.2, 0.2]:
 					parts.append([_box(Vector3(0.09, 0.28, 0.08)), _at(x, 0.19, 0), c])
+		"lamp_helmet":
+			var h := SphereMesh.new()
+			h.radius = 0.16
+			h.height = 0.16
+			h.is_hemisphere = true
+			parts.append([h, _at(0, 0.0, 0), c if item != "lamp_helmet" else Color("e9b949")])
+			parts.append([_cy(0.17, 0.17, 0.015, 12), _at(0, 0.0, 0), Color("c99a2e")])
+			parts.append([_cy(0.04, 0.045, 0.04, 8), _at(0, 0.09, 0.13, Basis(Vector3.RIGHT, 1.2)), Color("fff3b0")])
 		"pants", "shorts":
 			var h := 0.32 if item == "pants" else 0.18
 			for x in [-0.07, 0.07]:
@@ -642,3 +653,148 @@ static func _box(size: Vector3) -> BoxMesh:
 	var b := BoxMesh.new()
 	b.size = size
 	return b
+
+
+# --- Modelos da fase 4.5 (cavernas, minérios, ferramentas por nível, fornalha, baú) --------
+
+const TIER_COLORS := {"iron": Color("cfd5dc"), "diamond": Color("8fe3f0"), "goblita": Color("ff8fc8")}
+
+
+## Pedra com pedaços de minério (o que cai no bolso: carvão, ferro bruto, goblita…).
+static func _lump(parts: Array, rock: Color, chunk: Color, n := 4, size := 0.12) -> void:
+	parts.append([_sp(size, size * 1.6, 6), _at(0, size * 0.7, 0), rock])
+	for k in n:
+		var a := TAU * k / n
+		parts.append([_box(Vector3(size * 0.5, size * 0.5, size * 0.5)), _at(cos(a) * size * 0.65, size * (0.75 + 0.2 * (k % 2)), sin(a) * size * 0.65, Basis(Vector3(1, 1, 0).normalized(), a)), chunk])
+
+
+static func _crystal(parts: Array, at: Vector3, h: float, col: Color, tilt := 0.0, turn := 0.0) -> void:
+	var g := CylinderMesh.new()
+	g.top_radius = 0.0
+	g.bottom_radius = h * 0.28
+	g.height = h
+	g.radial_segments = 5
+	g.rings = 1
+	var b := Basis(Vector3.UP, turn) * Basis(Vector3.FORWARD, tilt)
+	parts.append([g, Transform3D(b, at + b * Vector3(0, h * 0.5, 0)), col])
+
+
+static func _bar(parts: Array, col: Color) -> void:
+	for k in 3:
+		var y := 0.03 + (0.055 if k == 2 else 0.0)
+		var x := -0.06 + (k % 2) * 0.12 if k < 2 else 0.0
+		parts.append([_box(Vector3(0.1, 0.05, 0.24)), _at(x, y, 0), col])
+		parts.append([_box(Vector3(0.08, 0.012, 0.2)), _at(x, y + 0.03, 0), col.lightened(0.25)])
+
+
+static func _primitive_45(kind: String) -> Array:
+	var parts: Array = []
+	var wood := Color("a8754a")
+	match kind:
+		"coal":
+			_lump(parts, Color("3a3a40"), Color("1f1f24"))
+		"iron_ore":
+			_lump(parts, Color("8a8580"), Color("d9a07a"))
+		"goblita":
+			_crystal(parts, Vector3.ZERO, 0.3, Color("ff8fc8"))
+			_crystal(parts, Vector3(0.06, 0, 0.03), 0.2, Color("ffb8dc"), 0.4, 1.0)
+			_crystal(parts, Vector3(-0.06, 0, -0.02), 0.18, Color("e96aa8"), -0.4, 2.0)
+		"diamond":
+			var g := CylinderMesh.new()
+			g.top_radius = 0.0
+			g.bottom_radius = 0.12
+			g.height = 0.12
+			g.radial_segments = 6
+			g.rings = 1
+			parts.append([g, _at(0, 0.06, 0, Basis(Vector3.RIGHT, PI)), Color("9fe8f5")])
+			parts.append([_cy(0.08, 0.12, 0.05, 6), _at(0, 0.145, 0), Color("c8f4fb")])
+		"auralita":
+			_lump(parts, Color("2f8f7f"), Color("f2c14e"), 5, 0.11)
+		"iron_bar":
+			_bar(parts, Color("b8c0c8"))
+		"goblita_bar":
+			_bar(parts, Color("ff8fc8"))
+		"auralita_bar":
+			_bar(parts, Color("4fc9b0"))
+			parts.append([_box(Vector3(0.02, 0.06, 0.26)), _at(0, 0.09, 0), Color("f2c14e")])
+		"golem_heart":
+			parts.append([_sp(0.12, 0.2, 6), _at(0, 0.1, 0), Color("ff8fc8")])
+			_crystal(parts, Vector3(0, 0.12, 0), 0.16, Color("7ee8d8"))
+			_crystal(parts, Vector3(0.05, 0.08, 0.04), 0.12, Color("c9a4ff"), 0.6, 0.5)
+		"torch":
+			parts.append([_box(Vector3(0.05, 0.42, 0.05)), _at(0, 0.21, 0), wood])
+			parts.append([_box(Vector3(0.08, 0.08, 0.08)), _at(0, 0.43, 0), Color("2b2b30")])
+			parts.append([_cy(0.0, 0.06, 0.14, 6), _at(0, 0.53, 0), Color("ffb43b")])
+			parts.append([_cy(0.0, 0.035, 0.1, 6), _at(0, 0.52, 0), Color("fff3b0")])
+		"furnace":
+			parts.append([_box(Vector3(0.9, 0.8, 0.8)), _at(0, 0.4, 0), Color("8a8580")])
+			parts.append([_box(Vector3(0.94, 0.08, 0.84)), _at(0, 0.82, 0), Color("6e6964")])
+			parts.append([_box(Vector3(0.4, 0.3, 0.05)), _at(0, 0.3, 0.4), Color("2b2220")])
+			parts.append([_box(Vector3(0.3, 0.16, 0.04)), _at(0, 0.24, 0.41), Color("ff8a3d")])
+			parts.append([_box(Vector3(0.24, 0.5, 0.24)), _at(0.22, 1.08, -0.2), Color("6e6964")])
+			for x in [-0.3, 0.0, 0.3]:
+				parts.append([_box(Vector3(0.18, 0.12, 0.02)), _at(x, 0.65, 0.405), Color("a39e98")])
+		"chest":
+			parts.append([_box(Vector3(0.9, 0.42, 0.5)), _at(0, 0.21, 0), wood])
+			parts.append([_box(Vector3(0.92, 0.18, 0.52)), _at(0, 0.5, 0), Color("8f5e3a")])
+			for x in [-0.36, 0.36]:
+				parts.append([_box(Vector3(0.06, 0.62, 0.54)), _at(x, 0.3, 0), Color("6e6964")])
+			parts.append([_box(Vector3(0.1, 0.12, 0.04)), _at(0, 0.42, 0.26), Color("f2c14e")])
+		"auralita_lamp":
+			parts.append([_cy(0.16, 0.2, 0.08, 8), _at(0, 0.04, 0), Color("6e6964")])
+			parts.append([_cy(0.03, 0.03, 0.8, 6), _at(0, 0.48, 0), Color("b8c0c8")])
+			_crystal(parts, Vector3(0, 0.86, 0), 0.32, Color("4fc9b0"))
+			_crystal(parts, Vector3(0.05, 0.86, 0.03), 0.2, Color("8ff0dc"), 0.4, 0.5)
+		"cave_mushroom":
+			for k in 3:
+				var x := (k - 1) * 0.12
+				var h := 0.16 + 0.08 * (k % 2)
+				parts.append([_cy(0.025, 0.03, h, 6), _at(x, h * 0.5, 0.03 * k), Color("e8f4ef")])
+				var cap := SphereMesh.new()
+				cap.radius = 0.08 + 0.02 * (k % 2)
+				cap.height = cap.radius
+				cap.is_hemisphere = true
+				cap.radial_segments = 8
+				cap.rings = 2
+				parts.append([cap, _at(x, h, 0.03 * k), Color("7ee8d8")])
+		"cave_crystal":
+			_crystal(parts, Vector3.ZERO, 0.7, Color("c9a4ff"))
+			_crystal(parts, Vector3(0.14, 0, 0.05), 0.45, Color("e2ccff"), 0.5, 0.3)
+			_crystal(parts, Vector3(-0.12, 0, -0.06), 0.5, Color("a982f0"), -0.45, 1.7)
+			parts.append([_sp(0.2, 0.12, 6), _at(0, 0.03, 0), Color("6e6964")])
+		"cave_mouth":
+			# Boca da caverna: um morrinho de pedra com a abertura escura virada para +Z.
+			parts.append([_sp(2.6, 3.2, 8), _at(0, 0.6, -1.0), Color("8f8a84")])
+			parts.append([_sp(1.8, 2.2, 7), _at(1.6, 0.3, -0.4), Color("a39e98")])
+			parts.append([_sp(1.6, 2.0, 7), _at(-1.7, 0.2, -0.6), Color("7d7872")])
+			parts.append([_box(Vector3(1.8, 2.0, 0.6)), _at(0, 1.0, 1.25), Color("1c1a1f")])
+			for x in [-1.1, 1.1]:
+				parts.append([_box(Vector3(0.5, 2.4, 0.7)), _at(x, 1.2, 1.3), Color("6e6964")])
+			parts.append([_box(Vector3(2.7, 0.5, 0.8)), _at(0, 2.35, 1.3), Color("6e6964")])
+			parts.append([_box(Vector3(0.6, 0.12, 0.6)), _at(0.6, 2.62, 1.1), Color("6fa84f")])
+			_crystal(parts, Vector3(-0.8, 2.5, 1.0), 0.5, Color("ff8fc8"), -0.3, 0.4)
+	if kind.begins_with("ore_"):
+		# Veio de minério na caverna: pedra grande com pedaços da cor do minério.
+		var veins := {"coal": Color("1f1f24"), "iron": Color("d9a07a"), "goblita": Color("ff8fc8"),
+			"diamond": Color("9fe8f5"), "auralita": Color("f2c14e")}
+		var rock := Color("6e6964") if kind != "ore_auralita" else Color("2f6f64")
+		parts.append([_sp(0.7, 1.0, 7), _at(0, 0.38, 0), rock])
+		parts.append([_sp(0.45, 0.6, 6), _at(0.45, 0.22, 0.15), rock.lightened(0.1)])
+		parts.append([_sp(0.4, 0.5, 6), _at(-0.42, 0.2, -0.1), rock.darkened(0.1)])
+		var vc: Color = veins.get(kind.substr(4), Color.WHITE)
+		for k in 7:
+			var a := TAU * k / 7.0 + 0.3
+			var y := 0.25 + 0.3 * float((k * 3) % 4) / 3.0
+			var r := 0.62 - absf(y - 0.4) * 0.5
+			parts.append([_box(Vector3(0.16, 0.13, 0.12)), _at(cos(a) * r, y, sin(a) * r, Basis(Vector3(cos(a), 0.4, sin(a)).normalized(), a * 2.0)), vc])
+	if kind.begins_with("pickaxe_") or kind.begins_with("axe_"):
+		var tier := kind.get_slice("_", 1)
+		var col: Color = TIER_COLORS.get(tier, Color("b8c0c8"))
+		parts.append([_box(Vector3(0.05, 0.5, 0.05)), Transform3D(Basis(), Vector3(0, 0.25, 0)), wood])
+		if kind.begins_with("pickaxe_"):
+			parts.append([_box(Vector3(0.36, 0.05, 0.04)), Transform3D(Basis(Vector3.FORWARD, 0.18), Vector3(0, 0.47, 0)), col])
+			parts.append([_box(Vector3(0.08, 0.07, 0.05)), Transform3D(Basis(), Vector3(0, 0.47, 0)), col.darkened(0.3)])
+		else:
+			parts.append([_box(Vector3(0.18, 0.12, 0.03)), Transform3D(Basis(), Vector3(0.07, 0.44, 0)), col])
+			parts.append([_box(Vector3(0.04, 0.13, 0.035)), Transform3D(Basis(), Vector3(0.155, 0.44, 0)), col.lightened(0.3)])
+	return parts

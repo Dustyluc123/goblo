@@ -126,6 +126,10 @@ var wardrobe: WardrobeUi
 var look_editor: LookEditor
 ## Conta criada agora (primeiro acesso): o editor abre antes de entrar no mundo.
 var _new_account := false
+## Fase 4.5: cavernas (mapa separado) e lendas do folclore.
+var cave: CaveGame
+var legends: LegendsGame
+var _cave_env := {}
 var _looks := CharacterLook.new()
 @onready var _terrain: Terrain = $Terrain
 @onready var _vegetation: Vegetation = $Vegetation
@@ -232,6 +236,12 @@ func _ready() -> void:
 	_net = Net.new()
 	_net.name = "Net"
 	add_child(_net)
+	cave = CaveGame.new()
+	cave.name = "Caves"
+	add_child(cave)
+	legends = LegendsGame.new()
+	legends.name = "Legends"
+	add_child(legends)
 	_remotes = RemotePlayers.new()
 	_remotes.name = "RemotePlayers"
 	add_child(_remotes)
@@ -566,6 +576,9 @@ func _setup_game() -> void:
 	_hud.set_coins(_session.coins_text(_session.coins))
 	_setup_net()
 	_setup_dialogs()
+	cave.setup(self, _session, _api, _ui, _player, _camera, world, _data)
+	_net.cave_message.connect(cave.on_message)
+	legends.setup(self, _session, _api, _player, world, _data, _net)
 
 
 # --- Tempo real (fase 3) --------------------------------------------------------------------
@@ -1360,6 +1373,12 @@ func _process(delta: float) -> void:
 	_ui.hotbar.visible = not _ui.menu_open() and not _photo.active
 	# Cada parte que roda a cada quadro anota no registro de travadas se passar de 2 ms
 	# (fase 4.2: travadas sem anotação nenhuma ao andar).
+	cave.update(delta)
+	if cave.active:
+		# Na caverna o globo está escondido: nada de pedaços, vegetação, céu ou estação.
+		_send_movement(delta)
+		return
+	legends.update(delta)
 	var t := Time.get_ticks_usec()
 	_collision_timer -= delta
 	if _collision_timer <= 0.0 and not _flying:
@@ -1560,6 +1579,9 @@ func land_point(pos: Vector3) -> Vector3:
 ## `why` diz ao servidor por que o personagem pulou de lugar: "home" (H), "travel" (chegada
 ## do voo pago), "dev" (modo dev e testes) ou "spawn".
 func _teleport(pos: Vector3, why := "dev") -> void:
+	# Teleporte para o globo (casa, voo, modo dev) saindo de dentro de uma caverna.
+	if cave and cave.active:
+		cave.leave_now()
 	pos = land_point(pos)
 	_build.exit()
 	_tracker.mark_teleport()
@@ -1573,6 +1595,67 @@ func _teleport(pos: Vector3, why := "dev") -> void:
 	_vegetation.load_now(pos)
 	_player.set_physics_process(true)
 	_ui.restore_control(true)
+
+
+func teleport_to(pos: Vector3, why := "dev") -> void:
+	await _teleport(pos, why)
+
+
+func net_teleport(why: String, pos: Vector3) -> void:
+	_net.teleport(why, pos)
+	_last_sent = []
+
+
+func my_id() -> int:
+	return _net.player_id
+
+
+## Liga ou desliga o modo caverna (fase 4.5): o globo, o céu e o sol somem; o ambiente fica
+## meio escuro, como a noite do jogo, com brilhos e tochas.
+func set_cave_mode(on: bool) -> void:
+	_player.cave_mode = on
+	_camera.cave_mode = on
+	for n: Node3D in [_terrain, _vegetation, _clouds, _neighborhood, _airports, _border_lines, _animals, _highlight, _season_fx, legends, $Moon]:
+		if n:
+			n.visible = not on
+	if _home_marker:
+		_home_marker.visible = not on
+	_sun.visible = not on
+	var env := _env()
+	if on:
+		_cave_env = {"bg": env.background_mode, "bg_color": env.background_color, "amb_src": env.ambient_light_source,
+			"amb": env.ambient_light_color, "amb_e": env.ambient_light_energy, "fog": env.fog_enabled,
+			"fog_color": env.fog_light_color, "fog_d": env.fog_density}
+		env.background_mode = Environment.BG_COLOR
+		env.background_color = Color("07080d")
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		env.ambient_light_color = Color("7480a8")
+		env.ambient_light_energy = 0.8
+		env.fog_enabled = true
+		env.fog_light_color = Color("0c0e16")
+		env.fog_density = 0.02
+		_camera.zoom = minf(_camera.zoom, 0.3)
+	elif not _cave_env.is_empty():
+		env.background_mode = _cave_env["bg"]
+		env.background_color = _cave_env["bg_color"]
+		env.ambient_light_source = _cave_env["amb_src"]
+		env.ambient_light_color = _cave_env["amb"]
+		env.ambient_light_energy = _cave_env["amb_e"]
+		env.fog_enabled = _cave_env["fog"]
+		env.fog_light_color = _cave_env["fog_color"]
+		env.fog_density = _cave_env["fog_d"]
+		_moon_restore()
+
+
+## Nome do lugar no HUD (a caverna no lugar do país).
+func show_place(name: String) -> void:
+	_hud.set_country("", name)
+
+
+func _moon_restore() -> void:
+	_hud.set_country(_tracker.current, country_name(_tracker.current))
+	# O DayNight decide sol e lua no próximo quadro.
+	_day_night.update(0.0, _player.global_position.normalized(), _camera.far_amount)
 
 
 func _teleport_to_cell(cell: int) -> void:
@@ -1894,6 +1977,89 @@ func dev_spawn_animal(species: String) -> void:
 	_ui.dev.status(tr("%s criado aqui perto (só neste computador).") % _session.animal_species[species]["name"] if ok else "Não coube aqui (lote ou borda do hexágono).")
 
 
+# --- Modo dev das cavernas e do folclore (fase 4.5) -----------------------------------------
+
+## Caverna mais perto do jogador (id), pela lista de bocas.
+func nearest_cave() -> int:
+	var best := -1
+	var best_d := -2.0
+	var up := _player.global_position.normalized()
+	for cv: Dictionary in cave.caves:
+		var d := (world.centers[int(cv["cell"])] as Vector3).dot(up)
+		if d > best_d:
+			best_d = d
+			best = int(cv["id"])
+	return best
+
+
+## Vai até a boca de caverna mais perto (no globo).
+func dev_cave_mouth() -> void:
+	var id := nearest_cave()
+	for cv: Dictionary in cave.caves:
+		if int(cv["id"]) == id:
+			var f := _data.frame(int(cv["cell"]))
+			var dir := ((f["east"] as Vector3) * cos(float(cv["yaw"])) + (f["north"] as Vector3) * sin(float(cv["yaw"]))).normalized()
+			await _teleport(cave.mouth_point(cv) + dir * 2.5)
+			_player.face(cave.mouth_point(cv))
+			_ui.dev.status(tr("Na boca da caverna %d (%s).") % [id, country_name(str(cv["country"]))])
+
+
+## Entra numa caverna de qualquer lugar (-1 = a mais perto).
+func dev_cave_enter(id: int) -> void:
+	if cave.active:
+		cave.leave_now()
+	await cave.enter(id if id >= 0 else nearest_cave(), true)
+
+
+## Vai direto para a sala do chefe (dentro da caverna). sleep = o chefe já dorme e o
+## jogador conta como quem desviou o bastante.
+func dev_cave_boss(sleep: bool) -> void:
+	if not cave.active:
+		await dev_cave_enter(-1)
+	if cave.cw == null:
+		return
+	var rm: Dictionary = cave.cw.boss_room
+	var at := cave.cw.to_global(CaveWorld.local(float(rm["x"]) - float(rm["r"]) * 0.55, float(rm["y"]) + 0.5, float(rm["z"])))
+	_player.teleport(at)
+	_player.face(cave.cw.boss_point)
+	net_teleport("dev", _player.global_position)
+	_camera.snap_behind_target()
+	if sleep:
+		await _dev("/dev/cave/boss-sleep", {"cave": cave.cave_id}, "O golem dormiu (e você conta como quem desviou).")
+
+
+func dev_cave_god(on: bool) -> void:
+	await _dev("/dev/cave/god", {"on": on}, "Invencível contra o chefe." if on else "O chefe volta a acertar.")
+
+
+func dev_cave_kit() -> void:
+	var r := await _api.request("POST", "/dev/cave/kit", {})
+	if r["ok"]:
+		_session.set_me(r["data"])
+		_ui.dev.status("Picaretas, machados, tochas, minérios, barras, fornalha, baú e capacete no bolso.")
+
+
+func dev_fill_chest() -> void:
+	var lot := _session.lot()
+	for p: Dictionary in lot.get("placements", []):
+		if str(p.get("item", "")) == "chest":
+			var r := await _api.request("POST", "/dev/chest/fill", {"id": int(p["id"])})
+			_ui.dev.status("Baú cheio." if r["ok"] else str(r["message"]))
+			return
+	_ui.dev.status("Coloque um baú no lote antes (B).")
+
+
+func dev_legend(id: String) -> void:
+	await legends.dev_spawn(id)
+
+
+## Leva até um lugar onde a espécie nova vive (procura nas células carregáveis pelo bioma e
+## pela região de animals.json) e faz um aparecer perto.
+func dev_new_animal(species: String) -> void:
+	_animals.spawn_debug(species, _player.global_position)
+	_ui.dev.status(tr("%s apareceu perto de você (só para você, modo dev).") % _session.animal_species.get(species, {}).get("name", species))
+
+
 func dev_list_animals() -> void:
 	_ui.dev.status(_animals.describe())
 
@@ -2159,6 +2325,20 @@ func _screenshot_setup() -> void:
 		"welcome":
 			_hud.welcome(country_name(_tracker.current), tr("Carimbo novo no passaporte!  +%s") % _session.coins_text(10))
 			await get_tree().create_timer(0.6).timeout
+		"cave", "cave-boss", "cave-torch":
+			# Fase 4.5: dentro da caverna mais perto (modo dev), no começo ou na sala do chefe.
+			await dev_cave_kit()
+			await dev_cave_enter(-1)
+			await get_tree().create_timer(1.0).timeout
+			if ui == "cave-boss":
+				await dev_cave_god(true)
+				await dev_cave_boss(false)
+				await get_tree().create_timer(2.6).timeout
+			if ui == "cave-torch":
+				_session.equip("torch")
+				await get_tree().create_timer(0.5).timeout
+			_camera.snap_behind_target()
+			await get_tree().create_timer(1.0).timeout
 		"cape":
 			# Fase 4.5: escolha das bandeiras da capa (todos os carimbos, cinco escolhidos).
 			await dev_wear()
