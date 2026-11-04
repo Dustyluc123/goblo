@@ -69,6 +69,8 @@ const MAX_TASKS := 2
 ## ou enfeite do alto, e nunca é pele. Medido nos modelos (tools/analisar_cabecas.gd).
 const SKULL_MIN := Vector3(-0.165, 0.338, -0.167)
 const SKULL_MAX := Vector3(0.165, 0.666, 0.162)
+## Ponta da mão (|x|) nos 12 corpos; além disso, só o que a mão segura.
+const HAND_END := 0.39
 const EAR_X := 0.232
 const EAR_Y := Vector2(0.395, 0.565)
 const FACE_TOP := 0.585
@@ -185,6 +187,7 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 	for t in range(0, hidx.size(), 3):
 		hair_tris[t / 3] = 1 if _is_hair_tri(hv, hidx, t) else 0
 	var bv: PackedVector3Array = ba[Mesh.ARRAY_VERTEX]
+	var bidx_all: PackedInt32Array = ba[Mesh.ARRAY_INDEX]
 	var buv: PackedVector2Array = ba[Mesh.ARRAY_TEX_UV]
 	var bones: PackedInt32Array = ba[Mesh.ARRAY_BONES]
 	var weights: PackedFloat32Array = ba[Mesh.ARRAY_WEIGHTS]
@@ -243,6 +246,21 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 	for c: Vector2i in arm_cells:
 		if not torso_cells.has(c) and not skins.has(c):
 			arm_keep[c] = true
+	# Objeto na mão (fase 4.5): o da Personagem 1 passa da ponta da mão dos outros. As cores
+	# dele (fora do tronco e da pele) saem dos braços, com o objeto inteiro.
+	var held := {}
+	for i in bv.size():
+		var b := _dominant(bones, weights, i)
+		var c := _cell(buv[i])
+		if (b == B_ARM_L or b == B_ARM_R) and absf(bv[i].x) > HAND_END and arm_keep.has(c):
+			held[c] = true
+	var held_tris := PackedByteArray()
+	held_tris.resize(bidx_all.size() / 3)
+	for t in range(0, bidx_all.size(), 3):
+		var tb := _dominant(bones, weights, bidx_all[t])
+		held_tris[t / 3] = 1 if (tb == B_ARM_L or tb == B_ARM_R) and held.has(_cell(buv[bidx_all[t]])) else 0
+	for c: Vector2i in held:
+		arm_keep.erase(c)
 	# Tampas de cima das pernas (escondidas dentro do quadril do próprio personagem; com o
 	# tronco de outro, apareciam como um aro escuro): ficam de fora.
 	var bidx: PackedInt32Array = ba[Mesh.ARRAY_INDEX]
@@ -261,7 +279,7 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 	return {"head": ha, "body": ba, "hair_tris": hair_tris, "skins": skins, "skin_main": main,
 		"skin_color": Color(skin_col.r, skin_col.g, skin_col.b, 1.0),
 		"skin_uv": skin_uv, "base_uv": base_uv, "leg_skin": leg_skin, "arm_keep": arm_keep,
-		"leg_caps": caps, "arm_low": arm_low, "arm_high": arm_high, "hand_y": hand_y,
+		"leg_caps": caps, "held_tris": held_tris, "arm_low": arm_low, "arm_high": arm_high, "hand_y": hand_y,
 		"torso_top": torso_top, "torso_back": torso_back, "torso_w": torso_w, "foot": foot, "leg_top": leg_top}
 
 
@@ -538,7 +556,7 @@ static func _build(job: Dictionary) -> Array:
 	var top_col: Color = wear.get("body", {}).get("color", Color.WHITE)
 	var bottom := str(wear.get("legs", {}).get("item", ""))
 	var bottom_col: Color = wear.get("legs", {}).get("color", Color.WHITE)
-	_add_part(g, body["body"], PackedByteArray(), true, R_BODY, func(p: Vector3, _n: Vector3, uv: Vector2, b: int) -> Color:
+	_add_part(g, body["body"], body["held_tris"], false, R_BODY, func(p: Vector3, _n: Vector3, uv: Vector2, b: int) -> Color:
 		return _body_color(body, top, top_col, p, uv, b, bottom, bottom_col), Callable(),
 		func(b: int) -> bool: return b != B_LEG_L and b != B_LEG_R, body["skin_uv"], waist_of(body), body["base_uv"])
 	# Pernas e pés, com as peças dos espaços pernas e pés.
