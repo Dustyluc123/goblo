@@ -34,6 +34,15 @@ var _busy := false
 
 
 func _process(delta: float) -> void:
+	# Fase 4.2: anota no registro de travadas se passar de 2 ms.
+	var t0 := Time.get_ticks_usec()
+	_tick(delta)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 2.0:
+		HitchLog.note("interação (E)", ms)
+
+
+func _tick(delta: float) -> void:
 	if player == null or not player.visible or data == null:
 		return
 	_timer -= delta

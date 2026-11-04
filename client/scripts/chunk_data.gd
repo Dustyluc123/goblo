@@ -103,7 +103,16 @@ func load_now(point: Vector3, r: float) -> void:
 				await get_tree().process_frame
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# Fase 4.2: anota no registro de travadas se passar de 2 ms.
+	var t0 := Time.get_ticks_usec()
+	_tick(delta)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 2.0:
+		HitchLog.note("pedaços (fila)", ms)
+
+
+func _tick(_delta: float) -> void:
 	_drain(1)
 
 

@@ -157,6 +157,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	# Fase 4.2: anota no registro de travadas se passar de 2 ms.
+	var t0 := Time.get_ticks_usec()
+	_tick(delta)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 2.0:
+		HitchLog.note("câmera", ms)
+
+
+func _tick(delta: float) -> void:
 	if target == null or not target.visible:
 		return
 	_zoom = lerpf(_zoom, zoom, 1.0 - exp(-8.0 * delta))

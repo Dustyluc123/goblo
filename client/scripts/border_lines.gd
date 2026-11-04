@@ -154,6 +154,15 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
+	# Fase 4.2: anota no registro de travadas se passar de 2 ms.
+	var t0 := Time.get_ticks_usec()
+	_tick(delta)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 2.0:
+		HitchLog.note("linhas da fronteira", ms)
+
+
+func _tick(delta: float) -> void:
 	_animate(delta)
 	for key: int in _tasks.keys():
 		var t: Dictionary = _tasks[key]

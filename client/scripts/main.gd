@@ -1350,23 +1350,33 @@ func _process(delta: float) -> void:
 	_hud.set_help_visible(not _ui.any_open())
 	# A barra rápida some atrás das janelas (bolso, bancada, dev, configurações).
 	_ui.hotbar.visible = not _ui.menu_open() and not _photo.active
+	# Cada parte que roda a cada quadro anota no registro de travadas se passar de 2 ms
+	# (fase 4.2: travadas sem anotação nenhuma ao andar).
+	var t := Time.get_ticks_usec()
 	_collision_timer -= delta
 	if _collision_timer <= 0.0 and not _flying:
 		_collision_timer = 0.25
 		_terrain.update_collision(_player.global_position)
+	t = _timed("colisão do chão (procura)", t)
 	if not _flying:
 		_data.update_focus(_player.global_position, delta)
+	t = _timed("pedaços do servidor", t)
 	_vegetation.update_focus(_player.global_position, _camera.far_amount, delta)
+	t = _timed("vegetação", t)
 	_airports.update(_player.global_position, _camera.far_amount, delta)
+	t = _timed("aeroportos", t)
 	_border_lines.update_view(_camera.far_amount)
 	_animals.update_view(_camera.far_amount)
 	_update_season(delta)
+	t = _timed("fronteira, animais e estação", t)
 	_neighborhood.daylight = _day_night.local_day
 	_neighborhood.update_lights(_player.global_position, delta)
+	t = _timed("luzes do bairro", t)
 	_day_night.update(delta, _player.global_position.normalized(), _camera.far_amount)
 	_clouds.update(delta, _camera.far_amount, maxf(_day_night.local_day, _camera.far_amount))
 	_hud.show_time(_day_night.local_hours(world.lons[_player.cell_id]), _day_night.speed)
 	_hud.update_navigation(_camera.global_basis, _player.global_position.normalized(), _day_night.sun_dir, _player.facing)
+	t = _timed("céu, nuvens e HUD", t)
 	if _home_marker:
 		var far := _camera.far_amount
 		_home_marker.visible = far > 0.25
@@ -1384,6 +1394,14 @@ func _process(delta: float) -> void:
 		var mat := _highlight.mesh.surface_get_material(0) as StandardMaterial3D
 		mat.albedo_color.a = 0.22 + 0.08 * sin(Time.get_ticks_msec() / 300.0)
 		_highlight.visible = _camera.far_amount < 0.5 and not _build.active
+
+
+## Anota no registro de travadas o trecho que passou de 2 ms; devolve o tempo de agora.
+func _timed(what: String, since: int) -> int:
+	var now := Time.get_ticks_usec()
+	if now - since > 2000:
+		HitchLog.note(what, (now - since) / 1000.0)
+	return now
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -3042,8 +3060,15 @@ func _hitch_test() -> void:
 			t += get_physics_process_delta_time()
 		_player.autopilot = false
 	var step := func(what: String) -> void:
+		if not marks.is_empty():
+			marks[-1].append_array([HitchLog.worst_ms, HitchLog.over_33, HitchLog.frames])
+		HitchLog.reset_stats()
 		marks.append([what, HitchLog.total])
 		print("Goblo: hitch-test → %s" % what)
+	if str(_args.get("hitch-test", "")) == "walk":
+		# Só as etapas andando (fase 4.2: iterar nas travadas de carregar pedaços).
+		await _hitch_walk(step, run, marks, start_total)
+		return
 	await step.call("correndo perto de casa")
 	await run.call(8.0, 0.15)
 	await step.call("câmera afastada até o globo e de volta")
@@ -3077,10 +3102,27 @@ func _hitch_test() -> void:
 	await get_tree().create_timer(2.0).timeout
 	await dev_force_season("real")
 	await get_tree().create_timer(2.0).timeout
-	marks.append(["fim", HitchLog.total])
-	print("Goblo: hitch-test travadas por etapa:")
+	await _hitch_walk(step, run, marks, start_total)
+
+
+## Fase 4.2: andando normalmente (sem teleporte), carregando pedaços novos: a meta é o pior
+## quadro abaixo de 33 ms. Primeiro espera o mundo em volta assentar.
+func _hitch_walk(step: Callable, run: Callable, marks: Array, start_total: int) -> void:
+	await teleport_exact(-3.0, -60.0)
+	await get_tree().create_timer(3.0).timeout
+	await step.call("andando 40 s na floresta tropical")
+	await run.call(40.0, 0.05)
+	await step.call("teleporte para o pampa")
+	await teleport_exact(-34.6, -60.5)
+	await get_tree().create_timer(3.0).timeout
+	await step.call("andando 30 s no pampa")
+	await run.call(30.0, -0.04)
+	await step.call("fim")
+	marks[-1] = ["fim", HitchLog.total]
+	print("Goblo: hitch-test travadas por etapa (acima de 25 ms · pior quadro · acima de 33 ms):")
 	for i in marks.size() - 1:
-		print("Goblo: hitch-test   %-40s %d" % [marks[i][0], int(marks[i + 1][1]) - int(marks[i][1])])
+		print("Goblo: hitch-test   %-40s %3d · %6.1f ms · %d de %d quadros" % [marks[i][0], int(marks[i + 1][1]) - int(marks[i][1]),
+			float(marks[i][2]), int(marks[i][3]), int(marks[i][4])])
 	var worst := 0.0
 	for e: Dictionary in HitchLog.recent:
 		worst = maxf(worst, float(e["ms"]))

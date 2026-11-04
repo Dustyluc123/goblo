@@ -406,6 +406,15 @@ func request_jump() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Fase 4.2: anota no registro de travadas se passar de 2 ms.
+	var t0 := Time.get_ticks_usec()
+	_tick_physics(delta)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 2.0:
+		HitchLog.note("personagem (física)", ms)
+
+
+func _tick_physics(delta: float) -> void:
 	var up := global_position.normalized()
 	up_direction = up
 	if noclip:

@@ -22,6 +22,11 @@ const MAX_BYTES := 2_000_000
 ## Travadas desta sessão (as mais novas no fim): {"time", "ms", "where", "what"}.
 static var recent: Array = []
 static var total := 0
+## Pior quadro e quadros acima de 33 ms desde o último reset_stats() (fase 4.2: medir as
+## etapas do --hitch-test, inclusive "andando normalmente").
+static var worst_ms := 0.0
+static var over_33 := 0
+static var frames := 0
 ## Anotações do quadro atual e do anterior.
 static var _now: PackedStringArray = []
 static var _prev: PackedStringArray = []
@@ -34,6 +39,13 @@ var armed := false
 var _last_us := 0
 var _pipes := {}
 var _frames := 0
+
+
+## Zera o pior quadro e a contagem acima de 33 ms.
+static func reset_stats() -> void:
+	worst_ms = 0.0
+	over_33 = 0
+	frames = 0
 
 
 ## Anota algo que aconteceu neste quadro (com o tempo gasto, se souber).
@@ -87,6 +99,11 @@ func _process(_delta: float) -> void:
 	var shader := _shader_note()
 	if not shader.is_empty():
 		_now.append(shader)
+	if armed and _frames > 2:
+		worst_ms = maxf(worst_ms, ms)
+		frames += 1
+		if ms > 33.0:
+			over_33 += 1
 	if armed and ms > LIMIT_MS and _frames > 2:
 		_record(ms)
 	_prev = _now

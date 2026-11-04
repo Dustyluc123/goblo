@@ -127,6 +127,15 @@ func server_ms() -> float:
 
 
 func _process(delta: float) -> void:
+	# Fase 4.2: anota no registro de travadas se passar de 2 ms.
+	var t0 := Time.get_ticks_usec()
+	_tick(delta)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 2.0:
+		HitchLog.note("rede", ms)
+
+
+func _tick(delta: float) -> void:
 	_stat_t += delta
 	if _stat_t >= 1.0:
 		pps_in = _count_in

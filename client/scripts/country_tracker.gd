@@ -29,6 +29,15 @@ func mark_teleport() -> void:
 
 
 func _process(delta: float) -> void:
+	# Fase 4.2: anota no registro de travadas se passar de 2 ms.
+	var t0 := Time.get_ticks_usec()
+	_tick(delta)
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if ms > 2.0:
+		HitchLog.note("país pela posição", ms)
+
+
+func _tick(delta: float) -> void:
 	if world == null or player == null or not player.visible:
 		return
 	_timer -= delta

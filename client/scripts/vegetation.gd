@@ -163,10 +163,14 @@ func _run_big_jobs(budget_ms: float) -> void:
 			_big_jobs.pop_front()
 			continue
 		var pair: Array = models.pop_front()
+		var tm := Time.get_ticks_usec()
 		if job.get("small", false):
 			_build_small_model(node, pair[0], pair[1], pair[2])
 		else:
 			_build_model(node, pair[0], pair[1])
+		var ms := (Time.get_ticks_usec() - tm) / 1000.0
+		if ms > 1.0:
+			HitchLog.note("%s ×%d no pedaço %d" % [pair[0], int(pair[1]) if job.get("small", false) else (pair[1] as Array).size(), int(job["key"])], ms)
 		if budget_ms >= 0.0 and (Time.get_ticks_usec() - t0) / 1000.0 >= budget_ms:
 			return
 
@@ -291,9 +295,11 @@ func _build_model(node: Node3D, model: String, list: Array) -> void:
 	mm.instance_count = list.size()
 	var buf := PackedFloat32Array()
 	buf.resize(list.size() * 16)
+	var box := AABB((list[0]["pos"] as Vector3), Vector3.ZERO)
 	for i in list.size():
 		var o: Dictionary = list[i]
 		var t := Transform3D(o["basis"], o["pos"])
+		box = box.merge(t * (lib["aabb"] as AABB))
 		_instances[o["id"]] = [mm, i, t]
 		if o["hidden"]:
 			t = _hidden_transform(t)
@@ -304,6 +310,7 @@ func _build_model(node: Node3D, model: String, list: Array) -> void:
 		buf[k + 4] = b.x.y; buf[k + 5] = b.y.y; buf[k + 6] = b.z.y; buf[k + 7] = t.origin.y
 		buf[k + 8] = b.x.z; buf[k + 9] = b.y.z; buf[k + 10] = b.z.z; buf[k + 11] = t.origin.z
 		buf[k + 12] = c.r; buf[k + 13] = c.g; buf[k + 14] = c.b; buf[k + 15] = c.a
+	mm.custom_aabb = box
 	mm.buffer = buf
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
