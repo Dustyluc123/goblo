@@ -1,4 +1,4 @@
-# 0053 — Cabeça inteira, pele do jogador, acessórios na cabeça e foto centralizada
+# 0053 — Cabeça inteira, pele do jogador, acessórios na cabeça, foto centralizada e MultiMesh sem interpolação
 
 **Fase 4.2.** Corrige a 0052 (visual do personagem).
 
@@ -53,3 +53,25 @@
 
 - Testes: `photo_test.go` (cada uma das 20 flores, árvore de outono e com neve, flor decorativa, fora do centro, longe, espécie que não nasce ali, estação forçada no modo dev) e `--photo-test` (mira com ??? e com o nome, só o assunto registra, fora do centro, atrás de uma parede, longe, selfie, uma flor do servidor e uma decorativa) e `--season-test` (árvore de outono e com neve).
 - Flores da primavera que são só enfeite (as brancas, amarelas e roxas na tundra e na montanha) não registram: o servidor não tem essas cores lá. A mira não acende nelas.
+
+---
+
+## Travadas ao carregar pedaços
+
+### O que era
+
+- Com a janela na frente, andando na floresta tropical: ~190 quadros acima de 25 ms em 40 s. O registro mostrava a vegetação gastando 12 a 45 ms num quadro, e cada MultiMesh novo levava ~um quadro inteiro, mesmo com uma instância só ("Rock_Moss_7 ×1: 38 ms").
+- Medindo por partes, o tempo estava todo no `add_child` do `MultiMeshInstance3D`. Num teste isolado, com a placa ocupada: 42 a 78 ms com a interpolação de física (ligada no projeto, `physics/common/physics_interpolation`); 0,1 ms com `physics_interpolation_mode = OFF`, ou criando a instância direto no `RenderingServer`. Com a interpolação, ao entrar na cena o Godot lê os dados do MultiMesh de volta da placa, e isso espera o quadro em andamento.
+- Sem janela (só CPU), andar fica quase sempre abaixo de 25 ms. As poucas travadas variam de rodada para rodada (o sistema tira o processador do jogo por ~10 ms de vez em quando: todas as partes ficam lentas juntas no mesmo quadro). Uma rajada se repete num ponto do pampa (34,56° S, 69,18° O), onde o personagem fica empurrando um paredão.
+
+### Decisão
+
+- Todo `MultiMeshInstance3D` parado (vegetação, fronteira, aeroportos, pré-aquecimento, rota do voo) sem interpolação de física. Os nós que se mexem continuam interpolados.
+- O MultiMesh dos objetos do servidor ganha a caixa pronta (`custom_aabb`, pelas posições), para o Godot não precisar recalculá-la.
+- O registro de travadas anota cada parte que roda a cada quadro e cada MultiMesh montado, quando passam de 2 ms (`GameMain._timed`, `_tick` nos sistemas). O `--hitch-test` imprime, por etapa, as travadas, o pior quadro e os acima de 33 ms; ganhou as etapas andando (sem teleporte), e `--hitch-test=walk` roda só elas.
+
+### Consequências
+
+- Vegetação por quadro: de 12–45 ms para 2–7 ms (janela em segundo plano).
+- A medição de fps com a janela na frente (4.1 × 4.2, revezando) saiu inválida: outro programa usou a placa no meio dela (as duas versões caíram igual). Falta repetir com o Mac livre e atualizar a tabela do README.
+- MultiMesh novo: `physics_interpolation_mode = OFF` se ele não se mexe (regra no `CLAUDE.md`).

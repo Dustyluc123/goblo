@@ -165,7 +165,7 @@ Encerrada do jeito que está; o que ficou de fora está em [`docs/BACKLOG.md`](d
 - [x] **Desempenho:** luz das fogueiras sem sombra e só nas mais perto, fogo e partículas por qualidade, flores decorativas com distância própria (somem antes da grama), objetos pequenos sem sombra, tela zonza sem cópia da tela. Menos chamadas de desenho que na Fase 3 (tabela em [Medições](#medições))
 - [x] **Roupa substitui a original:** cada espaço vestido troca a parte da roupa do personagem (regata deixa os braços com a pele, short deixa a canela); espaço vazio = roupa original. **Capa** não pinta mais o personagem inteiro. Teste automático das 14 peças (`tests/test_roupas.gd`)
 - [x] **Editor:** obrigatório no primeiro acesso (a escolha de personagem pronto saiu); rosto, **cabelo** (separado da cabeça nas 12), penteado, tom de pele, cor do cabelo, tronco, pernas e acessório independentes; o quepe virou acessório
-- [x] **Chapéus** encaixados no alto da cabeça (ajuste por cabeça em `client/data/cabecas.json`), com o cabelo achatado embaixo
+- [x] **Chapéus** encaixados no alto da cabeça (ajuste por cabeça em `client/data/cabecas.json`), com o cabelo achatado embaixo (na 4.2, a cabeça voltou a ser inteira)
 - [x] **Guarda-roupa:** personagem parado de frente; gira com o mouse ou A/D, aproxima com a roda, botões de costas e de frente
 - [x] **Ícones** de tintas, cantil (com os goles que restam) e bebidas mostrando o líquido
 
@@ -176,6 +176,20 @@ Encerrada do jeito que está; o que ficou de fora está em [`docs/BACKLOG.md`](d
 | ![Editor no primeiro acesso](docs/imagens/editor-primeiro-acesso.jpg) | ![Guarda-roupa](docs/imagens/guarda-roupa-4-1.jpg) |
 
 ![Ícones de tintas, cantil e bebidas](docs/imagens/icones-liquidos.png)
+
+**Fase 4.2: acertos no personagem, na Goblopédia e nas travadas** ✅ ([ADR 0053](docs/decisoes/0053-cabeca-inteira-pele-e-foto-centralizada.md))
+
+- [x] **Cabeça inteira:** a cabeça é uma das 12 originais (rosto e cabelo); saíram cabelo, cor do cabelo, penteados e o quepe (migração no banco para a cabeça correspondente). Chapéus com ajuste por cabeça, sem flutuar; na cabeça com quepe, o chapéu o substitui
+- [x] **Óculos nos olhos** (estavam no pé): presos ao osso da cabeça, na altura dos olhos. Teste automático confere osso e posição de óculos, chapéus, cachecol, poncho, sandália e capa nas 12 cabeças e nos 12 corpos. O que a Personagem 1 segura mantém a cor
+- [x] **Pele:** a cor escolhida saía mais escura (era convertida duas vezes) e algumas partes erravam a pele (luvas, sapatos, barba). Agora a pele de cada personagem vem das orelhas, e a pele à mostra pela regata, short e sandália fica do tom escolhido. As 12 cabeças aceitam todos os tons
+- [x] **Goblopédia:** registra todas as flores (as do servidor e as decorativas) e as árvores de outono e com neve (também com a estação forçada no modo dev). Só vale o assunto **centralizado**, visível e com tamanho mínimo; a mira fica dourada e mostra o nome (ou ???)
+- [x] **Travadas ao carregar pedaços:** cada MultiMesh novo (grama, árvores, flores) esperava a placa de vídeo terminar o quadro, por causa da interpolação de física. Desligada nos MultiMesh parados: de 12–45 ms para 2–7 ms por quadro
+
+| 12 cabeças × chapéus e óculos | Pele escolhida com regata, short e sandália |
+| --- | --- |
+| ![Grade de cabeças, chapéus e óculos](docs/imagens/cabecas-e-chapeus.jpg) | ![Os 12 personagens com quatro tons de pele](docs/imagens/pele-e-roupas.jpg) |
+| **Modo foto: mira dourada no assunto centralizado** | **Grade de costas** |
+| ![Modo foto com a mira dourada e ??? sobre um cavalo](docs/imagens/foto-mira.jpg) | ![Grade de cabeças de costas](docs/imagens/cabecas-e-chapeus-costas.jpg) |
 
 ## Telas
 
@@ -371,6 +385,20 @@ O que isso mostra:
 - **Meta da média (60 estáveis): atingida no pampa florido, quase no bairro (58,7) e não na floresta tropical (54,2) nem no bairro com bots (56,6).** O que falta não é a placa: a GPU fica em 10–11 ms por quadro (cabe nos 16,7 ms dos 60 fps). A média cai pelos picos (1% piores em 16–29 fps) que o `--perf-test` pega andando sem parar e carregando pedaços novos do mundo, e eles **já existiam na Fase 3** (57,8 na floresta tropical). Próximo passo: o `--hitch-test` com janela para ver o que cada pico estava fazendo (pedaços de grama, colisão, shaders) e espalhar esse trabalho entre quadros.
 - Uma rodada por cena: diferenças de 1 a 2 fps estão dentro da variação entre rodadas. A rodada da Fase 3 com bots na alta não imprimiu resultado (o jogo não fechou a tempo).
 - Sem janela (`--profile-scene`, alta, bairro com 20 bots e 4 fogueiras), as partes da 4.0 somavam ~2 ms de GPU: outros personagens 0,7, fogueiras 0,5, flores 0,3; os scripts gastam menos de 0,15 ms de CPU cada (`--cpu-test`).
+
+**Fase 4.2: travadas andando** (`--hitch-test=walk`, qualidade alta, 40 s correndo na floresta tropical e 30 s no pampa, sem teleporte; [ADR 0053](docs/decisoes/0053-cabeca-inteira-pele-e-foto-centralizada.md)):
+
+| Medição | Antes da correção | Depois |
+| --- | ---: | ---: |
+| Janela na frente: quadros acima de 25 ms na floresta (2 rodadas) | 185 e 193 (pior 90 e 122 ms; 72 e 84 acima de 33 ms) | não medido em condições limpas (veja abaixo) |
+| Janela na frente: quadros acima de 25 ms no pampa (2 rodadas) | 16 e 31 (pior 61 e 59 ms) | não medido em condições limpas |
+| Vegetação por quadro ao carregar pedaços (anotações do registro) | 12 a 45 ms, várias vezes por segundo | 2 a 7 ms (janela em segundo plano) |
+| Pôr um MultiMesh na cena com a placa ocupada (teste isolado) | 42 a 78 ms | 0,1 ms |
+| Sem janela (só CPU), pior quadro andando | 50 a 70 ms (ruído de rodada para rodada) | — |
+
+- A causa: com a interpolação de física ligada no projeto, pôr um `MultiMeshInstance3D` na cena lê o MultiMesh de volta da placa e espera o quadro em andamento. Cada pedaço novo tem dezenas de modelos (grama, flores, árvores, pedras), então andando isso acontecia várias vezes por segundo. Vegetação, fronteira e aeroportos ficam parados: a interpolação foi desligada neles.
+- **Medição de fps (`medir_fps.sh`, 4.1 × 4.2 revezando): inválida.** No meio da rodada, outro programa passou a usar a placa de vídeo (o processo de GPU do Safari, típico de vídeo tocando): o GPU por quadro foi de 16 para 40–61 ms nas **duas** versões, e a floresta caiu para 9 fps até na 4.1. Falta repetir com o Mac livre: `client/tools/medir_fps.sh` e `godot --path client -- --hitch-test=walk --quality=high` (janela na frente).
+- O registro de travadas agora anota o que cada parte gasta por quadro (física, animais, interação, câmera, vegetação, cada MultiMesh…) quando passa de 2 ms.
 
 **Fase 2.5: custo do que entrou** (sem janela, só CPU; os fps com janela ficam para `client/tools/medir_fps.sh`): os animais custam ~0,9 ms por quadro com 12 animais carregados (o máximo; os mais longe são atualizados menos vezes por segundo). As partículas das estações são 160 (média) ou 320 (alta), nenhuma na baixa. O chão calcula a estação no próprio shader, sem malha nova; árvores de outono e com neve só trocam o modelo do MultiMesh.
 
