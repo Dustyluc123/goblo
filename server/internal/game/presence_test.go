@@ -115,7 +115,19 @@ func TestServerChecksReach(t *testing.T) {
 		ang := float64(k) * math.Pi / 6
 		d := look.Scale(math.Cos(ang)).Add(up.Cross(look).Scale(math.Sin(ang)))
 		clear := true
-		near, _ := f.svc.Animals(f.ctx, append(f.svc.World().Cells[lot.Cell].Neighbors, lot.Cell))
+		// Os mesmos dois anéis de células que o servidor confere.
+		ring := map[int]bool{lot.Cell: true}
+		for _, nb := range f.svc.World().Cells[lot.Cell].Neighbors {
+			ring[nb] = true
+			for _, nb2 := range f.svc.World().Cells[nb].Neighbors {
+				ring[nb2] = true
+			}
+		}
+		var cells []int
+		for c := range ring {
+			cells = append(cells, c)
+		}
+		near, _ := f.svc.Animals(f.ctx, cells)
 		for i := range near {
 			if near[i].Species != a.Species {
 				continue

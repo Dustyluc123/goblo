@@ -27,7 +27,8 @@ O servidor confere tudo ao subir (`game.LoadContent`): receita com item que não
 | `id` | identificador estável (vai para o banco) |
 | `name` | nome em português, na tela |
 | `category` | `material`, `tool` (vai para a barra rápida e para a mão) ou `placeable` (vai para o lote) |
-| `stack` | quantos cabem num dos 20 espaços (ferramentas: 1) |
+| `stack` | quantos cabem num dos 20 espaços; acima disso, o item ocupa outro espaço (fase 4.5: 999 para os básicos, menos para os raros, 1 para ferramentas e roupas) |
+| `tool`, `tier` | fase 4.5: tipo de ferramenta (`pickaxe`, `axe`, `torch`) e nível (1 pedra, 2 ferro, 3 diamante, 4 goblita). O servidor usa a melhor do bolso |
 | `tags` | grupos usados nas receitas: `"#flower"` aceita qualquer item com a tag `flower` |
 | `footprint` | `[largura, profundidade]` em quadradinhos de 0,5 unidade (só colocáveis) |
 | `model`, `scale` | modelo no cliente (caminho `res://`, nome do Nature Pack, `flower:cor` ou `primitive:…`) e escala |
@@ -195,6 +196,19 @@ Cada espécie: `name`, `model` (arquivo em `client/assets/quaternius/ultimate-an
 | Praia, deserto, gelo | nenhum por enquanto | — | — |
 | Perto dos bairros (biomas agradáveis com lotes) | shiba, husky | 0,35 por lote ocupado | até 2 por célula |
 
+**Fase 4.5 (`regional`):** grupos por região de origem, além do bioma (`biomes`, `countries`, `lat`, `lon`), com sorteio separado (os animais antigos não mudam). Modelos `creature:…` são feitos no cliente.
+
+| Animal | Onde |
+| --- | --- |
+| capivara | campos, matas e praias da América do Sul (BRA, ARG, PRY, URY, BOL, PER, COL, VEN, GUY, SUR, ECU) |
+| arara, tucano | floresta tropical da América do Sul |
+| pinguim | gelo, tundra e praia ao sul de 46° S (Antártida, Patagônia) |
+| urso-polar | gelo e tundra ao norte de 62° N |
+| camelo | desertos da África e da Ásia (5° a 50° N, 20° O a 120° L) |
+| canguru | campos, desertos e matas da Austrália |
+| coala | matas do leste da Austrália |
+| panda | matas e montanhas do centro da China |
+
 Tímidos: cervo, alce-macho, raposa, lobo. Mansos (deixam chegar sempre): vaca, touro, cavalo, burro, alpaca, shiba, husky. Mudar `animals.json` muda os animais de todo mundo (o sorteio é por célula).
 
 ## Goblopédia (`goblopedia.json`)
@@ -303,3 +317,25 @@ Tons de pele e acessórios oferecidos ficam em `server/data/game/body.json → l
 Roupas substituem a parte da roupa original do espaço delas (cor por região, sem malha a mais). Peça nova: item com `wear` em `items.json` e a regra da região em `CharacterLook` (`_body_color`, `_legs_color`) ou a forma em `_add_hat`/`_build`; o `client/tests/test_roupas.gd` confere que ela só muda o próprio espaço.
 
 Ícones de líquidos: tintas usam `primitive:paint_RRGGBB` (o pote cheio da cor), o cantil `primitive:canteen_N` (N = goles que restam, na janelinha da frente).
+
+## Cavernas (`caves.json`, fase 4.5)
+
+Bocas por país (`entrances`: uma a cada `per_land_cells` células, entre `min` e `max`, em montanha ou morro), desenho dos salões (`layout`), minérios, enfeites que brilham, tochas, temperatura, baú, fornalha e o chefe. Detalhes no `_doc` do arquivo e no [ADR 0056](decisoes/0056-cavernas-em-mapa-separado.md).
+
+| Minério | Item | Picareta mínima | Golpes | Dá | Profundidade |
+| --- | --- | --- | --- | --- | --- |
+| Carvão | `coal` | pedra | 3 | 2–3 | toda |
+| Ferro | `iron_ore` | pedra | 4 | 1–2 | até 85% |
+| Goblita (brilha) | `goblita` | ferro | 4 | 1–2 | a partir de 30% |
+| Diamante | `diamond` | ferro | 6 | 1 | a partir de 60% |
+| Auralita (brilha) | `auralita` | diamante | 6 | 1 | a partir de 70% |
+
+Cada nível acima do mínimo: um golpe a menos e um item a mais. Cada minério quebra uma vez por dia por jogador.
+
+**Chefe (`boss`):** `attacks` ataques por sequência, um a cada `interval` s, aviso de `warn` s, círculos de `circle_radius`, `sequences` sequências até dormir por `sleep` s; `dodge_to_win` desvios para vencer; `hits` acertos voltam ao começo. Recompensa (`reward`): gobolares, o coração de cristal e a conquista, uma vez por dia por caverna.
+
+**Receitas novas:** tocha (carvão + galho → 4), fornalha, baú, picaretas e machados de ferro, diamante e goblita (a de goblita precisa do coração de cristal), capacete com luz, luminária de auralita. **Fornalha** (`station: furnace`, `seconds` por unidade): barras de ferro, goblita e auralita e carvão de madeira.
+
+## Folclore (`folklore.json`, fase 4.5)
+
+`window` (minutos de cada sorteio), `shy` (a criatura some com o jogador mais perto que isso), e cada lenda com `country`, `story`, `biomes`, `lat` (opcional), `water` (só a cabeça, na beira do mar), `hours` (horas locais), `seasons`, `chance` (por célula e janela), `duration` (minutos) e `colors`. A lista e a origem de cada uma estão em [`docs/FOLCLORE.md`](FOLCLORE.md).

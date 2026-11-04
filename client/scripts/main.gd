@@ -1101,6 +1101,17 @@ func _warm_extras() -> Array[Node3D]:
 	heart.no_depth_test = true
 	heart.set_meta("warm_size", 0.25)
 	out.append(heart)
+	# Fase 4.5: o brilho e a pedra das cavernas, e o disco do aviso do chefe.
+	var glow := MeshInstance3D.new()
+	glow.mesh = ModelLibrary.get_model("primitive:cave_crystal")["mesh"]
+	glow.material_override = CaveWorld.glow_material()
+	glow.set_meta("warm_size", 0.8)
+	out.append(glow)
+	var rock := MeshInstance3D.new()
+	rock.mesh = BoxMesh.new()
+	rock.material_override = CaveWorld.rock_material()
+	rock.set_meta("warm_size", 1.0)
+	out.append(rock)
 	out.append_array(_season_fx.warm_nodes())
 	out.append_array(_border_lines.warm_nodes())
 	out.append_array(_airports.warm_nodes())
@@ -2424,9 +2435,17 @@ func _screenshot_setup() -> void:
 			await get_tree().create_timer(0.8).timeout
 			net_send({"t": "trade_ready", "on": true})
 			await get_tree().create_timer(1.0).timeout
-		"pedia-full":
+		"pedia-full", "pedia-legends", "pedia-caves":
 			await _dev("/dev/pedia", {"action": "complete"}, "")
 			_ui.pedia.toggle()
+			if ui != "pedia-full":
+				await get_tree().create_timer(0.5).timeout
+				_ui.pedia.open_section("legend" if ui == "pedia-legends" else "cave")
+			await get_tree().create_timer(2.5).timeout
+		"furnace":
+			await dev_cave_kit()
+			_ui.furnace.open(-1)
+			await api_request("POST", "/dev/cave/enter", {"cave": 0})
 			await get_tree().create_timer(1.0).timeout
 		"passport-full":
 			await dev_passport("complete", "")

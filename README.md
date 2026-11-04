@@ -32,6 +32,7 @@
 - [Como testar a fase 2.6](#como-testar-a-fase-26)
 - [Como testar a fase 3](#como-testar-a-fase-3)
 - [Como testar a fase 4.1](#como-testar-a-fase-41)
+- [Como testar a fase 4.5](#como-testar-a-fase-45)
 - [Medições](#medições)
 - [Arquitetura](#arquitetura)
 - [Tecnologias](#tecnologias)
@@ -191,6 +192,26 @@ Encerrada do jeito que está; o que ficou de fora está em [`docs/BACKLOG.md`](d
 | **Modo foto: mira dourada no assunto centralizado** | **Grade de costas** |
 | ![Modo foto com a mira dourada e ??? sobre um cavalo](docs/imagens/foto-mira.jpg) | ![Grade de cabeças de costas](docs/imagens/cabecas-e-chapeus-costas.jpg) |
 
+**Fase 4.5: cavernas, mineração, folclore e animais do mundo** ✅ ([ADR 0054](docs/decisoes/0054-corpo-base-sem-roupa.md) a [0058](docs/decisoes/0058-folclore-animais-do-mundo-e-criaturas-em-codigo.md))
+
+- [x] **Correções da 4.2:** saiu o objeto azul sem nome da mão da Personagem 1; a regata, o short e a sandália mostram braços, pernas e pés no formato do corpo (corpo base "sem roupa"); a capa deixa escolher quais bandeiras aparecem e em que ordem (C → Bandeiras); fotos guardadas por conta, com id único (acabou a foto trocada entre páginas); aba **Fotos** na Goblopédia com todas as fotos, data, lugar, apagar e "usar na página"
+- [x] **Cavernas:** 173 bocas pelo mundo, em encostas de montanhas e morros; cada uma leva a um mapa separado (o mesmo para todos que entram por ela), com salões, túneis, degraus para pular e a sala do chefe. Meio escura, com cogumelos e cristais que brilham; temperatura amena
+- [x] **Mineração:** carvão, ferro, goblita, diamante e auralita; picaretas e machados de pedra, ferro, diamante e goblita (picareta mínima por minério, menos golpes e mais itens com uma melhor). Cada minério uma vez por dia por jogador
+- [x] **Tocha** (na mão ou na parede), **capacete com luz**, **fornalha** (no lote ou a fornalha antiga das cavernas, com espera) e **baú** no lote (só o dono abre); limite por item em cada espaço do bolso
+- [x] **Golem Sonolento:** ataques com círculos avisados no chão; três acertos voltam ao começo, sem perder nada; depois de três sequências ele dorme e quem desviou o bastante ganha gobolares, o coração de cristal, a página da Goblopédia e uma conquista (uma vez por dia por caverna)
+- [x] **Lendas:** 11 criaturas do folclore popular de 9 países (Mula sem Cabeça, Saci, Pé-Grande, Jackalope, Wolpertinger, alebrije, monstro do lago Ness, leprechaun, troll, pássaro de fogo, tanuki), raras, fofas e tímidas: fotografe de longe para a seção Lendas ([docs/FOLCLORE.md](docs/FOLCLORE.md))
+- [x] **Animais do mundo:** capivara, arara, tucano, pinguim, urso-polar, camelo, canguru, coala e panda, cada um na região de origem
+
+| Animais novos, lendas e o golem (feitos em código) | Dentro da caverna |
+| --- | --- |
+| ![Os 21 bichos novos lado a lado](docs/imagens/criaturas.jpg) | ![Caverna com cogumelos e cristais brilhando](docs/imagens/caverna.jpg) |
+| **Sala do chefe** | **Goblopédia: Lendas** |
+| ![Golem Sonolento acordado](docs/imagens/caverna-chefe.jpg) | ![Seção Lendas da Goblopédia](docs/imagens/goblopedia-lendas.jpg) |
+| **Corpo base com regata, short e sandália** | **Galeria de fotos** |
+| ![12 corpos com a pele no formato do corpo](docs/imagens/corpo-base.jpg) | ![Aba Fotos da Goblopédia](docs/imagens/galeria-de-fotos.jpg) |
+| **Escolher as bandeiras da capa** | **Fornalha** |
+| ![Guarda-roupa com a escolha das bandeiras](docs/imagens/capa-bandeiras.jpg) | ![Janela da fornalha](docs/imagens/fornalha.jpg) |
+
 ## Telas
 
 **Antes e depois do visual da fase 2.1** (mesmo lugar, mesma hora, qualidade alta):
@@ -313,6 +334,22 @@ Servidor em modo dev (`GOBLO_DEV=1`).
 6. **Desempenho:** `client/tools/medir_fps.sh` (janela na frente, ~4 min). À noite, perto de várias fogueiras (F1 → Corpo), só as mais perto iluminam.
 
 Sem janela: `godot --headless --path client -s tests/test_roupas.gd` (as 14 peças só mudam o próprio espaço). Capturas sem foco: `tools/foto_cabecas.gd` (12 cabeças × chapéus), `tools/foto_personagens.gd`, `tools/foto_icones.gd`.
+
+## Como testar a fase 4.5
+
+Servidor em modo dev (`GOBLO_DEV=1`), jogo aberto. O painel F1 ganhou a aba **Cavernas**.
+
+1. **Cavernas:** F1 → Cavernas → **Boca mais perto** (vai até a boca no globo) e **E** para entrar; ou **Entrar na mais perto** / **Entrar nesta** (número). Dentro: E na **saída** volta para a boca.
+2. **Mineração:** F1 → Cavernas → **Minérios e ferramentas**. Segure a picareta (1–5: a barra mostra a melhor de cada tipo) e E num veio: "Toc! (1 de 3)" até quebrar. Diamante com a picareta de pedra: pede uma melhor. No dia seguinte (F1 → Jogador → dia seguinte) o veio volta.
+3. **Tocha:** segure a tocha: a luz acompanha. E sem nada perto põe a tocha na parede; E nela pega de volta. Vista o **capacete com luz** (C) para iluminar sem a mão.
+4. **Fornalha:** E na fornalha antiga (entrada da caverna) ou numa fornalha colocada no lote (B): ferro bruto + carvão → barra; espere a contagem e **Pegar o que está pronto**.
+5. **Baú:** coloque um baú no lote (B), E abre; clique passa um, Shift + clique passa todos. F1 → Cavernas → **Encher o baú do lote**.
+6. **Chefe:** F1 → Cavernas → **Ir até o chefe**: ele acorda e marca círculos no chão; saia deles (ou pule). Três acertos voltam ao começo. Para testar sem pressa, **Invencível**; **Chefe dormindo** deixa pronto para vencer: chegue perto e E.
+7. **Lendas:** F1 → Cavernas → escolha a lenda → **Fazer aparecer na frente**. Chegue devagar e fotografe (câmera, botão direito): de perto ela some num "puf". G → **Lendas**.
+8. **Animais novos:** F1 → Natureza → escolha (capivara, canguru, panda…) → **Criar perto de mim**. No mundo, cada um vive na região de origem (capivaras no Brasil, cangurus na Austrália…).
+9. **Correções da 4.2:** C → vista a capa → **Bandeiras**; G → **Fotos**; F6 → Editar personagem (o objeto azul da Personagem 1 sumiu); vista regata e short.
+
+Sem janela: `--cave-test` (boca, entrar, minerar, tocha, fornalha antiga, golem, vencer, sair), `tests/test_fotos.gd` (álbum por conta), `tests/test_roupas.gd` (corpo base). Capturas: `--ui=cave`, `cave-boss`, `cave-torch`, `legend --legend=ID`, `pedia-legends`, `pedia-photos`, `cape`, `furnace`; `tools/foto_criaturas.gd`, `tools/foto_corpo_base.gd`.
 
 ## Medições
 
@@ -672,7 +709,7 @@ Detalhes, versões e o que foi copiado de cada pacote em [`client/assets/CREDITO
 4. **Fase 2.5: explorar e colecionar.** Fronteiras pela posição exata, gobolares e caixa de vendas, animais andando pelos biomas, câmera fotográfica e Goblopédia, estações do ano reais por hemisfério, aeroportos com viagem pelo globo, passaportes e carimbos. ✅ Ajustes da 2.6: modo foto em primeira pessoa e selfie, cursor depois do voo, registro de travadas e limite de fps. ✅
 5. **Fase 3: fronteiras vivas e multiplayer.** Lotes longe das fronteiras, fronteira que abre com o passaporte, outros jogadores em tempo real no nosso servidor (sem Nakama, [ADR 0039](docs/decisoes/0039-tempo-real-no-servidor-proprio.md)), chat, emotes, validações no servidor e preparo para jogar com amigos. ✅
 6. **Fase 3.5: economia viva e os primeiros personagens.** Gobolar, preço por país, vender tudo, praça central com loja e aeroporto novo, NPCs com diálogo, apresentação do guia e troca entre jogadores. ✅ **Fase 3.6: polimento.** Aeroporto na escala do personagem, chão sem frestas e bandeiras nas fronteiras. ✅
-7. **Fase 4.0: clima, necessidades, roupas, personagem e flores.** ✅ Ajustes da 4.1: desempenho, roupas no lugar da original, cabelo separado, editor no primeiro acesso, guarda-roupa e ícones. ✅ **Fase 4.5:** cavernas e folclore. **Fase 5.0:** redesenho da interface, música e sons.
+7. **Fase 4.0: clima, necessidades, roupas, personagem e flores.** ✅ Ajustes da 4.1: desempenho, roupas no lugar da original, cabelo separado, editor no primeiro acesso, guarda-roupa e ícones. ✅ **Fase 4.5: cavernas, mineração, folclore e animais do mundo.** ✅ **Fase 5.0:** redesenho da interface, música e sons.
 
 ## Sobre mim
 

@@ -320,6 +320,27 @@ Desde a fase 3, o servidor sabe onde o jogador está (pelo tempo real) e confere
 
 Também conferem a distância `/interact`, `/sell` (na caixa de vendas do próprio lote), `/animal/feed` e `/pedia/register`. Os alcances ficam em `rules.json` (`reach`; o enquadramento da foto, em `photo`).
 
+## Cavernas, fornalha, baú e folclore (fase 4.5, ADR 0056–0058)
+
+| Rota | Corpo | O que faz |
+| --- | --- | --- |
+| `GET /caves` | — | todas as bocas de caverna: `{caves: [{id, cell, country, x, y, yaw, rooms}]}` (`x`, `y` no plano da célula; `yaw` = para onde a boca abre, a partir de East) |
+| 🔑 `GET /cave/{id}` | — | o desenho e o estado do jogador hoje (CaveView): `layout` (`rooms [{x, z, r, y, depth, boss, side}]`, `tunnels [{a, b, w, ledge}]`, `ores [{id, ore, item, x, y, z, yaw, min_tier, hits, glow}]`, `glow [{kind, x, y, z, yaw, scale}]`, `start`, `exit`, `furnace`, `boss`, `wall`, `grid`, `bounds`, `frame {origin, east, up, north}`), `mined` (ids quebrados hoje), `hits` (golpes de hoje), `torches`, `boss` (`phase`, `hits`, `max`, `dodged`, `need`, `won`, `name`), `spawn` (mundo), `name` |
+| 🔑 `POST /cave/enter` | `{"cave": 3}` | perto da boca: libera o teleporte `cave` (vale 1 minuto) e devolve o CaveView. Longe: `too_far` |
+| 🔑 `POST /cave/mine` | `{"cave": 3, "ore": 1099511627779}` | um golpe no minério (precisa estar perto, na caverna). Picareta abaixo da mínima: `no_tool`; já quebrado hoje: `daily_limit`. Resposta: `ore`, `hits`, `need`, `broken`, `gained`, `message`, `inventory`, `slots_used` |
+| 🔑 `POST /cave/torch` | `{"cave": 3, "pos": [x, y, z]}` | põe uma tocha do bolso (ponto da caverna, até `torch.reach`); até `torch.limit` acesas por jogador. Resposta: `torches`, `message`, `inventory`, `slots_used` |
+| 🔑 `POST /cave/torch/take` | `{"cave": 3, "id": 7}` | pega de volta uma tocha sua |
+| 🔑 `POST /cave/boss` | `{"cave": 3}` | interage com o chefe (perto). Acordado ou sem ter desviado o bastante: só `message`. Dormindo e com `dodge_to_win` desvios: `won`, `reward`, `coins`, `gained`, `achievement`, `pedia_first`, `inventory` (recompensa uma vez por dia por caverna) |
+| 🔑 `GET /furnace` | — | o que está na fornalha: `{jobs: [{id, item, count, ready_at, ready}], now}` |
+| 🔑 `POST /furnace/smelt` | `{"recipe": "iron_bar", "times": 2, "cave": 3}` | derrete (receitas `station: furnace`); sem `cave` = fornalha do lote. Gasta na hora; fica pronto depois de `seconds × times` |
+| 🔑 `POST /furnace/collect` | `{"cave": 3}` | pega o que está pronto (o que não cabe continua lá) |
+| 🔑 `GET /chest/{id}` | — | abre o baú (peça do próprio lote, perto): `items`, `slots_used_chest`, `slots_max_chest`, `inventory`, `slots_used` |
+| 🔑 `POST /chest/{id}/put` / `take` | `{"item": "wood", "count": 5}` | guarda ou tira. De outra pessoa: `not_owner` |
+| 🔑 `GET /achievements` | — | conquistas: `[{id, first_at}]` |
+| 🔑 `GET /legends?cell=123` | — | criaturas do folclore aparecendo agora nas células em volta (2 anéis): `{legends: [{legend, cell, x, y, yaw, from, until, water}], now}` |
+
+O `/content` traz também `caves` (caves.json) e `folklore` (folklore.json). Na Goblopédia, páginas `kind: cave` (cogumelo, cristal, o golem) e `kind: legend` (com `country` e `story`); a foto delas é conferida como as outras (`rules.json → photo.max_dist.cave/legend`).
+
 ## Tempo real
 
 ### 🔑 `GET /ws`
@@ -327,6 +348,8 @@ Também conferem a distância `/interact`, `/sell` (na caixa de vendas do própr
 WebSocket com o token em `Authorization: Bearer …` (ou `?token=`). Movimento, outros jogadores, chat, emotes e eventos do mundo. O protocolo está em [PROTOCOLO.md](PROTOCOLO.md).
 
 ## Modo dev (🔑, só com `GOBLO_DEV=1`)
+
+Fase 4.5: `POST /dev/cave/enter {cave}` (entra de qualquer lugar), `POST /dev/cave/kit` (ferramentas de todos os níveis, tochas, minérios, barras, fornalha, baú e capacete), `POST /dev/cave/god {on}` (o chefe não acerta), `POST /dev/cave/boss-sleep {cave}` (o chefe dorme e o jogador conta como quem desviou), `POST /dev/chest/fill {id}`, `POST /dev/legend {id}` (a lenda aparece na frente do jogador por 10 minutos, para todos).
 
 Sem `GOBLO_DEV=1`, **toda** rota `/dev/…` responde `403 {"error":"dev_only"}` (há teste). Com o modo dev, o relógio do servidor pode ser adiantado.
 

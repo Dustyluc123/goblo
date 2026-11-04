@@ -84,7 +84,7 @@ Todas têm `"t"` com o tipo.
 
 | `t` | Campos | Faz |
 | --- | --- | --- |
-| `tp` | `why`, `pos: [x,y,z]` | pede um teleporte. `spawn`: nascer, em casa, onde estava antes ou (modo dev) em qualquer lugar. `home`: tecla H, perto do lote (`home_radius`). `travel`: chegada de um voo pago há pouco, perto do aeroporto de destino (`travel_radius`). `dev`: só no modo dev. Resposta: `tp` |
+| `tp` | `why`, `pos: [x,y,z]` | pede um teleporte. `spawn`: nascer, em casa, onde estava antes ou (modo dev) em qualquer lugar. `home`: tecla H, perto do lote (`home_radius`). `travel`: chegada de um voo pago há pouco, perto do aeroporto de destino (`travel_radius`). `dev`: só no modo dev (também para dentro de uma caverna). Fase 4.5: `cave` (entrar, depois de `POST /cave/enter`, perto do começo), `cave_start` (de volta ao começo da caverna em que está) e `cave_exit` (para perto da boca, no globo). Resposta: `tp` |
 | `chat` | `text` | fala; quem está a até `chat.radius` (40) vê. Palavrões viram ♡ (o mesmo filtro do apelido) |
 | `emote` | `e`: `wave`, `yes`, `no`, `sit`, `cheer` | emote para quem te vê |
 | `act` | `a`: `shake`, `chop`, `mine`, `pick`, `pet`, `feed`, `photo`; `animal` (no carinho e na frutinha) | animação que os outros veem. Carinho e frutinha só valem perto do animal |
@@ -119,6 +119,10 @@ Todas têm `"t"` com o tipo.
 | `body` | `body` (BodyView, docs/API.md) | o corpo do jogador (fase 4.0): quando algo que a tela mostra muda e a cada 5 s. `speed` é o multiplicador que o servidor aceita na validação do movimento (o maior dos últimos 3 s) |
 | `look` | `id`, `look` (LookView) | o visual de alguém (ou o seu) mudou: roupa, tinta, editor ou carimbo novo com a capa. `enter` também traz `look` |
 | `fire` | `by`, `fire` (`id`, `owner`, `cell`, `x`, `y`, `left`) | alguém acendeu uma fogueira no chão perto |
+| `cave` | `by`, `data: {cave, ore, broken}` ou `{cave, torches}` | na mesma caverna: alguém minerou (animação) ou as tochas mudaram |
+| `boss` | `cave`, `phase` (`idle`, `awake`, `asleep`) | o chefe da caverna mudou de fase |
+| `boss_attack` | `cave`, `attack: {id, circles: [[x, z, r]], warn}`, `y` | ataque anunciado: círculos no chão (pontos da caverna), impacto em `warn` segundos |
+| `boss_hit` | `cave`, `hits`, `max`, `reset` | você levou um acerto; com `reset`, volte ao começo (`tp` `cave_start`) |
 | `trade_req` | `from`, `nick` | alguém quer trocar com você (responda com `trade_answer`) |
 | `trade_open` / `trade_update` | `id`, `with`, `nick`, `mine`, `theirs` (`{items, coins}`), `my_ready`, `their_ready`, `my_confirm`, `their_confirm`, `both_ready` | a troca abriu / mudou (cada lado recebe a sua visão) |
 | `trade_done` | `id`, `inventory`, `slots_used`, `coins`, `message` | a troca foi feita; o bolso e o saldo novos |
@@ -127,6 +131,10 @@ Todas têm `"t"` com o tipo.
 ### Troca entre jogadores (fase 3.5, ADR 0044)
 
 A negociação fica só na memória do servidor; o banco só muda na execução (`Service.ExecuteTrade`, uma transação: confere bolso, espaço, distância e bloqueio de novo). Se algo mudou entre a confirmação e a execução (alguém gastou o item, se afastou), nada acontece: os dois recebem `info` e um `trade_update` com os "pronto" desmarcados. Saiu do jogo no meio: `trade_closed` para o outro. No modo dev, os bots de número par aceitam pedidos e acompanham a troca (oferecem 3 madeiras).
+
+### Cavernas (fase 4.5, ADR 0056)
+
+Cada caverna fica num ponto próprio, a `shell_radius` (12 000) do centro, longe das outras: a área de interesse por distância já mostra só quem está na mesma caverna. O hub guarda em que caverna o jogador está; lá dentro, o movimento é validado em linha reta (mesma velocidade) e dentro da caixa da caverna (senão, correção de altura), sem país nem carimbo. A cada foto do mundo, o hub chama `BossTick` para cada caverna com gente e manda `boss`, `boss_attack` e `boss_hit`. O corpo dentro da caverna tem temperatura constante.
 
 ### Corpo (fase 4.0, ADR 0050)
 
