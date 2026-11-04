@@ -645,6 +645,9 @@ func _build_group(pk: String, r: Dictionary) -> Node3D:
 			for i in markers.size():
 				mm.set_instance_transform(i, (markers[i] as Transform3D).translated_local(part[1]))
 			var mmi := MultiMeshInstance3D.new()
+			# Parado: sem interpolação de física (com ela, entrar na cena lê o MultiMesh de volta da
+			# placa e espera o quadro inteiro; fase 4.2, ADR 0053).
+			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 			mmi.multimesh = mm
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			if part[2] != null:
@@ -674,6 +677,9 @@ func _flags(markers: Array, codes: Array) -> MultiMeshInstance3D:
 		var phase := fposmod(xf.origin.x * 0.37 + xf.origin.z * 0.61, 1.0)
 		mm.set_instance_custom_data(i, Color(FlagAtlas.index_of(str(pair[1])), FlagAtlas.index_of(str(pair[0])), phase, 0.0))
 	var mmi := MultiMeshInstance3D.new()
+	# Parado: sem interpolação de física (com ela, entrar na cena lê o MultiMesh de volta da
+	# placa e espera o quadro inteiro; fase 4.2, ADR 0053).
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mmi.name = "Flags"
 	# Para os testes (o renderizador falso do modo headless não guarda os dados do MultiMesh).
 	mmi.set_meta("markers", markers)

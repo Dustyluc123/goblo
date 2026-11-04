@@ -313,6 +313,9 @@ func _build_model(node: Node3D, model: String, list: Array) -> void:
 	mm.custom_aabb = box
 	mm.buffer = buf
 	var mmi := MultiMeshInstance3D.new()
+	# Parado: sem interpolação de física (com ela, entrar na cena lê o MultiMesh de volta da
+	# placa e espera o quadro inteiro; fase 4.2, ADR 0053).
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mmi.multimesh = mm
 	var shadows: bool = Quality.current()["big_shadows"]
 	# Objetos pequenos (flores para colher, galhos, pedrinhas, ingredientes): sem sombra e
@@ -569,6 +572,9 @@ func _build_small_model(node: Node3D, name: String, count: int, buffer: PackedFl
 	mm.instance_count = count
 	mm.buffer = buffer
 	var mmi := MultiMeshInstance3D.new()
+	# Parado: sem interpolação de física (com ela, entrar na cena lê o MultiMesh de volta da
+	# placa e espera o quadro inteiro; fase 4.2, ADR 0053).
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mmi.multimesh = mm
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.set_meta("model", name)

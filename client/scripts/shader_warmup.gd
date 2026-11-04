@@ -47,6 +47,9 @@ static func run(game: Node3D, camera: Camera3D, extra: Array[Node3D]) -> int:
 			mm.set_instance_transform(0, Transform3D.IDENTITY)
 			mm.set_instance_color(0, Color.WHITE)
 			var mmi := MultiMeshInstance3D.new()
+			# Parado: sem interpolação de física (com ela, entrar na cena lê o MultiMesh de volta da
+			# placa e espera o quadro inteiro; fase 4.2, ADR 0053).
+			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 			mmi.multimesh = mm
 			if not kind.is_empty():
 				mmi.material_override = ModelLibrary.foliage_material(kind)

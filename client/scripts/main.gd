@@ -1315,6 +1315,9 @@ func _flight_arc(a: Vector3, b: Vector3) -> Node3D:
 		var dir := a.slerp(b, k).normalized()
 		mm.set_instance_transform(i, Transform3D(Basis(), dir * (world.radius + 18.0 + sin(k * PI) * angle * 70.0)))
 	var mmi := MultiMeshInstance3D.new()
+	# Parado: sem interpolação de física (com ela, entrar na cena lê o MultiMesh de volta da
+	# placa e espera o quadro inteiro; fase 4.2, ADR 0053).
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mmi.multimesh = mm
 	root.add_child(mmi)
 	# O avião (o mesmo do aeroporto, maior).

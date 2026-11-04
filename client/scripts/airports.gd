@@ -687,6 +687,7 @@ func _make_markers() -> void:
 		var cell := int(real[i]["cell"])
 		mm.set_instance_transform(i, Transform3D(Basis(), world.centers[cell] * (world.surface_radius(cell) + 3.0)))
 	_markers = MultiMeshInstance3D.new()
+	_markers.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # parado (ADR 0053)
 	_markers.multimesh = mm
 	_markers.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_markers.visible = false
