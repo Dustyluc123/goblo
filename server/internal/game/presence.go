@@ -314,6 +314,29 @@ func (s *Service) pediaSeen(ctx context.Context, p *Player, e *PediaEntry, shot 
 	now := s.clock.Now()
 	seasonNow := s.seasonTime(p) // a data forçada no modo dev vale para árvores e flores
 	switch e.Kind {
+	case "cave":
+		// Fase 4.5: cogumelos, cristais e o chefe, dentro da caverna em que o jogador está.
+		cv := s.CaveAt(pos)
+		l := s.CaveLayoutOf(cv)
+		if l == nil {
+			return ErrTooFar.with("Isso só aparece dentro das cavernas.")
+		}
+		if e.ID == s.content.Caves.Boss.ID {
+			if near(l.frame.Point(l.Boss[0], l.Boss[1]+1.5, l.Boss[2]), ph.AtSlack+2) {
+				return nil
+			}
+		}
+		for _, g := range l.Glow {
+			if g.Kind == e.ID && near(l.frame.Point(g.X, g.Y+0.3, g.Z), ph.AtSlack) {
+				return nil
+			}
+		}
+	case "legend":
+		for _, sg := range s.LegendsNear(cell, 2, now) {
+			if sg.Legend == e.ID && near(s.legendPoint(sg), ph.AtSlack+1.5) {
+				return nil
+			}
+		}
 	case "animal":
 		animals, err := s.Animals(ctx, cells)
 		if err != nil {

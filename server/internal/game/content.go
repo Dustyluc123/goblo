@@ -19,6 +19,9 @@ const (
 // StationFire: receita da fogueira (sem station = bancada).
 const StationFire = "fire"
 
+// StationFurnace: receita da fornalha (fase 4.5), com espera.
+const StationFurnace = "furnace"
+
 // Item é uma entrada de items.json. Model, Scale e Height são só para o cliente.
 type Item struct {
 	ID        string   `json:"id"`
@@ -36,6 +39,9 @@ type Item struct {
 	Rarity string    `json:"rarity,omitempty"`
 	Food   *FoodInfo `json:"food,omitempty"`
 	Wear   *WearInfo `json:"wear,omitempty"`
+	// Fase 4.5: ferramenta (pickaxe, axe, torch) e o nível dela (1 pedra … 4 goblita).
+	Tool string `json:"tool,omitempty"`
+	Tier int    `json:"tier,omitempty"`
 }
 
 // HasTag diz se o item pertence ao grupo (ex.: "flower").
@@ -54,7 +60,8 @@ type Recipe struct {
 	Result      string         `json:"result"`
 	Count       int            `json:"count"`
 	Ingredients map[string]int `json:"ingredients"`
-	Station     string         `json:"station,omitempty"` // "" = bancada, "fire" = fogueira
+	Station     string         `json:"station,omitempty"` // "" = bancada, "fire" = fogueira, "furnace" = fornalha
+	Seconds     float64        `json:"seconds,omitempty"` // fornalha: espera por unidade
 }
 
 // HouseLevel é um nível da casa.
@@ -127,6 +134,8 @@ type Content struct {
 	NPCs      *NPCContent             `json:"-"`
 	Dialogs   *DialogContent          `json:"-"`
 	Body      *BodyContent            `json:"-"`
+	Caves     *CaveContent            `json:"-"`
+	Folklore  *FolkloreContent        `json:"-"`
 	Pedia     struct {
 		Extras []PediaEntry `json:"extras"`
 	} `json:"-"`
@@ -174,7 +183,8 @@ func LoadContent(fsys fs.FS) (*Content, error) {
 		{"game/goblopedia.json", &c.Pedia}, {"game/rules.json", &c.Rules},
 		{"game/countries.json", &c.Countries}, {"game/shop.json", &c.Shop},
 		{"game/npcs.json", &c.NPCs}, {"game/dialogs.json", &c.Dialogs},
-		{"game/body.json", &c.Body},
+		{"game/body.json", &c.Body}, {"game/caves.json", &c.Caves},
+		{"game/folklore.json", &c.Folklore},
 	} {
 		b, err := fs.ReadFile(fsys, f.name)
 		if err != nil {
@@ -253,6 +263,31 @@ func (c *Content) index() error {
 		return err
 	}
 	if err := c.checkWear(); err != nil {
+		return err
+	}
+	if c.Caves == nil {
+		return fmt.Errorf("caves.json faltando")
+	}
+	if err := c.Caves.check(c.items); err != nil {
+		return err
+	}
+	for _, r := range c.Recipes {
+		if r.Station == StationFurnace && r.Seconds <= 0 {
+			return fmt.Errorf("receita %s: fornalha sem seconds", r.ID)
+		}
+		if r.Station != "" && r.Station != StationFire && r.Station != StationFurnace {
+			return fmt.Errorf("receita %s: estação %q desconhecida", r.ID, r.Station)
+		}
+	}
+	for _, it := range c.Items {
+		if (it.Tool == "pickaxe" || it.Tool == "axe") && it.Tier < 1 {
+			return fmt.Errorf("item %s: ferramenta sem tier", it.ID)
+		}
+	}
+	if c.Folklore == nil {
+		return fmt.Errorf("folklore.json faltando")
+	}
+	if err := c.Folklore.check(c); err != nil {
 		return err
 	}
 	if c.Economy.ShopBuyBonus < 1 {

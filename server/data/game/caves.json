@@ -1,0 +1,72 @@
+{
+  "_doc": "Cavernas (fase 4.5, ADR 0056). Cada boca de caverna fica no globo, numa encosta de montanha ou morro, e leva a um mapa separado, longe do planeta (shell_radius do centro, no ponto slot de uma espiral com slots pontos), onde quem entra pela mesma boca se encontra. entrances: per_land_cells = uma boca a cada tantas células de terra do país (entre min e max); biomes = biomas de montanha; hill_height = altura mínima de um morro nos outros biomas; fallback_cells = país sem montanha nem morro ganha uma boca na célula mais alta se tiver pelo menos tantas células; spot = distância do centro da célula até a boca (fora dos lotes); clear = raio sem objetos em volta da boca. layout: rooms = quantos salões (o último é a sala do chefe); room_radius = raio dos salões; boss_radius = raio da sala do chefe; step = distância entre os centros de dois salões seguidos; turn = quanto o caminho pode virar (graus); tunnel_width = largura dos túneis; rise = maior diferença de altura entre dois salões; ledge = altura de um degrau que pede pulo (menor que o pulo, 1,3) e ledge_chance a chance de um túnel ter degrau no fundo da caverna (cresce com a profundidade); side_chance = chance de um salão ter um salão lateral (beco com minérios); wall = altura das paredes; grid = tamanho do quadradinho que o cliente usa para desenhar o chão. ores: minérios (item que dá, picareta mínima min_tier, golpes hits com a picareta mínima, um a menos por nível acima, count = quantos dá, mais um por nível acima, depth = de que profundidade a que profundidade aparece (0 = entrada, 1 = sala do chefe), weight = peso no sorteio, glow = brilha). ores_per_room: minérios por salão. Cada minério pode ser quebrado uma vez por dia por jogador. glow: enfeites que brilham (cogumelos e cristais), com página na Goblopédia (pedia), per_room e cor. torch: limit = tochas acesas por jogador em cada caverna, hours = quanto tempo uma tocha colocada fica acesa, reach = distância para colocar. temperature: graus dentro da caverna (amena e constante). chest_slots: espaços do baú (cada espaço com o mesmo limite por item do bolso); chest_reach e furnace_reach: distância para abrir o baú e usar a fornalha. reach: distância para minerar e usar a fornalha antiga e a saída. boss: o chefe (fase 4.5). Ele bate no chão em ataques (attacks por sequência, um a cada interval segundos); cada ataque marca círculos de circle_radius no chão warn segundos antes do impacto (um debaixo de cada jogador na sala e mais extra sorteados). Depois de sequences sequências ele cansa e dorme por sleep segundos; quem desviou de pelo menos dodge_to_win ataques nessa rodada vence ao interagir com ele (E). hits acertos levam de volta ao início da caverna, sem perder nada. reward: gobolares, o item exclusivo (count) e a conquista, uma vez por dia por jogador em cada caverna.",
+  "shell_radius": 12000.0,
+  "slots": 1024,
+  "entrances": {
+    "per_land_cells": 25,
+    "min": 1,
+    "max": 3,
+    "biomes": ["mountain"],
+    "hill_height": 1.6,
+    "fallback_cells": 4,
+    "spot": 9.0,
+    "clear": 3.5
+  },
+  "layout": {
+    "rooms": [4, 9],
+    "room_radius": [6.5, 10.0],
+    "boss_radius": 15.0,
+    "step": [17.0, 23.0],
+    "turn": 70.0,
+    "tunnel_width": 3.6,
+    "rise": 2.5,
+    "ledge": 1.0,
+    "ledge_chance": 0.55,
+    "side_chance": 0.35,
+    "wall": 7.0,
+    "grid": 1.0
+  },
+  "ores": [
+    {"id": "coal", "item": "coal", "name": "Veio de carvão", "min_tier": 1, "hits": 3, "count": [2, 3], "depth": [0.0, 1.0], "weight": 6},
+    {"id": "iron", "item": "iron_ore", "name": "Veio de ferro", "min_tier": 1, "hits": 4, "count": [1, 2], "depth": [0.0, 0.85], "weight": 5},
+    {"id": "goblita", "item": "goblita", "name": "Cristal de goblita", "min_tier": 2, "hits": 4, "count": [1, 2], "depth": [0.3, 1.0], "weight": 3, "glow": true},
+    {"id": "diamond", "item": "diamond", "name": "Veio de diamante", "min_tier": 2, "hits": 6, "count": [1, 1], "depth": [0.6, 1.0], "weight": 2},
+    {"id": "auralita", "item": "auralita", "name": "Veio de auralita", "min_tier": 3, "hits": 6, "count": [1, 1], "depth": [0.7, 1.0], "weight": 1.5, "glow": true}
+  ],
+  "ores_per_room": [3, 5],
+  "glow": [
+    {"id": "cave_mushroom", "name": "Cogumelo-luminoso", "per_room": [3, 6], "depth": [0.0, 1.0], "color": "#7ee8d8"},
+    {"id": "cave_crystal", "name": "Cristal-cantor", "per_room": [1, 3], "depth": [0.35, 1.0], "color": "#c9a4ff"}
+  ],
+  "torch": {
+    "limit": 8,
+    "hours": 6.0,
+    "reach": 4.0
+  },
+  "temperature": 17.0,
+  "chest_slots": 24,
+  "chest_reach": 4.0,
+  "furnace_reach": 4.0,
+  "reach": 4.0,
+  "boss": {
+    "id": "cave_golem",
+    "name": "Golem Sonolento",
+    "attacks": 4,
+    "interval": 2.6,
+    "warn": 1.4,
+    "circle_radius": 2.3,
+    "extra": [1, 3],
+    "pause": 3.0,
+    "sequences": 3,
+    "sleep": 40.0,
+    "dodge_to_win": 6,
+    "hits": 3,
+    "reach": 5.0,
+    "reward": {
+      "coins": 120,
+      "item": "golem_heart",
+      "count": 1,
+      "achievement": "golem"
+    }
+  }
+}

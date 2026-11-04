@@ -393,8 +393,12 @@ func TestCraftConsumesMaterials(t *testing.T) {
 func TestInventoryHas20Slots(t *testing.T) {
 	f := newFixture(t)
 	p, _ := f.player(t, "Acumulador", "BRA")
-	f.give(t, p, "stone", 99*19)
-	f.give(t, p, "wood", 99)
+	// Fase 4.5: o limite de cada espaço vem de items.json (stack).
+	stone := f.svc.Content().Item("stone").Stack
+	for k := 0; k < 19; k++ {
+		f.give(t, p, "stone", stone)
+	}
+	f.give(t, p, "wood", f.svc.Content().Item("wood").Stack)
 	if _, err := f.svc.DevGive(f.ctx, p, "branch", 1); !errors.Is(err, game.ErrInventoryFull) {
 		t.Fatalf("21º espaço deveria falhar: %v", err)
 	}

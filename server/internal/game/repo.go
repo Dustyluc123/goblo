@@ -190,6 +190,34 @@ type BodyRepository interface {
 	SaveBody(ctx context.Context, player int64, data string) error
 }
 
+// Achievement é uma conquista (fase 4.5).
+type Achievement struct {
+	ID      string
+	FirstAt time.Time
+}
+
+// FurnaceJob é o que está na fornalha de um jogador (pronto a partir de ReadyAt).
+type FurnaceJob struct {
+	ID      int64
+	Item    string
+	Count   int
+	ReadyAt time.Time
+}
+
+// CaveRepository guarda conquistas, a fornalha e os baús (fase 4.5).
+type CaveRepository interface {
+	// AddAchievement grava a conquista se ainda não existe; added = true só na primeira vez.
+	AddAchievement(ctx context.Context, player int64, id string, at time.Time) (added bool, err error)
+	Achievements(ctx context.Context, player int64) ([]Achievement, error)
+	FurnaceJobs(ctx context.Context, player int64) ([]FurnaceJob, error)
+	AddFurnaceJob(ctx context.Context, player int64, item string, count int, ready time.Time) error
+	DeleteFurnaceJob(ctx context.Context, player, id int64) error
+	// ChestItems lista o que está no baú, na ordem em que entrou.
+	ChestItems(ctx context.Context, placement int64) ([]Stack, error)
+	// AddChestItem soma (ou tira, delta < 0) um item do baú; nunca fica negativo.
+	AddChestItem(ctx context.Context, placement int64, item string, delta int) error
+}
+
 // Store junta os repositórios. As regras só conhecem esta interface; a implementação
 // atual é SQLite (internal/store/sqlite), e dá para trocar por PostgreSQL (ADR 0018).
 type Store interface {
@@ -202,6 +230,7 @@ type Store interface {
 	PediaRepository
 	PassportRepository
 	BodyRepository
+	CaveRepository
 	// InTx roda fn numa transação: ou tudo é gravado, ou nada.
 	InTx(ctx context.Context, fn func(Store) error) error
 }

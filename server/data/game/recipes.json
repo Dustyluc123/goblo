@@ -1,5 +1,5 @@
 {
-  "_doc": "Receitas da bancada. ingredients: item → quantidade; \"#flower\" aceita qualquer item com a tag flower. count: quantos itens a receita dá. Fase 4.0: station fire = receita de fogueira (perto de uma fogueira acesa ou colocada); sem station = bancada.",
+  "_doc": "Receitas da bancada. ingredients: item → quantidade; \"#flower\" aceita qualquer item com a tag flower. count: quantos itens a receita dá. Fase 4.0: station fire = receita de fogueira (perto de uma fogueira acesa ou colocada); sem station = bancada. Fase 4.5: station furnace = receita da fornalha (do lote ou a fornalha antiga da entrada das cavernas), com seconds de espera por unidade; o resultado fica na fornalha até o jogador buscar.",
   "recipes": [
     {
       "id": "axe",
@@ -555,6 +555,153 @@
       "ingredients": {
         "flower_lotus": 2
       }
+    },
+    {
+      "id": "torch",
+      "result": "torch",
+      "count": 4,
+      "ingredients": {
+        "coal": 1,
+        "branch": 1
+      }
+    },
+    {
+      "id": "furnace",
+      "result": "furnace",
+      "count": 1,
+      "ingredients": {
+        "stone": 12,
+        "coal": 3
+      }
+    },
+    {
+      "id": "chest",
+      "result": "chest",
+      "count": 1,
+      "ingredients": {
+        "wood": 8,
+        "iron_bar": 1
+      }
+    },
+    {
+      "id": "pickaxe_iron",
+      "result": "pickaxe_iron",
+      "count": 1,
+      "ingredients": {
+        "iron_bar": 3,
+        "wood": 2
+      }
+    },
+    {
+      "id": "pickaxe_diamond",
+      "result": "pickaxe_diamond",
+      "count": 1,
+      "ingredients": {
+        "diamond": 3,
+        "iron_bar": 2,
+        "wood": 2
+      }
+    },
+    {
+      "id": "pickaxe_goblita",
+      "result": "pickaxe_goblita",
+      "count": 1,
+      "ingredients": {
+        "goblita_bar": 3,
+        "golem_heart": 1,
+        "diamond": 1
+      }
+    },
+    {
+      "id": "axe_iron",
+      "result": "axe_iron",
+      "count": 1,
+      "ingredients": {
+        "iron_bar": 3,
+        "wood": 2
+      }
+    },
+    {
+      "id": "axe_diamond",
+      "result": "axe_diamond",
+      "count": 1,
+      "ingredients": {
+        "diamond": 2,
+        "iron_bar": 2,
+        "wood": 2
+      }
+    },
+    {
+      "id": "axe_goblita",
+      "result": "axe_goblita",
+      "count": 1,
+      "ingredients": {
+        "goblita_bar": 3,
+        "golem_heart": 1,
+        "wood": 2
+      }
+    },
+    {
+      "id": "lamp_helmet",
+      "result": "lamp_helmet",
+      "count": 1,
+      "ingredients": {
+        "iron_bar": 2,
+        "goblita": 1,
+        "cloth": 1
+      }
+    },
+    {
+      "id": "auralita_lamp",
+      "result": "auralita_lamp",
+      "count": 1,
+      "ingredients": {
+        "auralita_bar": 1,
+        "iron_bar": 1
+      }
+    },
+    {
+      "id": "iron_bar",
+      "result": "iron_bar",
+      "count": 1,
+      "ingredients": {
+        "iron_ore": 2,
+        "coal": 1
+      },
+      "station": "furnace",
+      "seconds": 8
+    },
+    {
+      "id": "goblita_bar",
+      "result": "goblita_bar",
+      "count": 1,
+      "ingredients": {
+        "goblita": 2,
+        "coal": 1
+      },
+      "station": "furnace",
+      "seconds": 12
+    },
+    {
+      "id": "auralita_bar",
+      "result": "auralita_bar",
+      "count": 1,
+      "ingredients": {
+        "auralita": 2,
+        "coal": 2
+      },
+      "station": "furnace",
+      "seconds": 15
+    },
+    {
+      "id": "coal_from_wood",
+      "result": "coal",
+      "count": 1,
+      "ingredients": {
+        "wood": 2
+      },
+      "station": "furnace",
+      "seconds": 6
     }
   ]
 }

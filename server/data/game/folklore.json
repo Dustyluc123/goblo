@@ -1,0 +1,131 @@
+{
+  "_doc": "Folclore (fase 4.5, ADR 0058, docs/FOLCLORE.md): criaturas raras e fofas inspiradas em lendas populares de domínio público, no país de origem. Não atacam e somem quando o jogador chega perto demais (shy, só no cliente) ou depois de duration minutos. O desafio é fotografar para a seção Lendas da Goblopédia. O tempo é dividido em janelas de window minutos; em cada janela, cada célula de terra do país que combina com biomes (e lat, se tiver) sorteia se a criatura aparece (chance), em que minuto e por quanto tempo; hours = horas locais (solares) em que pode aparecer (de-até, passando da meia-noite se a primeira for maior); seasons = estações em que aparece (vazio = sempre; os trópicos têm a estação none). water: aparece na beira do mar (só a cabeça), na borda da célula virada para o oceano. Para acrescentar uma lenda: uma entrada aqui (id, name, country, story, origin, biomes...), o modelo em client/scripts/creature_models.gd e a linha em docs/FOLCLORE.md.",
+  "window": 20,
+  "shy": 7.0,
+  "max_dist": 34.0,
+  "legends": [
+    {
+      "id": "legend_mula",
+      "name": "Mula sem Cabeça",
+      "country": "BRA",
+      "story": "Uma mulinha que galopa pelos campos em noites calmas. No lugar da cabeça, uma chama azul que não queima nada.",
+      "biomes": ["grassland", "forest", "tropical_forest"],
+      "hours": [20, 4],
+      "chance": 0.012,
+      "duration": [6, 12],
+      "colors": ["#8a5a3c", "#6fb7ff"]
+    },
+    {
+      "id": "legend_saci",
+      "name": "Saci",
+      "country": "BRA",
+      "story": "Um redemoinho travesso de gorro vermelho, que pula numa perna só, esconde coisas e dá risada no vento.",
+      "biomes": ["grassland", "forest", "tropical_forest"],
+      "hours": [11, 18],
+      "chance": 0.014,
+      "duration": [5, 10],
+      "colors": ["#d93b3b", "#c9a77a"]
+    },
+    {
+      "id": "legend_bigfoot",
+      "name": "Pé-Grande",
+      "country": "USA",
+      "story": "Um gigante peludo e tímido das florestas do noroeste. Ninguém tirou uma foto boa dele... ainda.",
+      "biomes": ["forest", "mountain"],
+      "hours": [6, 20],
+      "chance": 0.01,
+      "duration": [6, 12],
+      "colors": ["#7a5536", "#4b3322"]
+    },
+    {
+      "id": "legend_jackalope",
+      "name": "Jackalope",
+      "country": "USA",
+      "story": "Uma lebre com chifrinhos de veado, das histórias contadas nas pradarias do oeste.",
+      "biomes": ["grassland", "desert"],
+      "hours": [5, 9],
+      "chance": 0.016,
+      "duration": [5, 10],
+      "colors": ["#b89470", "#8a6a4a"]
+    },
+    {
+      "id": "legend_wolpertinger",
+      "name": "Wolpertinger",
+      "country": "DEU",
+      "story": "Um bichinho dos bosques da Baviera, meio coelho, com asinhas e chifrinhos. Dizem que só aparece para quem sabe esperar.",
+      "biomes": ["forest", "mountain", "grassland"],
+      "hours": [17, 22],
+      "chance": 0.016,
+      "duration": [5, 10],
+      "colors": ["#a07a52", "#e8d8b8"]
+    },
+    {
+      "id": "legend_alebrije",
+      "name": "Alebrije",
+      "country": "MEX",
+      "story": "Um bichinho colorido e cheio de padrões, como os do artesanato popular mexicano, que parece ter saído de um sonho.",
+      "biomes": ["desert", "grassland", "tropical_forest", "forest"],
+      "hours": [9, 19],
+      "chance": 0.016,
+      "duration": [5, 10],
+      "colors": ["#ff6fa8", "#3fc6c0", "#ffd23f", "#8a5cf6"]
+    },
+    {
+      "id": "legend_nessie",
+      "name": "Monstro do lago Ness",
+      "country": "GBR",
+      "lat": [55.0, 61.0],
+      "story": "Das terras altas da Escócia: uma criatura de pescoço comprido que aparece de leve na água e mergulha de novo.",
+      "biomes": ["beach", "grassland", "mountain", "forest", "tundra"],
+      "water": true,
+      "hours": [6, 21],
+      "chance": 0.03,
+      "duration": [4, 8],
+      "colors": ["#4f7d6a", "#a8c9a0"]
+    },
+    {
+      "id": "legend_leprechaun",
+      "name": "Leprechaun",
+      "country": "IRL",
+      "story": "Um sapateiro miudinho dos campos da Irlanda, de chapéu verde, que guarda um pote de moedas no fim do arco-íris.",
+      "biomes": ["grassland", "forest"],
+      "hours": [7, 19],
+      "chance": 0.03,
+      "duration": [5, 10],
+      "colors": ["#3f9b4f", "#f2c14e"]
+    },
+    {
+      "id": "legend_troll",
+      "name": "Troll da montanha",
+      "country": "NOR",
+      "story": "Das histórias das montanhas da Noruega: um troll grandalhão e musgoso, aqui de bom humor, que só sai quando o sol está baixo.",
+      "biomes": ["mountain", "tundra", "forest"],
+      "hours": [16, 23],
+      "chance": 0.014,
+      "duration": [6, 12],
+      "colors": ["#8a9a7a", "#5e6e52"]
+    },
+    {
+      "id": "legend_firebird",
+      "name": "Pássaro de fogo",
+      "country": "RUS",
+      "story": "Dos contos populares russos: um pássaro de penas que brilham como brasa, visto de longe nos bosques ao entardecer.",
+      "biomes": ["forest", "grassland", "tundra"],
+      "hours": [17, 22],
+      "chance": 0.006,
+      "duration": [4, 8],
+      "colors": ["#ff7a2f", "#ffd23f"]
+    },
+    {
+      "id": "legend_tanuki",
+      "name": "Tanuki",
+      "country": "JPN",
+      "story": "Dos contos populares do Japão: um cão-guaxinim brincalhão que põe uma folha na cabeça para se disfarçar.",
+      "biomes": ["forest", "mountain", "grassland"],
+      "hours": [16, 22],
+      "chance": 0.03,
+      "duration": [5, 10],
+      "colors": ["#8a6a4a", "#3b2f28"]
+    }
+  ]
+}

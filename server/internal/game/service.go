@@ -64,6 +64,10 @@ type Service struct {
 	// (fase 4.2): vale para conferir as fotos de árvores e flores de estação.
 	seasonMu  sync.Mutex
 	devSeason map[int64]time.Time
+	// Cavernas (fase 4.5): bocas, desenhos, entradas pendentes, tochas, chefe e golpes.
+	caves   caveIndex
+	cave    caveState
+	legends legendIndex
 }
 
 // NewService monta as regras. clock nil = relógio real.
@@ -485,7 +489,25 @@ func (s *Service) cellObjectsAll(cell int, lots []Lot) []Object {
 			slots = append(slots, l.Slot)
 		}
 	}
-	return FilterLots(GenerateObjects(s.world, s.content, cell), slots)
+	objs := FilterLots(GenerateObjects(s.world, s.content, cell), slots)
+	// Fase 4.5: nada em cima da boca da caverna (os ids dos outros não mudam).
+	if caves := s.CavesInCell(cell); len(caves) > 0 {
+		clear := s.content.Caves.Entrances.Clear
+		out := objs[:0:0]
+		for _, o := range objs {
+			ok := true
+			for _, cv := range caves {
+				if math.Hypot(o.X-cv.X, o.Y-cv.Y) < clear+o.Scale {
+					ok = false
+				}
+			}
+			if ok {
+				out = append(out, o)
+			}
+		}
+		objs = out
+	}
+	return objs
 }
 
 func lotSlotsOf(cell int, lots []Lot) []int {
@@ -598,6 +620,13 @@ func (s *Service) Interact(ctx context.Context, p *Player, objectID int64, actio
 			return limitError(obj, action)
 		}
 		gained := s.reward(p, obj, action, day, done)
+		// Fase 4.5: machado e picareta melhores dão mais por golpe (um a mais por nível).
+		if action == "chop" || action == "mine" {
+			tool := map[string]string{"chop": "axe", "mine": "pickaxe"}[action]
+			for i := range gained {
+				gained[i].Count += max(0, s.toolTier(inv, tool)-1)
+			}
+		}
 		if err := s.addItems(ctx, tx, p.ID, inv, gained); err != nil {
 			return err
 		}
@@ -653,14 +682,14 @@ func (s *Service) checkAction(o *Object, action string, inv []Stack) error {
 			if !o.Chop {
 				return ErrWrongAction.with("Não dá para cortar isso.")
 			}
-			if !has(inv, "axe") {
+			if s.toolTier(inv, "axe") == 0 {
 				return ErrNoTool.with("Você precisa de um machado.")
 			}
 			return nil
 		}
 	case KindRock:
 		if action == "mine" {
-			if !has(inv, "pickaxe") {
+			if s.toolTier(inv, "pickaxe") == 0 {
 				return ErrNoTool.with("Você precisa de uma picareta.")
 			}
 			return nil
@@ -877,6 +906,9 @@ func (s *Service) Craft(ctx context.Context, p *Player, recipeID string, times i
 	}
 	if r.Station == StationFire {
 		return nil, ErrWrongAction.with("Essa receita é de fogueira.")
+	}
+	if r.Station == StationFurnace {
+		return nil, ErrWrongAction.with("Essa receita é da fornalha.")
 	}
 	if times <= 0 || times > 99 {
 		return nil, ErrInvalid
@@ -1097,6 +1129,13 @@ func (s *Service) Remove(ctx context.Context, p *Player, placementID int64) (*Pl
 		}
 		if pl.LotID != lot.ID {
 			return ErrNotOwner
+		}
+		if it := s.content.Item(pl.Item); it != nil && it.HasTag("chest") {
+			if inside, err := tx.ChestItems(ctx, pl.ID); err != nil {
+				return err
+			} else if len(inside) > 0 {
+				return ErrWrongAction.with("Esvazie o baú antes de guardar.")
+			}
 		}
 		inv, err := tx.Inventory(ctx, p.ID)
 		if err != nil {

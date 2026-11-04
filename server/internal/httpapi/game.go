@@ -50,6 +50,7 @@ func (s *Server) gameRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /pedia/register", s.auth(s.pediaRegister))
 	mux.HandleFunc("GET /transactions", s.auth(s.transactions))
 	s.bodyRoutes(mux)
+	s.caveRoutes(mux)
 }
 
 type authedHandler func(w http.ResponseWriter, r *http.Request, p *game.Player)
@@ -148,6 +149,8 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"flower_biomes":   c.FlowerBiomes(),
 		"rules":           c.Rules,
 		"body":            c.Body,
+		"caves":           c.Caves,
+		"folklore":        c.Folklore,
 	})
 }
 

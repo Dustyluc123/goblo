@@ -22,6 +22,9 @@ type PediaEntry struct {
 	// Flores (fase 4.0): raridade e cor.
 	Rarity string `json:"rarity,omitempty"`
 	Color  string `json:"color,omitempty"`
+	// Fase 4.5: lendas (kind legend) com o país e a historinha; cavernas (kind cave).
+	Country string `json:"country,omitempty"`
+	Story   string `json:"story,omitempty"`
 }
 
 // PediaEntries lista as páginas: os animais (por nome) e depois as coisas de goblopedia.json.
@@ -40,7 +43,16 @@ func (c *Content) PediaEntries() []PediaEntry {
 	}
 	sort.Slice(flowers, func(a, b int) bool { return flowers[a].Name < flowers[b].Name })
 	out = append(out, flowers...)
-	return append(out, c.Pedia.Extras...)
+	out = append(out, c.Pedia.Extras...)
+	// Fase 4.5: o que brilha nas cavernas, o chefe e as lendas.
+	for _, g := range c.Caves.Glow {
+		out = append(out, PediaEntry{ID: g.ID, Name: g.Name, Kind: "cave", Model: "cave:" + g.ID, Color: g.Color})
+	}
+	out = append(out, PediaEntry{ID: c.Caves.Boss.ID, Name: c.Caves.Boss.Name, Kind: "cave", Model: "creature:" + c.Caves.Boss.ID})
+	for _, l := range c.Folklore.Legends {
+		out = append(out, PediaEntry{ID: l.ID, Name: l.Name, Kind: "legend", Model: "creature:" + l.ID, Country: l.Country, Story: l.Story})
+	}
+	return out
 }
 
 // PediaEntry devolve a página pelo id (nil se não existe).

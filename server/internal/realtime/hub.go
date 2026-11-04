@@ -199,6 +199,7 @@ func (h *Hub) tick(now time.Time) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.moveBots(now)
+	h.caveTick(now)
 	buckets := map[bucketKey][]*client{}
 	for _, c := range h.clients {
 		if c.spawned {
@@ -280,6 +281,9 @@ func (h *Hub) OnEvent(e game.Event) {
 		return
 	case "look":
 		h.onLook(e.PlayerID, e.Data)
+		return
+	case "cave":
+		h.onCaveEvent(e.PlayerID, e.Data)
 		return
 	}
 	if e.Cell < 0 || e.Cell >= len(h.world.Cells) {

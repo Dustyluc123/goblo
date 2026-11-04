@@ -66,6 +66,9 @@ type client struct {
 	lastBody   game.BodyView
 	bodySentAt time.Time
 	look       *game.LookView
+
+	// Caverna em que o jogador está (fase 4.5, ADR 0056); -1 = no globo.
+	cave int
 }
 
 type outMsg struct {
@@ -75,7 +78,7 @@ type outMsg struct {
 
 func newClient(h *Hub, conn *websocket.Conn, p *game.Player, st *game.MovementState) *client {
 	return &client{hub: h, conn: conn, id: p.ID, player: p, state: st, send: make(chan outMsg, 256), speed: 1,
-		done: make(chan struct{}), cell: -1, visible: map[int64]bool{}, blocked: map[int64]bool{},
+		done: make(chan struct{}), cell: -1, cave: -1, visible: map[int64]bool{}, blocked: map[int64]bool{},
 		blockedBy: map[int64]bool{}, tradeReqs: map[int64]time.Time{}, chatTokens: float64(h.rules.Chat.Burst), emoteTokens: 2, actTokens: 4,
 		chatAt: time.Now(), emoteAt: time.Now(), actAt: time.Now()}
 }
@@ -214,6 +217,9 @@ func (c *client) onMove(m Move, now time.Time) {
 
 // afterMove: carimbo a pé quando entra num país de que tem passaporte (ADR 0040).
 func (c *client) afterMove() {
+	if c.cave >= 0 {
+		return // na caverna não tem país nem carimbo
+	}
 	country := c.hub.svc.CountryAtPointIn(c.pos, c.cell)
 	if country == c.country {
 		return
@@ -245,6 +251,19 @@ func (h *Hub) validateMove(c *client, to world.Vec3, flags uint8, now time.Time)
 	limit := mv.Burst + maxSpeed*0.25
 	c.allow = math.Min(c.allow+maxSpeed*dt, limit)
 	noclip := flags&FlagNoclip != 0 && h.dev
+	if c.cave >= 0 {
+		// Na caverna: distância em linha reta e dentro da caixa da caverna (ADR 0056).
+		d := to.Sub(c.pos).Len()
+		if !noclip && d > c.allow+0.05 {
+			return ReasonSpeed
+		}
+		if !h.svc.InCaveBounds(c.cave, to) {
+			return ReasonHeight
+		}
+		c.allow -= d
+		c.pos = to
+		return 0
+	}
 	d := groundDistance(h.world, c.pos, to)
 	if !noclip && d > c.allow+0.05 {
 		return ReasonSpeed
@@ -278,6 +297,19 @@ func (c *client) teleport(why string, to world.Vec3, now time.Time) {
 	h := c.hub
 	mv := h.rules.Movement
 	ok := false
+	// Cavernas (fase 4.5): entrar (consome o pedido de POST /cave/enter), voltar ao começo
+	// (três acertos do chefe, preso) e sair pela boca.
+	if finite(to) && (why == "cave" || why == "cave_start" || why == "cave_exit") {
+		if h.caveTeleport(c, why, to, now) {
+			return
+		}
+		h.log.Info("tempo real: teleporte recusado", "jogador", c.player.Nickname, "motivo", why)
+		c.sendJSON(map[string]any{"t": "tp", "ok": false, "why": why})
+		if c.spawned {
+			c.sendBinary(EncodeCorrection(c.seq, c.pos, ReasonTeleport))
+		}
+		return
+	}
 	if finite(to) {
 		cell := h.world.FindCell(to, c.cell)
 		land := h.world.Cells[cell].Terrain == world.Land
@@ -302,7 +334,18 @@ func (c *client) teleport(why string, to world.Vec3, now time.Time) {
 				ok = false
 			}
 		}
+		if cv := h.svc.CaveAt(to); cv >= 0 {
+			// Dentro de uma caverna: só o modo dev ou a reconexão no mesmo lugar.
+			back := why == "spawn" && c.lastKnown != nil && to.Sub(c.lastKnown.pos).Len() <= 30
+			land, ok = true, (why == "dev" && h.dev) || back
+			if ok {
+				c.cave = cv
+			}
+		}
 		if ok {
+			if h.svc.CaveAt(to) < 0 {
+				c.cave = -1
+			}
 			c.pos, c.cell, c.spawned = to, cell, true
 			c.allow = mv.Burst
 			c.lastMove = now

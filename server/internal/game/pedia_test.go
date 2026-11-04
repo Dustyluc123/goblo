@@ -51,8 +51,10 @@ func TestPediaRewardOnlyOnce(t *testing.T) {
 			flowers++
 		}
 	}
-	// Animais, uma página por flor (fase 4.0) e as duas árvores de estação.
-	if !found || len(list) != len(f.svc.Content().Animals.Species)+flowers+2 {
+	// Animais, uma página por flor (fase 4.0), as duas árvores de estação e (fase 4.5) o que
+	// brilha nas cavernas, o chefe e as lendas.
+	c := f.svc.Content()
+	if !found || len(list) != len(c.Animals.Species)+flowers+2+len(c.Caves.Glow)+1+len(c.Folklore.Legends) {
 		t.Fatalf("%d páginas", len(list))
 	}
 }

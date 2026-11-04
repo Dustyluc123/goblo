@@ -744,3 +744,105 @@ func (s *Store) SaveBody(ctx context.Context, player int64, data string) error {
 		ON CONFLICT(player_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`, player, data, time.Now().Unix())
 	return err
 }
+
+// --- Conquistas, fornalha e baú (fase 4.5) -------------------------------------------------
+
+func (s *Store) AddAchievement(ctx context.Context, player int64, id string, at time.Time) (bool, error) {
+	res, err := s.q.ExecContext(ctx, `INSERT INTO achievements (player_id, id, first_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`,
+		player, id, at.Unix())
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
+
+func (s *Store) Achievements(ctx context.Context, player int64) ([]game.Achievement, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT id, first_at FROM achievements WHERE player_id = ? ORDER BY first_at, id`, player)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []game.Achievement
+	for rows.Next() {
+		var a game.Achievement
+		var at int64
+		if err := rows.Scan(&a.ID, &at); err != nil {
+			return nil, err
+		}
+		a.FirstAt = time.Unix(at, 0).UTC()
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) FurnaceJobs(ctx context.Context, player int64) ([]game.FurnaceJob, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT id, item, count, ready_at FROM furnace_jobs WHERE player_id = ? ORDER BY ready_at, id`, player)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []game.FurnaceJob
+	for rows.Next() {
+		var j game.FurnaceJob
+		var at int64
+		if err := rows.Scan(&j.ID, &j.Item, &j.Count, &at); err != nil {
+			return nil, err
+		}
+		j.ReadyAt = time.Unix(at, 0).UTC()
+		out = append(out, j)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) AddFurnaceJob(ctx context.Context, player int64, item string, count int, ready time.Time) error {
+	_, err := s.q.ExecContext(ctx, `INSERT INTO furnace_jobs (player_id, item, count, ready_at) VALUES (?, ?, ?, ?)`,
+		player, item, count, ready.Unix())
+	return err
+}
+
+func (s *Store) DeleteFurnaceJob(ctx context.Context, player, id int64) error {
+	_, err := s.q.ExecContext(ctx, `DELETE FROM furnace_jobs WHERE player_id = ? AND id = ?`, player, id)
+	return err
+}
+
+func (s *Store) ChestItems(ctx context.Context, placement int64) ([]game.Stack, error) {
+	rows, err := s.q.QueryContext(ctx, `SELECT item, count, seq FROM chest_items WHERE placement_id = ? ORDER BY seq`, placement)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []game.Stack
+	for rows.Next() {
+		var st game.Stack
+		if err := rows.Scan(&st.Item, &st.Count, &st.Order); err != nil {
+			return nil, err
+		}
+		out = append(out, st)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) AddChestItem(ctx context.Context, placement int64, item string, delta int) error {
+	if delta == 0 {
+		return nil
+	}
+	var have int
+	err := s.q.QueryRowContext(ctx, `SELECT count FROM chest_items WHERE placement_id = ? AND item = ?`, placement, item).Scan(&have)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	next := have + delta
+	switch {
+	case next < 0:
+		return game.ErrMissingMaterials
+	case next == 0:
+		_, err = s.q.ExecContext(ctx, `DELETE FROM chest_items WHERE placement_id = ? AND item = ?`, placement, item)
+	case have == 0:
+		_, err = s.q.ExecContext(ctx, `INSERT INTO chest_items (placement_id, item, count, seq)
+			VALUES (?, ?, ?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM chest_items WHERE placement_id = ?))`, placement, item, next, placement)
+	default:
+		_, err = s.q.ExecContext(ctx, `UPDATE chest_items SET count = ? WHERE placement_id = ? AND item = ?`, next, placement, item)
+	}
+	return err
+}

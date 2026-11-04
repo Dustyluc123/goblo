@@ -67,6 +67,30 @@ func (f *Frame) EdgeDistance(x, y float64) float64 {
 	return out
 }
 
+// EdgeDistanceAlong é a distância do centro até a borda do polígono na direção (dx, dy)
+// (unitária).
+func (f *Frame) EdgeDistanceAlong(dx, dy float64) float64 {
+	best := math.Inf(1)
+	n := len(f.Poly)
+	for k := 0; k < n; k++ {
+		a, b := f.Poly[k], f.Poly[(k+1)%n]
+		ex, ey := b[0]-a[0], b[1]-a[1]
+		den := dx*ey - dy*ex
+		if math.Abs(den) < 1e-12 {
+			continue
+		}
+		t := (a[0]*ey - a[1]*ex) / den
+		u := (a[0]*dy - a[1]*dx) / den
+		if t > 0 && u >= 0 && u <= 1 && t < best {
+			best = t
+		}
+	}
+	if math.IsInf(best, 1) {
+		return 0
+	}
+	return best
+}
+
 func polygonArea(p [][2]float64) float64 {
 	a := 0.0
 	for k := range p {

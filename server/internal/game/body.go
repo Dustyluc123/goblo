@@ -481,6 +481,16 @@ func (s *Service) exertBody(id int64) {
 
 // updateTemperature calcula o ar e a sensação no lugar do jogador.
 func (s *Service) updateTemperature(ctx context.Context, b *bodyState, id int64, pos world.Vec3, cell int, now time.Time) {
+	// Fase 4.5: nas cavernas, a temperatura é amena e constante (sem fontes de calor e frio).
+	if pos.Len() > s.content.Caves.ShellRadius*0.5 {
+		air := s.content.Caves.Temperature
+		if b.forced != nil {
+			air = *b.forced
+		}
+		b.sources = b.sources[:0]
+		b.air, b.felt = air, air
+		return
+	}
 	if cell < 0 || cell >= len(s.world.Cells) {
 		cell = s.world.FindCell(pos, -1)
 	}
