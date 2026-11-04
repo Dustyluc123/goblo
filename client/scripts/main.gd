@@ -1102,16 +1102,16 @@ func _warm_extras() -> Array[Node3D]:
 	heart.set_meta("warm_size", 0.25)
 	out.append(heart)
 	# Fase 4.5: o brilho e a pedra das cavernas, e o disco do aviso do chefe.
-	var glow := MeshInstance3D.new()
-	glow.mesh = ModelLibrary.get_model("primitive:cave_crystal")["mesh"]
-	glow.material_override = CaveWorld.glow_material()
-	glow.set_meta("warm_size", 0.8)
-	out.append(glow)
-	var rock := MeshInstance3D.new()
-	rock.mesh = BoxMesh.new()
-	rock.material_override = CaveWorld.rock_material()
-	rock.set_meta("warm_size", 1.0)
-	out.append(rock)
+	var cave_glow := MeshInstance3D.new()
+	cave_glow.mesh = ModelLibrary.get_model("primitive:cave_crystal")["mesh"]
+	cave_glow.material_override = CaveWorld.glow_material()
+	cave_glow.set_meta("warm_size", 0.8)
+	out.append(cave_glow)
+	var cave_rock := MeshInstance3D.new()
+	cave_rock.mesh = BoxMesh.new()
+	cave_rock.material_override = CaveWorld.rock_material()
+	cave_rock.set_meta("warm_size", 1.0)
+	out.append(cave_rock)
 	out.append_array(_season_fx.warm_nodes())
 	out.append_array(_border_lines.warm_nodes())
 	out.append_array(_airports.warm_nodes())
@@ -2353,6 +2353,11 @@ func _screenshot_setup() -> void:
 				await get_tree().create_timer(0.5).timeout
 			_camera.snap_behind_target()
 			await get_tree().create_timer(1.0).timeout
+		"cave-mouth":
+			# Fase 4.5: a boca de caverna mais perto, no globo.
+			await dev_cave_mouth()
+			_camera._heading = -_camera._heading
+			await get_tree().create_timer(2.0).timeout
 		"legend":
 			# Fase 4.5: uma lenda aparecendo na frente do personagem (--legend=ID).
 			await get_tree().create_timer(1.0).timeout
