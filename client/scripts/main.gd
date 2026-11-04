@@ -1904,9 +1904,9 @@ func dev_pedia(action: String) -> void:
 		_ui.dev.status(tr("Erro: %s") % r["message"])
 		return
 	if action == "reset":
-		PediaPhotos.clear(_session.profile)
+		PediaPhotos.clear(_session.photo_account())
 	_ui.pedia.set_entries(r["data"]["entries"])
-	_ui.dev.status("Goblopédia completa." if action == "complete" else "Goblopédia zerada (as fotos continuam em user://fotos/).")
+	_ui.dev.status("Goblopédia completa." if action == "complete" else "Goblopédia zerada (as fotos continuam no álbum).")
 
 
 func dev_finish_house() -> void:
@@ -2106,6 +2106,26 @@ func _screenshot_setup() -> void:
 		await get_tree().create_timer(1.5).timeout
 	var ui := str(_args.get("ui", ""))
 	match ui:
+		"pedia-photos":
+			# Fase 4.5: galeria com duas fotos de um animal (uma registra a página).
+			await dev_give("camera", 1)
+			_session.equip("camera")
+			await get_tree().create_timer(0.5).timeout
+			var an := _animals.nearest(_player.global_position, 40.0)
+			if not an.is_empty():
+				var anp: Vector3 = an["pos"]
+				await _teleport(anp + anp.normalized().cross(Vector3.UP).normalized() * 6.0)
+				await get_tree().create_timer(0.3).timeout
+			_photo.enter()
+			for k in 2:
+				if not an.is_empty():
+					_aim_at((_animals.nearest(_player.global_position, 40.0)["pos"] as Vector3) + (an["pos"] as Vector3).normalized() * 0.6)
+				await get_tree().create_timer(0.6).timeout
+				await _photo.take_photo()
+			_photo.exit()
+			_ui.pedia.toggle()
+			_ui.pedia.open_section("photos")
+			await get_tree().create_timer(1.0).timeout
 		"photo", "selfie":
 			await dev_give("camera", 1)
 			_session.equip("camera")

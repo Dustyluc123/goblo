@@ -63,6 +63,15 @@ var passport_book := {}
 var body := {}
 
 
+## Pasta do álbum de fotos desta conta (fase 4.5, ADR 0055): perfil + id do jogador + um
+## pedaço do hash do token (outra conta no mesmo perfil = outro álbum).
+func photo_account() -> String:
+	var id := int(me.get("id", 0))
+	if id == 0:
+		return ""
+	return "%s/%d_%s" % [profile.validate_filename(), id, load_token().sha256_text().left(10)]
+
+
 func token_path() -> String:
 	return PROFILE_DIR + profile + ".cfg"
 

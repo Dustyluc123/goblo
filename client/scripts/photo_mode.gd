@@ -21,7 +21,7 @@ const TREE_SIZE := 4.0
 ## Cor da mira com um assunto bem enquadrado.
 const AIM_COLOR := Color("ffd166")
 
-signal photo_taken(path: String, entries: Array)
+signal photo_taken(photo: String, entries: Array)
 
 var game: GameMain
 var camera: CameraRig
@@ -275,7 +275,10 @@ func take_photo() -> Array:
 	_flash.color = Color(1, 1, 1, 0.85)
 	var tw := _flash.create_tween()
 	tw.tween_property(_flash, "color:a", 0.0, 0.35)
-	var path := PediaPhotos.save(img)
+	var here := WorldData.vec_to_lat_lon(player.global_position)
+	var path := PediaPhotos.save(session.photo_account(), img, {"country": tracker.current,
+		"country_name": game.country_name(tracker.current), "biome": world.biome_names[world.biomes[player.cell_id]],
+		"lat": snappedf(here.x, 0.01), "lon": snappedf(here.y, 0.01)})
 	var registered: Array = []
 	game.net_act("photo")
 	var cam_now := get_viewport().get_camera_3d()
@@ -292,7 +295,7 @@ func take_photo() -> Array:
 		var res: Dictionary = r["data"]
 		registered.append(res)
 		_known[str(s["entry"])] = true
-		PediaPhotos.set_first(session.profile, str(s["entry"]), path)
+		PediaPhotos.tag(session.photo_account(), path, str(s["entry"]))
 		if bool(res["first"]):
 			session.set_coins(int(res["coins"]))
 			ui.toast("%s  +%s" % [res["message"], session.coins_text(int(res["reward"]))])
