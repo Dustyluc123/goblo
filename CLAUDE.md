@@ -80,7 +80,7 @@ godot --headless --path . -- --crowd-test --profile=t13                # CPU com
 tools/dois_clientes.sh http://127.0.0.1:8081                          # dois clientes headless se vendo: interesse, interpolação, chat (servidor dev)
 godot --headless --path . --export-release "macOS" export/Goblo-macOS.zip     # exportar (precisa dos modelos de exportação; docs/DEPLOY.md)
 godot --headless --path . --export-release "Windows" export/windows/Goblo.exe
-godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, dev-viagem, dev-natureza, build, settings, perf, pedia, pedia-full, passport, passport-full, photo, selfie, hearts, welcome, airport, travel, flight, shop, sell, dialog, intro, trade, wardrobe, editor, first-look (editor do 1º acesso, conta nova), cook, body; + --season=winter, --look=GRAUS, --country=XXX, --wait=SEG no flight, --plaza=U,V no airport)
+godot --path . -- --screenshot=/tmp/a.png --zoom=0.2 --utc=15 --ui=inventory   # PNG (ui: inventory, craft, house, dev, dev-viagem, dev-natureza, build, settings, perf, pedia, pedia-full, passport, passport-full, photo, selfie, hearts, welcome, airport, travel, flight, shop, sell, dialog, intro, trade, wardrobe, cape (escolha das bandeiras da capa), editor, first-look (editor do 1º acesso, conta nova), cook, body; + --season=winter, --look=GRAUS, --country=XXX, --wait=SEG no flight, --plaza=U,V no airport)
 godot --headless --path . -s tools/montar_casas.gd                     # regera as cenas das casas (sobrescreve!)
 tools/sem_foco.sh -s tools/montar_casas.gd -- --fotos=/tmp/casas --so-fotos   # fotos das casas (oitões, 4 lados), sem foco
 ```

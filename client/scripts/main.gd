@@ -833,6 +833,11 @@ func dye(slot: String, paint: String) -> bool:
 	return _apply_wear(await _api.request("POST", "/wear/dye", {"slot": slot, "paint": paint}))
 
 
+## Bandeiras da capa, na ordem (fase 4.5). Vazia = automático (os últimos carimbos).
+func set_cape(countries: Array) -> bool:
+	return _apply_wear(await _api.request("POST", "/wear/cape", {"countries": countries}))
+
+
 func save_look(look: Dictionary) -> bool:
 	return _apply_wear(await _api.request("POST", "/look", look))
 
@@ -2134,6 +2139,17 @@ func _screenshot_setup() -> void:
 		"welcome":
 			_hud.welcome(country_name(_tracker.current), tr("Carimbo novo no passaporte!  +%s") % _session.coins_text(10))
 			await get_tree().create_timer(0.6).timeout
+		"cape":
+			# Fase 4.5: escolha das bandeiras da capa (todos os carimbos, cinco escolhidos).
+			await dev_wear()
+			await dev_passport("complete", "")
+			await wear("flag_cape")
+			var stamped: Array = _player.look_view.get("stamped", [])
+			await set_cape(stamped.slice(0, 5))
+			await get_tree().create_timer(1.0).timeout
+			wardrobe.toggle()
+			wardrobe.open_cape()
+			await get_tree().create_timer(1.5).timeout
 		"wardrobe", "editor", "cook", "body":
 			# Fase 4.0: guarda-roupa, editor, fogueira e o HUD do corpo.
 			if ui != "cook":

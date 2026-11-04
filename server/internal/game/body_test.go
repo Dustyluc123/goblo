@@ -258,6 +258,52 @@ func TestFlagCapeShowsVisitedCountries(t *testing.T) {
 	}
 }
 
+// Capa escolhida (fase 4.5): só países carimbados, sem repetir, na ordem pedida; vazia volta
+// aos últimos carimbos; mais do que cabe é recusado.
+func TestFlagCapeChosenFlags(t *testing.T) {
+	f := newFixture(t)
+	p, _ := f.player(t, "Colecionador", "BRA")
+	f.svc.DevGive(f.ctx, p, "flag_cape", 1)
+	for _, code := range []string{"ARG", "CHL", "URY"} {
+		f.svc.DevPassport(f.ctx, p, "give", code)
+		if _, err := f.svc.Stamp(f.ctx, p, code); err != nil {
+			t.Fatal(err)
+		}
+		f.clock.Advance(time.Minute)
+	}
+	f.svc.Wear(f.ctx, p, "flag_cape")
+	res, err := f.svc.SetCape(f.ctx, p, []string{"URY", "ARG"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Look.Cape) != 2 || res.Look.Cape[0] != "URY" || res.Look.Cape[1] != "ARG" {
+		t.Fatalf("capa escolhida: %v", res.Look.Cape)
+	}
+	if len(res.Look.Stamped) < 3 {
+		t.Errorf("carimbos para escolher: %v", res.Look.Stamped)
+	}
+	if lv, _ := f.svc.LookOf(f.ctx, p); len(lv.Cape) != 2 || lv.Cape[0] != "URY" {
+		t.Errorf("a escolha não ficou guardada: %v", lv.Cape)
+	}
+	if _, err := f.svc.SetCape(f.ctx, p, []string{"JPN"}); err == nil {
+		t.Error("aceitou bandeira sem carimbo")
+	}
+	if _, err := f.svc.SetCape(f.ctx, p, []string{"ARG", "ARG"}); err == nil {
+		t.Error("aceitou bandeira repetida")
+	}
+	many := make([]string, f.svc.Content().Body.CapeFlags+1)
+	for i := range many {
+		many[i] = "ARG"
+	}
+	if _, err := f.svc.SetCape(f.ctx, p, many); err == nil {
+		t.Error("aceitou mais bandeiras do que cabem")
+	}
+	res, err = f.svc.SetCape(f.ctx, p, nil)
+	if err != nil || len(res.Look.Cape) != len(res.Look.Stamped) {
+		t.Errorf("vazia não voltou ao automático: %v / %v", res.Look.Cape, err)
+	}
+}
+
 // Comida: cozinhar receitas da fogueira, comer devolve fome e liga o bônus; o cantil vira o
 // de pela metade; bancada não faz receita de fogueira.
 func TestCookingFoodAndBuffs(t *testing.T) {

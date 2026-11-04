@@ -59,6 +59,9 @@ func (o *LookOptions) check() error {
 }
 
 func (c *Content) checkWear() error {
+	if c.Body.CapeFlags <= 0 {
+		return fmt.Errorf("body.json: cape_flags precisa ser maior que zero")
+	}
 	slots := map[string]bool{}
 	for _, s := range c.Body.WearSlots {
 		slots[s] = true
@@ -114,7 +117,9 @@ func (s *Service) validLook(l Look) error {
 type LookView struct {
 	Look Look            `json:"look"`
 	Wear map[string]Worn `json:"wear"`
-	Cape []string        `json:"cape,omitempty"` // carimbos, na ordem em que foram ganhos
+	Cape []string        `json:"cape,omitempty"` // bandeiras da capa, na ordem em que aparecem
+	// Todos os países carimbados (na ordem em que foram ganhos), para escolher a capa.
+	Stamped []string `json:"stamped,omitempty"`
 }
 
 // lookLocked monta o LookView (corpo já carregado). Os carimbos vêm do banco.
@@ -133,10 +138,69 @@ func (s *Service) lookOf(ctx context.Context, st Store, p *Player, b *bodyState)
 		}
 		sort.Slice(stamps, func(i, j int) bool { return stamps[i].FirstAt.Before(stamps[j].FirstAt) })
 		for _, st := range stamps {
-			v.Cape = append(v.Cape, st.Country)
+			v.Stamped = append(v.Stamped, st.Country)
 		}
+		v.Cape = s.capeFlags(b.Cape, v.Stamped)
 	}
 	return v, nil
+}
+
+// capeFlags: as bandeiras que aparecem na capa (fase 4.5). Com uma escolha guardada, ela (só
+// países carimbados, sem repetir, até cape_flags); sem escolha, os últimos carimbos.
+func (s *Service) capeFlags(chosen, stamped []string) []string {
+	max := s.content.Body.CapeFlags
+	if max <= 0 {
+		max = 12
+	}
+	if len(chosen) == 0 {
+		if len(stamped) > max {
+			return append([]string(nil), stamped[len(stamped)-max:]...)
+		}
+		return append([]string(nil), stamped...)
+	}
+	ok := map[string]bool{}
+	for _, c := range stamped {
+		ok[c] = true
+	}
+	var out []string
+	for _, c := range chosen {
+		if ok[c] && len(out) < max {
+			out = append(out, c)
+			ok[c] = false
+		}
+	}
+	return out
+}
+
+// SetCape guarda quais bandeiras aparecem na capa e em que ordem (guarda-roupa, fase 4.5).
+// Lista vazia volta ao automático (os últimos carimbos).
+func (s *Service) SetCape(ctx context.Context, p *Player, countries []string) (*WearResult, error) {
+	max := s.content.Body.CapeFlags
+	if len(countries) > max {
+		return nil, ErrInvalid.with("A capa tem espaço para %d bandeiras.", max)
+	}
+	stamps, err := s.store.Stamps(ctx, p.ID)
+	if err != nil {
+		return nil, err
+	}
+	have := map[string]bool{}
+	for _, st := range stamps {
+		have[st.Country] = true
+	}
+	seen := map[string]bool{}
+	for _, c := range countries {
+		if !have[c] {
+			return nil, ErrInvalid.with("Você ainda não tem o carimbo de %s.", c)
+		}
+		if seen[c] {
+			return nil, ErrInvalid.with("Bandeira repetida.")
+		}
+		seen[c] = true
+	}
+	return s.changeWear(ctx, p, func(tx Store, b *bodyState, inv []Stack) (string, error) {
+		b.Cape = append([]string(nil), countries...)
+		return "Capa arrumada!", nil
+	})
 }
 
 // LookOf devolve o visual de um jogador (para a camada em tempo real e GET /look).

@@ -88,6 +88,14 @@ func (s *Server) bodyRoutes(mux *http.ServeMux) {
 			reply(w, s)(s.Game.Unwear(r.Context(), p, body.Slot))
 		}
 	}))
+	mux.HandleFunc("POST /wear/cape", s.auth(func(w http.ResponseWriter, r *http.Request, p *game.Player) {
+		var body struct {
+			Countries []string `json:"countries"`
+		}
+		if readBody(w, r, s, &body) {
+			reply(w, s)(s.Game.SetCape(r.Context(), p, body.Countries))
+		}
+	}))
 	mux.HandleFunc("POST /wear/dye", s.auth(func(w http.ResponseWriter, r *http.Request, p *game.Player) {
 		var body struct {
 			Slot  string `json:"slot"`

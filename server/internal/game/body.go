@@ -53,6 +53,7 @@ type BodyContent struct {
 	Buffs     map[string]BuffRule `json:"buffs"`
 	FillReach float64             `json:"fill_reach"`
 	WearSlots []string            `json:"wear_slots"`
+	CapeFlags int                 `json:"cape_flags"` // bandeiras que cabem na capa (fase 4.5)
 	Look      LookOptions         `json:"look"`
 }
 
@@ -144,6 +145,7 @@ type bodyRecord struct {
 	Quiet   bool               `json:"quiet,omitempty"`
 	Look    Look               `json:"look"`
 	Wear    map[string]Worn    `json:"wear,omitempty"`
+	Cape    []string           `json:"cape,omitempty"` // bandeiras escolhidas para a capa, na ordem (fase 4.5)
 }
 
 // bodyState é o corpo de um jogador na memória (enquanto ele joga).

@@ -296,6 +296,7 @@ O corpo (BodyView) é `{"thirst", "hunger", "comfort", "max", "level" (optimal, 
 | 🔑 `POST /wear` | `{"item": "coat"}` | veste uma roupa do bolso; a do mesmo espaço volta para o bolso: `{"look", "body", "inventory", "slots_used", "message"}` |
 | 🔑 `POST /wear/remove` | `{"slot": "body"}` | tira e guarda no bolso |
 | 🔑 `POST /wear/dye` | `{"slot": "body", "paint": "paint_red"}` | pinta a peça vestida (gasta uma tinta) |
+| 🔑 `POST /wear/cape` | `{"countries": ["URY", "ARG"]}` | bandeiras da capa, na ordem (fase 4.5): só países carimbados, sem repetir, até `cape_flags` (body.json); lista vazia volta ao automático (os últimos carimbos). O `look` passa a trazer `stamped` (todos os carimbos) com a capa vestida |
 
 `GET /content` traz também `body` (o `body.json` inteiro) e, nos itens, `food`, `wear`, `color` e `rarity`; nas receitas, `station`.
 
