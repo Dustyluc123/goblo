@@ -83,9 +83,11 @@ func _next() -> void:
 	_holder = Node3D.new()
 	_viewport.add_child(_holder)
 	var aabb := AABB()
-	if str(e["kind"]) == "animal" and _scenes.has(id):
-		var model := (_scenes[id] as PackedScene).instantiate() as Node3D
-		var s := float(_species[id]["height"]) / maxf(Player._model_height(model), 0.01)
+	var creature := str(e.get("model", "")).begins_with("creature:") and CreatureModels.has(str(e["model"]))
+	if (str(e["kind"]) == "animal" and _scenes.has(id)) or creature:
+		var model := (_scenes[id] as PackedScene).instantiate() as Node3D if _scenes.has(id) else CreatureModels.instance(str(e["model"]))
+		var h := float(_species[id]["height"]) if _species.has(id) else 1.0
+		var s := h / maxf(Player._model_height(model), 0.01)
 		model.scale = Vector3.ONE * s
 		_holder.add_child(model)
 		var aps := model.find_children("*", "AnimationPlayer", true, false)

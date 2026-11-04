@@ -59,7 +59,14 @@ var _heart: ImageTexture
 ## Na thread principal: carregar os GLB animados em threads dava erros de recurso.
 static func preload_scenes(list: Dictionary, tree: SceneTree) -> void:
 	for sp: String in list:
-		var path := DIR + str(list[sp]["model"]) + ".glb"
+		var model := str(list[sp]["model"])
+		# Fase 4.5: animais feitos em código (CreatureModels).
+		if model.begins_with("creature:"):
+			if not _scenes.has(sp) and CreatureModels.has(model):
+				_scenes[sp] = CreatureModels.scene(model)
+				await tree.process_frame
+			continue
+		var path := DIR + model + ".glb"
 		if _scenes.has(sp) or not ResourceLoader.exists(path):
 			continue
 		var scene := load(path) as PackedScene
