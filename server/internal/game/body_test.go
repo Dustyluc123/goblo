@@ -309,29 +309,24 @@ func TestCookingFoodAndBuffs(t *testing.T) {
 	}
 }
 
-// Fase 4.1: cabelo separado da cabeça e quepe como acessório; cabelo desconhecido é recusado;
-// visual sem cabelo escolhido continua valendo (o da própria cabeça).
-func TestLookHaircut(t *testing.T) {
+// Fase 4.2: a cabeça é uma peça só; acessório que não existe mais (o quepe) é recusado.
+func TestLookWholeHead(t *testing.T) {
 	f := newFixture(t)
 	p, _ := f.player(t, "Cabeleira", "BRA")
-	l := game.Look{Head: "male-c", Body: "female-a", Legs: "male-b", Hairstyle: "none", Accessory: "cap-male-c", Haircut: "female-e"}
+	l := game.Look{Head: "male-c", Body: "female-a", Legs: "male-b", Skin: "#9c6644", Accessory: "aid-glasses"}
 	res, err := f.svc.SetLook(f.ctx, p, l)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Look.Look.Haircut != "female-e" || res.Look.Look.Accessory != "cap-male-c" {
+	if res.Look.Look != l {
 		t.Errorf("visual salvo: %+v", res.Look.Look)
 	}
-	if lv, _ := f.svc.LookOf(f.ctx, p); lv.Look.Haircut != "female-e" {
+	if lv, _ := f.svc.LookOf(f.ctx, p); lv.Look != l {
 		t.Errorf("LookOf: %+v", lv.Look)
 	}
-	l.Haircut = "male-c" // o quepe não é cabelo
+	l.Accessory = "cap-male-c"
 	if _, err := f.svc.SetLook(f.ctx, p, l); err == nil {
-		t.Error("aceitou cabelo desconhecido")
-	}
-	l.Haircut = ""
-	if _, err := f.svc.SetLook(f.ctx, p, l); err != nil {
-		t.Errorf("visual sem cabelo escolhido: %v", err)
+		t.Error("aceitou o quepe, que saiu")
 	}
 }
 

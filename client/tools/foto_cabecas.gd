@@ -1,12 +1,12 @@
 extends SceneTree
-## Grade de capturas (fase 4.1): as 12 cabeças (colunas, cada uma com o próprio cabelo) ×
-## sem chapéu e os 5 chapéus (linhas), de frente e de costas. Confere o encaixe dos chapéus
-## no crânio e o cabelo achatado embaixo deles.
+## Grade de capturas (fase 4.1; cabeça inteira na 4.2): as 12 cabeças originais (colunas) ×
+## sem chapéu, os 5 chapéus e os dois óculos (linhas), de frente e de costas. Confere se o
+## chapéu cobre o cabelo de cada cabeça sem flutuar e se os óculos ficam nos olhos.
 ##
-##   tools/sem_foco.sh -s tools/foto_cabecas.gd -- --foto=/tmp/cabecas.png [--cabelo=none]
+##   tools/sem_foco.sh -s tools/foto_cabecas.gd -- --foto=/tmp/cabecas.png
 
 const PARTS := ["female-a", "female-b", "female-c", "female-d", "female-e", "female-f", "male-a", "male-b", "male-c", "male-d", "male-e", "male-f"]
-const HATS := ["", "beanie", "fur_hat", "straw_hat", "sun_hat", "cap"]
+const HATS := ["", "beanie", "fur_hat", "straw_hat", "sun_hat", "cap", "aid-glasses", "aid-sunglasses"]
 const COLORS := {"beanie": "#e86a6a", "fur_hat": "#8d6e63", "straw_hat": "#e9c46a", "sun_hat": "#f4f1e4", "cap": "#6d8fe8"}
 
 
@@ -25,10 +25,11 @@ func _run() -> void:
 	var models: Array = []
 	for r in HATS.size():
 		for c in PARTS.size():
-			var look := {"head": PARTS[c], "body": PARTS[c], "legs": PARTS[c], "skin": "", "hair": "", "hairstyle": "none",
-				"accessory": "none", "haircut": str(args.get("cabelo", ""))}
+			var look := {"head": PARTS[c], "body": PARTS[c], "legs": PARTS[c], "skin": "", "accessory": "none"}
 			var wear := {}
-			if not HATS[r].is_empty():
+			if HATS[r].begins_with("aid-"):
+				look["accessory"] = HATS[r]
+			elif not HATS[r].is_empty():
 				wear["head"] = {"item": HATS[r], "color": COLORS[HATS[r]]}
 			var mesh := CharacterLook.build_now(look, wear)
 			var scene := load("res://assets/kenney/mini-characters/character-%s.glb" % PARTS[c]) as PackedScene
@@ -40,8 +41,8 @@ func _run() -> void:
 	var cam := Camera3D.new()
 	root.add_child(cam)
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 6.9
-	cam.position = Vector3(0, -2.35, 5)
+	cam.size = HATS.size() * 1.12 + 0.1
+	cam.position = Vector3(0, -(HATS.size() - 1) * 0.56 + 0.45, 5)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-35, 25, 0)
 	root.add_child(sun)

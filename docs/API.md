@@ -278,7 +278,7 @@ As três conferem que o jogador está perto da loja da praça daquele país (`re
 
 ## Corpo, comida, roupas e visual (fase 4.0)
 
-O corpo (BodyView) é `{"thirst", "hunger", "comfort", "max", "level" (optimal, neutral, critical ou quiet), "speed" (multiplicador da velocidade), "air", "felt" (°C, com fogueira, sombra e água), "comfort_min", "comfort_max" (faixa confortável com as roupas e os bônus), "cold", "hot", "dizzy", "quiet", "sources" (fire, shade, water), "buffs": [{"id", "name", "left" (s)}], "cold_protection", "heat_protection"}`. As necessidades só caem com o jogador conectado em tempo real (mensagem `body`, ADR 0050). O visual (LookView) é `{"look": {"head", "body", "legs" (partes dos personagens, ex. "female-a"), "skin", "hair" ("" = original, ou "#rrggbb"), "hairstyle", "accessory" (ex. "aid-glasses", "cap-male-c"), "haircut" (fase 4.1: o cabelo de qual cabeça; "" = o da própria cabeça, "none" = sem cabelo)}, "wear": {"head": {"item", "color"}, …}, "cape": ["ARG", …] (com a capa vestida: os carimbos)}` (ADR 0051, 0052).
+O corpo (BodyView) é `{"thirst", "hunger", "comfort", "max", "level" (optimal, neutral, critical ou quiet), "speed" (multiplicador da velocidade), "air", "felt" (°C, com fogueira, sombra e água), "comfort_min", "comfort_max" (faixa confortável com as roupas e os bônus), "cold", "hot", "dizzy", "quiet", "sources" (fire, shade, water), "buffs": [{"id", "name", "left" (s)}], "cold_protection", "heat_protection"}`. As necessidades só caem com o jogador conectado em tempo real (mensagem `body`, ADR 0050). O visual (LookView) é `{"look": {"head" (uma das 12 cabeças originais, com o cabelo dela), "body", "legs" (partes dos personagens, ex. "female-a"), "skin" ("" = a pele original da cabeça, ou "#rrggbb"), "accessory" ("none", "aid-glasses" ou "aid-sunglasses")}, "wear": {"head": {"item", "color"}, …}, "cape": ["ARG", …] (com a capa vestida: os carimbos)}` (ADR 0051, 0052, 0053; fase 4.2: sem `hair`, `hairstyle` e `haircut`, migração 0009).
 
 | Rota | Corpo | Faz |
 | --- | --- | --- |
@@ -291,7 +291,7 @@ O corpo (BodyView) é `{"thirst", "hunger", "comfort", "max", "level" (optimal, 
 | 🔑 `POST /body/quiet` | `{"on": true}` | modo tranquilo (sem necessidades, sem bônus e sem cansaço); fica salvo. Responde o corpo |
 | `GET /temperature?lat=-3.1&lon=-60` | — | temperatura do ar agora num ponto: `{"temperature", "cell"}` |
 | 🔑 `GET /look` | — | o visual do jogador |
-| 🔑 `POST /look` | Look | salva o editor (partes, pele, cabelo, penteado e acessório, das opções de `body.json → look`) |
+| 🔑 `POST /look` | Look | salva o editor (cabeça, tronco, pernas, pele e acessório, das opções de `body.json → look`) |
 | 🔑 `POST /wear` | `{"item": "coat"}` | veste uma roupa do bolso; a do mesmo espaço volta para o bolso: `{"look", "body", "inventory", "slots_used", "message"}` |
 | 🔑 `POST /wear/remove` | `{"slot": "body"}` | tira e guarda no bolso |
 | 🔑 `POST /wear/dye` | `{"slot": "body", "paint": "paint_red"}` | pinta a peça vestida (gasta uma tinta) |

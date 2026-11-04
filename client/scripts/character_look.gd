@@ -1,32 +1,39 @@
 class_name CharacterLook
 extends Node
-## Visual do personagem (fase 4.0, ADR 0051; refeito na 4.1, ADR 0052): editor e roupas numa
-## malha só por personagem.
+## Visual do personagem (fase 4.0, ADR 0051; 4.1, ADR 0052; 4.2, ADR 0053): editor e roupas
+## numa malha só por personagem.
 ##
 ## Os 12 personagens do Mini Characters têm o mesmo esqueleto (root, pernas, tronco, braços e
 ## cabeça, na mesma ordem) e duas malhas: "body-mesh" (tronco, braços e pernas, já vestidos)
 ## e "head-mesh" (cabeça com o cabelo). Dá para misturar as partes:
-## - cabeça (rosto): o crânio é igual nas 12 (uma caixa chanfrada); o que sai dele é o cabelo
-##   (_is_hair_tri). A cabeça escolhida entra sem o cabelo, com o alto do crânio na cor da pele;
-## - cabelo: os triângulos de cabelo de qualquer uma das 12 cabeças (encaixam em todas);
+## - cabeça: uma das 12 cabeças originais inteiras (rosto e cabelo, como vieram; 4.2);
 ## - tronco e braços de um personagem, pernas de outro (pelo osso que mais pesa).
+##
+## Pele (4.2): cada personagem tem um par de faixas de pele na paleta (a cor das orelhas e o
+## tom de sombra dela). As mesmas faixas aparecem como cabelo, barba ou sapato em outros
+## personagens, então a pele de cada parte é só o par do PRÓPRIO personagem, e nunca o que
+## sai do crânio (cabelo, pela forma). A cor de pele do jogador vale para a cabeça, o corpo,
+## as pernas e a pele que a roupa deixa à mostra; sem tom escolhido, é a pele original da
+## cabeça (set_colors).
 ##
 ## Roupas (4.1): a peça vestida SUBSTITUI a parte da roupa original do espaço dela. Os
 ## vértices da região ganham a cor da peça (ou a pele, onde a peça deixa a pele à mostra:
 ## braços na regata, canelas no short, pés na sandália), sem malha a mais. Com o espaço vazio,
-## a roupa original continua. Por cima, formas simples presas a um osso: chapéus (no ponto de
-## encaixe do alto do crânio, com ajuste por cabeça em data/cabecas.json), cachecol, solas das
-## sandálias, a aba do poncho, penteados extras e a capa.
+## a roupa original continua. Luvas e objetos que o personagem segura (cores do braço que não
+## estão no tronco) ficam como vieram. Por cima, formas simples presas a um osso: chapéus (no
+## alto da cabeça, com ajuste por cabeça em data/cabecas.json), óculos (na altura dos olhos),
+## cachecol, solas das sandálias, a aba do poncho e a capa.
 ##
 ## Tudo vira UMA malha (uma superfície; duas com a capa, que usa o atlas de bandeiras), com
-## um material só para todos os personagens: pele e cabelo trocam de cor por parâmetro de
-## instância (sem material por jogador). A malha é montada numa thread e fica em cache pela
-## combinação (partes + roupas + cores das roupas): jogadores iguais dividem a mesma malha.
+## um material só para todos os personagens: a pele troca de cor por parâmetro de instância
+## (sem material por jogador). A malha é montada numa thread e fica em cache pela combinação
+## (partes + acessório + roupas + cores das roupas): jogadores iguais dividem a mesma malha.
 ##
-## Cor do vértice: rgb = cor da peça; alfa = modo (0 textura, 0,25 pele, 0,5 cabelo,
-## 0,75 cabelo extra, 1 cor do vértice). Ver shaders/character_look.gdshader. Pele "forçada"
-## (onde havia roupa) usa o UV de um ponto de pele da própria parte: sem tom escolhido, fica
-## com a pele original dela.
+## Cor do vértice: rgb = cor da peça; alfa = modo (0 textura, 0,25 pele, 1 cor do vértice).
+## Na pele, UV2 aponta o meio da faixa de pele da parte: o shader tinge a textura por pele ÷ a
+## cor da textura ali, o que mantém o degradê da paleta (claro, sombra) e, sem tom escolhido,
+## fica igual ao pacote (as duas cores saem da mesma textura, no mesmo espaço de cor).
+## Ver shaders/character_look.gdshader.
 
 const DIR := "res://assets/kenney/mini-characters/"
 const DATA := "res://data/cabecas.json"
@@ -41,10 +48,9 @@ const B_ARM_R := 5
 const B_HEAD := 6
 const MODE_TEX := 0.0
 const MODE_SKIN := 0.25
-const MODE_HAIR := 0.5
-const MODE_HAIR_EXTRA := 0.75
 const MODE_COLOR := 1.0
-## Região de cada vértice (para o teste das roupas): o que cada espaço pode mudar.
+## Região de cada vértice (para o teste das roupas): o que cada espaço pode mudar. R_HAIR é
+## o que sai do crânio (cabelo; na male-c, o quepe, que sai com chapéu); R_STYLE, os óculos.
 const R_HEAD := 0
 const R_HAIR := 1
 const R_BODY := 2
@@ -55,26 +61,23 @@ const R_EXTRA_LEGS := 6
 const R_EXTRA_FEET := 7
 const R_STYLE := 8
 ## Quais regiões cada espaço de roupa pode mudar.
-const SLOT_REGIONS := {"head": [R_HAIR, R_EXTRA_HEAD, R_STYLE], "body": [R_BODY, R_EXTRA_BODY],
+const SLOT_REGIONS := {"head": [R_HAIR, R_EXTRA_HEAD], "body": [R_BODY, R_EXTRA_BODY],
 	"legs": [R_LEGS, R_EXTRA_LEGS], "feet": [R_LEGS, R_EXTRA_FEET], "back": []}
 ## Quantas montagens de malha podem rodar ao mesmo tempo (threads).
 const MAX_TASKS := 2
-## Crânio comum das 12 cabeças: o cabelo, o boné e os enfeites do alto saem dele. Rosto
-## (olhos, nariz, boca, bigode, barba e óculos) fica na frente, abaixo da franja; as orelhas,
-## dos lados. Medido nos modelos (tools/analisar_cabecas.gd).
+## Crânio comum das 12 cabeças: o que sai dele (fora do rosto e das orelhas) é cabelo, boné
+## ou enfeite do alto, e nunca é pele. Medido nos modelos (tools/analisar_cabecas.gd).
 const SKULL_MIN := Vector3(-0.165, 0.338, -0.167)
 const SKULL_MAX := Vector3(0.165, 0.666, 0.162)
 const EAR_X := 0.232
 const EAR_Y := Vector2(0.395, 0.565)
 const FACE_TOP := 0.585
-## Pintura de cabelo na testa (franja desenhada) fica acima disto.
-const BROW_Y := 0.525
 ## Alturas das pernas (fração do pé até o quadril): sapato, cano da bota, barra do short.
 const SHOE_TOP := 0.18
 const BOOT_TOP := 0.3
 const SHORTS_BOTTOM := 0.55
-## Chapéus que deixam o rabo de cavalo (os outros penteados extras ficam embaixo do chapéu).
-const HATS := ["beanie", "fur_hat", "straw_hat", "sun_hat", "cap"]
+## Pele nas pernas só conta se subir acima disto (fração): abaixo, a faixa de pele é sapato.
+const LEG_SKIN_TOP := 0.6
 
 static var instance: CharacterLook
 ## Parte ("female-a") → medidas e arrays (ver _measure).
@@ -89,7 +92,8 @@ static var _meshes := {}  # chave → ArrayMesh pronta
 static var _pending := {}  # chave → {"task", "out", "waiting": [Callable]}
 static var _queue: Array = []  # chaves esperando thread
 
-## Cores: hex → Color linear (para a cor do vértice e os parâmetros de instância).
+## Cores: hex → Color linear (para a cor do vértice; os parâmetros de instância recebem
+## sRGB, que o Godot converte sozinho).
 static func lin(hex: String) -> Color:
 	return Color(hex).srgb_to_linear() if not hex.is_empty() else Color(0, 0, 0, 0)
 
@@ -117,11 +121,7 @@ static func data() -> Dictionary:
 	return _data
 
 
-## Nome do cabelo de uma cabeça no editor.
-static func haircut_name(part: String) -> String:
-	return TranslationServer.translate(str(data().get("haircut_names", {}).get(part, part)))
-
-
+## Cabeça cujo "cabelo" é um chapéu (o quepe da male-c): com chapéu vestido, ele sai.
 static func is_cap_head(part: String) -> bool:
 	return (data().get("cap_heads", []) as Array).has(part)
 
@@ -173,8 +173,8 @@ static func prepare(parts: Array) -> void:
 
 
 ## Mede uma parte. A paleta do Mini Characters tem faixas de cor (16 × 4), cada uma um
-## degradê: a pele é reconhecida pela faixa (não pela cor exata, que muda com o
-## sombreado). Pele da cabeça: o quadrado mais usado no rosto; pele do corpo: o das mãos.
+## degradê. A pele do personagem é a faixa de pele mais usada nas orelhas (que são só pele)
+## mais o tom de sombra do par dela (10/11, 12/13, 14/15): pescoço e decote usam o outro tom.
 ## O cabelo é pela forma (o que sai do crânio), não pela cor.
 static func _measure(ha: Array, ba: Array) -> Dictionary:
 	var hv: PackedVector3Array = ha[Mesh.ARRAY_VERTEX]
@@ -182,29 +182,19 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 	var hidx: PackedInt32Array = ha[Mesh.ARRAY_INDEX]
 	var hair_tris := PackedByteArray()
 	hair_tris.resize(hidx.size() / 3)
-	var hair_lum := 0.0
-	var hair_n := 0
-	var hair_top := SKULL_MAX.y
-	var hair_cells := {}
 	for t in range(0, hidx.size(), 3):
-		var is_hair := _is_hair_tri(hv, hidx, t)
-		hair_tris[t / 3] = 1 if is_hair else 0
-		if is_hair:
-			for k in 3:
-				var i := hidx[t + k]
-				hair_lum += _lum(_sample(huv[i]))
-				hair_n += 1
-				hair_top = maxf(hair_top, hv[i].y)
-				_vote(hair_cells, _cell(huv[i]), _sample(huv[i]))
-	var face := {}
-	for i in hv.size():
-		if _in_box(hv[i]):
-			_vote(face, _cell(huv[i]), _sample(huv[i]))
-	var skin_head := _skin_cells(face, Vector2i(-1, -1))
+		hair_tris[t / 3] = 1 if _is_hair_tri(hv, hidx, t) else 0
 	var bv: PackedVector3Array = ba[Mesh.ARRAY_VERTEX]
 	var buv: PackedVector2Array = ba[Mesh.ARRAY_TEX_UV]
 	var bones: PackedInt32Array = ba[Mesh.ARRAY_BONES]
 	var weights: PackedFloat32Array = ba[Mesh.ARRAY_WEIGHTS]
+	# Pele: orelhas; sem orelha de pele, as pontas das mãos.
+	var ears := {}
+	for i in hv.size():
+		var p := hv[i]
+		if absf(p.x) > SKULL_MAX.x + 0.004 and absf(p.x) <= EAR_X + 0.004 and p.y >= EAR_Y.x and p.y <= EAR_Y.y and is_skin_cell(_cell(huv[i])):
+			_vote(ears, _cell(huv[i]), _sample(huv[i]))
+	var main := _winner(ears, Vector2i(-1, -1))
 	var arm_low := INF
 	var arm_high := -INF
 	var torso_top := -INF
@@ -212,25 +202,47 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 	var torso_w := 0.0
 	var foot := INF
 	var leg_top := -INF
+	var torso_cells := {}
+	var arm_cells := {}
+	var leg_high := {}  # faixa → maior altura nas pernas
 	for i in bv.size():
 		var b := _dominant(bones, weights, i)
+		var c := _cell(buv[i])
 		if b == B_ARM_L or b == B_ARM_R:
 			arm_low = minf(arm_low, bv[i].y)
 			arm_high = maxf(arm_high, bv[i].y)
+			arm_cells[c] = true
 		if b == B_TORSO:
 			torso_top = maxf(torso_top, bv[i].y)
 			torso_back = minf(torso_back, bv[i].z)
 			torso_w = maxf(torso_w, absf(bv[i].x))
+			torso_cells[c] = true
 		if b == B_LEG_L or b == B_LEG_R:
 			foot = minf(foot, bv[i].y)
 			leg_top = maxf(leg_top, bv[i].y)
+			leg_high[c] = maxf(float(leg_high.get(c, -INF)), bv[i].y)
 	var hand_y := arm_low + (arm_high - arm_low) * 0.25
-	var hands := {}
-	for i in bv.size():
-		var b := _dominant(bones, weights, i)
-		if (b == B_ARM_L or b == B_ARM_R) and bv[i].y < hand_y:
-			_vote(hands, _cell(buv[i]), _sample(buv[i]))
-	var skin_body := _skin_cells(hands, Vector2i(-1, -1))
+	if main.x < 0:
+		var hands := {}
+		for i in bv.size():
+			var b := _dominant(bones, weights, i)
+			if (b == B_ARM_L or b == B_ARM_R) and bv[i].y < hand_y and is_skin_cell(_cell(buv[i])):
+				_vote(hands, _cell(buv[i]), _sample(buv[i]))
+		main = _winner(hands, Vector2i(-1, -1))
+	var skins := {}
+	if main.x >= 0:
+		skins[main] = true
+		skins[Vector2i(main.x ^ 1, main.y)] = true
+	# Pernas: a faixa de pele só é pele se subir pela perna (embaixo, é sapato).
+	var leg_skin := {}
+	for c: Vector2i in skins:
+		if leg_high.has(c) and float(leg_high[c]) > foot + (leg_top - foot) * LEG_SKIN_TOP:
+			leg_skin[c] = true
+	# Braços: cores que não estão no tronco nem são pele (luvas, o que a mão segura) ficam.
+	var arm_keep := {}
+	for c: Vector2i in arm_cells:
+		if not torso_cells.has(c) and not skins.has(c):
+			arm_keep[c] = true
 	# Tampas de cima das pernas (escondidas dentro do quadril do próprio personagem; com o
 	# tronco de outro, apareciam como um aro escuro): ficam de fora.
 	var bidx: PackedInt32Array = ba[Mesh.ARRAY_INDEX]
@@ -241,41 +253,16 @@ static func _measure(ha: Array, ba: Array) -> Dictionary:
 		var cy := (bv[bidx[t]].y + bv[bidx[t + 1]].y + bv[bidx[t + 2]].y) / 3.0
 		var up := (bn[bidx[t]] + bn[bidx[t + 1]] + bn[bidx[t + 2]]).normalized().y
 		caps[t / 3] = 1 if cy > leg_top - 0.012 and up > 0.8 else 0
-	return {"head": ha, "body": ba, "hair_tris": hair_tris, "hair_ref": maxf(hair_lum / maxf(hair_n, 1), 0.001),
-		"has_hair": hair_n > 0, "hair_top": hair_top, "hair_cell": _winner(hair_cells, Vector2i(-1, -1)),
-		"skin_head": skin_head, "skin_body": skin_body,
-		"skin_uv_head": _skin_uv(huv, skin_head, hv, true), "skin_uv_body": _skin_uv(buv, skin_body, bv, false),
+	# Tom de referência (sRGB): o meio da faixa clara do par, a do rosto (o shader lê pelo
+	# UV2). A pele forçada usa a faixa da orelha (a do corpo), como a pele original do corpo.
+	var skin_uv := Vector2((main.x + 0.5) / PAL_COLS, (main.y + 0.5) / PAL_ROWS) if main.x >= 0 else Vector2(0.97, 0.9)
+	var base_uv := Vector2(((main.x & ~1) + 0.5) / PAL_COLS, (main.y + 0.5) / PAL_ROWS) if main.x >= 0 else skin_uv
+	var skin_col := _sample(base_uv)
+	return {"head": ha, "body": ba, "hair_tris": hair_tris, "skins": skins, "skin_main": main,
+		"skin_color": Color(skin_col.r, skin_col.g, skin_col.b, 1.0),
+		"skin_uv": skin_uv, "base_uv": base_uv, "leg_skin": leg_skin, "arm_keep": arm_keep,
 		"leg_caps": caps, "arm_low": arm_low, "arm_high": arm_high, "hand_y": hand_y,
-		"torso_top": torso_top, "torso_back": torso_back, "torso_w": torso_w, "foot": foot, "leg_top": leg_top,
-		"height": SKULL_MAX.y}
-
-
-## Um UV de pele da parte (o mais claro do quadrado da pele, perto do centro do degradê): a
-## pele "forçada" usa ele para, sem tom escolhido, mostrar a pele original.
-static func _skin_uv(uvs: PackedVector2Array, skins: Dictionary, verts: PackedVector3Array, head: bool) -> Vector2:
-	var best := Vector2(-1, -1)
-	var best_d := INF
-	for i in uvs.size():
-		if not skins.has(_cell(uvs[i])):
-			continue
-		if head and not _in_box(verts[i]):
-			continue
-		var ref := float(skins[_cell(uvs[i])])
-		var d := absf(_lum(_sample(uvs[i])) - ref)
-		if d < best_d:
-			best_d = d
-			best = uvs[i]
-	if best.x < 0.0:
-		# Sem pele achada: o centro do quadrado da pele de rosto mais comum.
-		return Vector2(0.97, 0.9)
-	return best
-
-
-## Dentro do crânio (sem as orelhas e o rosto que saem dele)?
-static func _in_box(p: Vector3) -> bool:
-	var e := 0.004
-	return absf(p.x) <= SKULL_MAX.x + e and p.y >= SKULL_MIN.y - e and p.y <= SKULL_MAX.y + e \
-		and p.z >= SKULL_MIN.z - e and p.z <= SKULL_MAX.z + e
+		"torso_top": torso_top, "torso_back": torso_back, "torso_w": torso_w, "foot": foot, "leg_top": leg_top}
 
 
 ## Um vértice está no crânio (ou nas orelhas, ou no rosto)?
@@ -327,28 +314,6 @@ static func is_skin_cell(cell: Vector2i) -> bool:
 	return cell.y == PAL_ROWS - 1 and cell.x >= 10
 
 
-## As faixas de pele usadas pelo menos 20% da mais usada, menos `skip`: {faixa: brilho de
-## referência}. Sem nenhuma, a mais usada.
-static func _skin_cells(votes: Dictionary, skip: Vector2i) -> Dictionary:
-	var cand := {}
-	var most := 0
-	for cell: Vector2i in votes:
-		if cell == skip:
-			continue
-		if is_skin_cell(cell):
-			cand[cell] = int(votes[cell]["n"])
-			most = maxi(most, cand[cell])
-	var out := {}
-	for cell: Vector2i in cand:
-		if cand[cell] >= most * 0.2:
-			out[cell] = _ref(votes, cell)
-	if out.is_empty():
-		var w := _winner(votes, skip)
-		if w.x >= 0:
-			out[w] = _ref(votes, w)
-	return out
-
-
 static func _winner(votes: Dictionary, skip: Vector2i) -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var n := 0
@@ -357,14 +322,6 @@ static func _winner(votes: Dictionary, skip: Vector2i) -> Vector2i:
 			n = votes[cell]["n"]
 			best = cell
 	return best
-
-
-## Brilho médio (linear) do quadrado escolhido: a cor nova é multiplicada pela razão entre o
-## brilho de cada vértice e este, para manter o sombreado do degradê.
-static func _ref(votes: Dictionary, cell: Vector2i) -> float:
-	if not votes.has(cell):
-		return 1.0
-	return maxf(float(votes[cell]["lum"]) / float(votes[cell]["n"]), 0.001)
 
 
 static func _lum(c: Color) -> float:
@@ -451,11 +408,11 @@ static func _unit(arrays: Array) -> Array:
 
 # --- Pedidos -------------------------------------------------------------------------------
 
-## Chave da malha: partes, cabelo, penteado, acessório e roupas (com as cores). Pele e cabelo
-## (as cores) não entram: são parâmetros de instância.
+## Chave da malha: partes, acessório e roupas (com as cores). A pele (a cor) não entra: é
+## parâmetro de instância.
 static func key_of(look: Dictionary, wear: Dictionary) -> String:
 	var parts := [str(look.get("head", "")), str(look.get("body", "")), str(look.get("legs", "")),
-		str(look.get("haircut", "")), str(look.get("hairstyle", "none")), str(look.get("accessory", "none"))]
+		str(look.get("accessory", "none"))]
 	var slots := wear.keys()
 	slots.sort()
 	for s: String in slots:
@@ -529,25 +486,24 @@ static func _job(look: Dictionary, wear: Dictionary) -> Dictionary:
 		var d: Dictionary = wear[slot]
 		w[slot] = {"item": str(d.get("item", "")), "color": lin(str(d.get("color", "#ffffff")))}
 	var head := str(look["head"])
-	var cut := str(look.get("haircut", ""))
-	if cut.is_empty():
-		cut = head
 	var acc := str(look.get("accessory", "none"))
 	var hats: Dictionary = data().get("hats", {})
 	var fit: Dictionary = hats.get(head, hats.get("default", {}))
 	var anchor: Array = data().get("anchor", [0.0, SKULL_MAX.y, 0.0])
-	var cap_acc := ""
-	if acc.begins_with("cap-") and _parts.has(acc.trim_prefix("cap-")):
-		cap_acc = acc.trim_prefix("cap-")
 	return {"head": _parts[head], "body": _parts[str(look["body"])], "legs": _parts[str(look["legs"])],
-		"hair": _parts.get(cut, {}) if cut != "none" else {}, "hair_is_cap": is_cap_head(cut),
-		"cap_acc": _parts.get(cap_acc, {}) if not cap_acc.is_empty() else {},
-		"hairstyle": str(look.get("hairstyle", "none")),
-		"accessory": _accessories.get(acc, []) if cap_acc.is_empty() else [],
+		"head_is_cap": is_cap_head(head), "accessory": _accessories.get(acc, []), "face": face_of(head),
 		"wear": w, "prims": _prims,
 		"anchor": Vector3(float(anchor[0]), float(anchor[1]), float(anchor[2])) + _vec(fit.get("offset", [0, 0, 0])),
-		"hat_scale": float(fit.get("scale", 1.0)), "hat_rot": deg_to_rad(float(fit.get("rot", 0.0))),
-		"hair_cut": float(data().get("hair_cut", 0.6)) + float(data().get("hair_cut_add", {}).get(cut, 0.0))}
+		"hat_scale": float(fit.get("scale", 1.0)), "hat_rot": deg_to_rad(float(fit.get("rot", 0.0)))}
+
+
+## Onde ficam os óculos numa cabeça (espaço do personagem, preso ao osso da cabeça): o ponto
+## dos olhos (data/cabecas.json → face, o mesmo dos óculos que já vêm em duas cabeças do
+## pacote) mais o ajuste da cabeça (faces).
+static func face_of(head: String) -> Transform3D:
+	var f: Dictionary = data().get("faces", {}).get(head, {})
+	var at := _vec(data().get("face", [0.0, 0.435, 0.073])) + _vec(f.get("offset", [0, 0, 0]))
+	return Transform3D(Basis().scaled(_vec(f.get("scale", [1.02, 1.0, 1.0]))), at)
 
 
 static func _vec(a: Variant) -> Vector3:
@@ -570,21 +526,13 @@ static func _build(job: Dictionary) -> Array:
 	var wear: Dictionary = job["wear"]
 	var prims: Dictionary = job["prims"]
 	var hat := str(wear.get("head", {}).get("item", ""))
-	var covered := HATS.has(hat) or not (job["cap_acc"] as Dictionary).is_empty()
-	# Cabeça sem o cabelo: o crânio vira pele (o alto pintado de cabelo e a franja desenhada).
-	_add_part(g, head["head"], head["hair_tris"], false, R_HEAD, func(p: Vector3, n: Vector3, uv: Vector2) -> Color:
-		return _head_color(head, p, n, uv), Callable(), Callable(), head["skin_uv_head"])
-	# Cabelo (de qualquer cabeça). Com chapéu, a parte de cima fica achatada embaixo dele.
-	var hair: Dictionary = job["hair"]
-	if not hair.is_empty() and bool(hair["has_hair"]) and not (bool(job["hair_is_cap"]) and covered):
-		var is_cap := bool(job["hair_is_cap"])
-		var cut := float(job["hair_cut"]) if covered and not is_cap else INF
-		var r := 0.235 * float(job["hat_scale"])
-		_add_part(g, hair["head"], hair["hair_tris"], true, R_HAIR, func(_p: Vector3, _n: Vector3, uv: Vector2) -> Color:
-			if is_cap:
-				return Color(1, 1, 1, MODE_TEX)
-			return Color(clampf(_lum(_sample(uv)) / float(hair["hair_ref"]) * 0.5, 0.0, 1.0), 0, 0, MODE_HAIR),
-			func(p: Vector3) -> Vector3: return _flatten(p, cut, job["anchor"], r))
+	# Cabeça inteira, como veio. Só a pele (o par de faixas do personagem) troca de cor.
+	_add_part(g, head["head"], head["hair_tris"], false, R_HEAD, func(_p: Vector3, _n: Vector3, uv: Vector2) -> Color:
+		return _skin_or_tex(head, uv), Callable(), Callable(), head["skin_uv"], -INF, head["base_uv"])
+	# O que sai do crânio (cabelo), sempre com a cor original. O quepe da male-c sai com chapéu.
+	if hat.is_empty() or not bool(job["head_is_cap"]):
+		_add_part(g, head["head"], head["hair_tris"], true, R_HAIR, func(_p: Vector3, _n: Vector3, _uv: Vector2) -> Color:
+			return Color(1, 1, 1, MODE_TEX))
 	# Tronco e braços, com a peça do espaço corpo no lugar da roupa original.
 	var top := str(wear.get("body", {}).get("item", ""))
 	var top_col: Color = wear.get("body", {}).get("color", Color.WHITE)
@@ -592,20 +540,16 @@ static func _build(job: Dictionary) -> Array:
 	var bottom_col: Color = wear.get("legs", {}).get("color", Color.WHITE)
 	_add_part(g, body["body"], PackedByteArray(), true, R_BODY, func(p: Vector3, _n: Vector3, uv: Vector2, b: int) -> Color:
 		return _body_color(body, top, top_col, p, uv, b, bottom, bottom_col), Callable(),
-		func(b: int) -> bool: return b != B_LEG_L and b != B_LEG_R, body["skin_uv_body"], waist_of(body))
+		func(b: int) -> bool: return b != B_LEG_L and b != B_LEG_R, body["skin_uv"], waist_of(body), body["base_uv"])
 	# Pernas e pés, com as peças dos espaços pernas e pés.
 	var shoe := str(wear.get("feet", {}).get("item", ""))
 	var shoe_col: Color = wear.get("feet", {}).get("color", Color.WHITE)
 	_add_part(g, legs["body"], legs["leg_caps"], false, R_LEGS, func(p: Vector3, _n: Vector3, uv: Vector2, _b: int) -> Color:
 		return _legs_color(legs, bottom, bottom_col, shoe, shoe_col, p, uv), Callable(),
-		func(b: int) -> bool: return b == B_LEG_L or b == B_LEG_R, legs["skin_uv_body"])
+		func(b: int) -> bool: return b == B_LEG_L or b == B_LEG_R, legs["skin_uv"], -INF, legs["base_uv"])
 	# Formas por cima, na ordem dos espaços.
 	if not hat.is_empty():
 		_add_hat(g, prims, hat, job, _solid(wear["head"]["color"]))
-	if not (job["cap_acc"] as Dictionary).is_empty() and not HATS.has(hat):
-		var c: Dictionary = job["cap_acc"]
-		_add_part(g, c["head"], c["hair_tris"], true, R_EXTRA_HEAD, func(_p: Vector3, _n: Vector3, _uv: Vector2) -> Color:
-			return Color(1, 1, 1, MODE_TEX))
 	match top:
 		"scarf":
 			var neck := float(body["torso_top"])
@@ -619,9 +563,10 @@ static func _build(job: Dictionary) -> Array:
 		var foot := float(legs["foot"])
 		for side in [-1.0, 1.0]:
 			_add_rigid(g, prims["box"], Transform3D(Basis().scaled(Vector3(0.07, 0.015, 0.11)), Vector3(side * 0.06, foot + 0.007, 0.01)), B_LEG_L if side < 0.0 else B_LEG_R, _solid(shoe_col), R_EXTRA_FEET)
-	_add_hairstyle(g, prims, job["hairstyle"], hair if not hair.is_empty() else head, covered, job["anchor"])
+	# Óculos: no osso da cabeça, na altura dos olhos.
+	var face: Transform3D = job["face"]
 	for part: Array in job["accessory"]:
-		_add_arrays(g, part[0], part[1], B_HEAD, Color(1, 1, 1, MODE_TEX), R_STYLE)
+		_add_arrays(g, part[0], face * (part[1] as Transform3D), B_HEAD, Color(1, 1, 1, MODE_TEX), R_STYLE)
 	if str(wear.get("back", {}).get("item", "")) == "flag_cape":
 		_add_cape(cape, body)
 	return [g, cape]
@@ -631,45 +576,42 @@ static func _solid(c: Color) -> Color:
 	return Color(c.r, c.g, c.b, MODE_COLOR)
 
 
-## Pele marcada para o tom escolhido (razão do brilho ÷ 2 no vermelho) ou pele forçada (no UV
-## de pele da parte, razão 1).
-static func _skin(ratio: float) -> Color:
-	return Color(clampf(ratio * 0.5, 0.0, 1.0), 0, 0, MODE_SKIN)
+## Pele marcada (o UV2, o meio da faixa de pele da parte, entra em _add_part).
+static func _skin(_part: Dictionary) -> Color:
+	return Color(1, 1, 1, MODE_SKIN)
 
 
-## Cor de um vértice da cabeça sem cabelo. O alto, os lados e a nuca do crânio (e a franja
-## pintada na testa) viram pele; o rosto e as orelhas ficam como são (pele marcada).
-static func _head_color(head: Dictionary, p: Vector3, n: Vector3, uv: Vector2) -> Color:
-	var skins: Dictionary = head["skin_head"]
-	var cell := _cell(uv)
-	if _in_box(p) and (n.z < 0.5 or (p.y > BROW_Y and not skins.has(cell))):
-		return Color(-1, 0, 0, MODE_SKIN)  # pele forçada (UV trocado em _add_part)
-	if skins.has(cell):
-		return _skin(_lum(_sample(uv)) / float(skins[cell]))
+## Pele (o par de faixas do personagem da parte) ou a textura original.
+static func _skin_or_tex(part: Dictionary, uv: Vector2) -> Color:
+	if (part["skins"] as Dictionary).has(_cell(uv)):
+		return _skin(part)
 	return Color(1, 1, 1, MODE_TEX)
 
 
-## Tronco e braços: a peça do espaço corpo troca a roupa original.
+## Tronco e braços: a peça do espaço corpo troca a roupa original. Luvas e o que a mão segura
+## (arm_keep) ficam como vieram.
 static func _body_color(part: Dictionary, item: String, col: Color, p: Vector3, uv: Vector2, bone: int, bottom: String, bcol: Color) -> Color:
-	var skins: Dictionary = part["skin_body"]
 	var cell := _cell(uv)
-	var orig := _skin(_lum(_sample(uv)) / float(skins[cell])) if skins.has(cell) else Color(1, 1, 1, MODE_TEX)
+	var is_skin := (part["skins"] as Dictionary).has(cell)
+	var orig := _skin_or_tex(part, uv)
 	# Cintura (o calção ou a saia do tronco): é do espaço pernas.
 	if bone == B_TORSO and p.y < waist_of(part):
 		if bottom == "pants" or bottom == "shorts":
-			return orig if skins.has(cell) else _solid(bcol)
+			return orig if is_skin else _solid(bcol)
 		return orig
 	var arm := bone == B_ARM_L or bone == B_ARM_R
+	if arm and (part["arm_keep"] as Dictionary).has(cell):
+		return orig
 	var hand := arm and p.y < float(part["hand_y"])
 	match item:
 		"coat", "poncho":
-			if hand and skins.has(cell):
+			if hand and is_skin:
 				return orig
 			return _solid(col)
 		"tank_top":
 			if arm:
 				return Color(-1, 0, 0, MODE_SKIN)
-			return orig if skins.has(cell) else _solid(col)
+			return orig if is_skin else _solid(col)
 	return orig
 
 
@@ -678,11 +620,11 @@ static func waist_of(part: Dictionary) -> float:
 	return float(part["leg_top"]) + 0.012
 
 
-## Pernas e pés: calça ou short (espaço pernas) e bota ou sandália (espaço pés).
+## Pernas e pés: calça ou short (espaço pernas) e bota ou sandália (espaço pés). Pele nas
+## pernas só onde a faixa de pele sobe pela perna (leg_skin); embaixo, é sapato.
 static func _legs_color(part: Dictionary, bottom: String, bcol: Color, shoe: String, scol: Color, p: Vector3, uv: Vector2) -> Color:
-	var skins: Dictionary = part["skin_body"]
 	var cell := _cell(uv)
-	var orig := _skin(_lum(_sample(uv)) / float(skins[cell])) if skins.has(cell) else Color(1, 1, 1, MODE_TEX)
+	var orig := _skin(part) if (part["leg_skin"] as Dictionary).has(cell) else Color(1, 1, 1, MODE_TEX)
 	var foot := float(part["foot"])
 	var f := (p.y - foot) / maxf(float(part["leg_top"]) - foot, 0.001)
 	var shoe_top := BOOT_TOP if shoe == "boots" else SHOE_TOP
@@ -702,32 +644,19 @@ static func _legs_color(part: Dictionary, bottom: String, bcol: Color, shoe: Str
 	return orig
 
 
-## Com chapéu: o cabelo acima de `cut` desce até ele e entra para dentro do chapéu.
-static func _flatten(p: Vector3, cut: float, anchor: Vector3, r: float) -> Vector3:
-	if p.y <= cut:
-		return p
-	var q := Vector3(p.x, cut, p.z)
-	var d := Vector2(q.x - anchor.x, q.z - anchor.z)
-	if d.length() > r * 0.95:
-		d = d.normalized() * r * 0.95
-		q.x = anchor.x + d.x
-		q.z = anchor.z + d.y
-	return q
-
-
 ## Arrays vazios de uma superfície (r = região de cada vértice, só para o teste).
 static func _group() -> Dictionary:
-	return {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(),
+	return {"v": PackedVector3Array(), "n": PackedVector3Array(), "uv": PackedVector2Array(), "uv2": PackedVector2Array(), "c": PackedColorArray(),
 		"b": PackedInt32Array(), "w": PackedFloat32Array(), "i": PackedInt32Array(), "r": PackedByteArray()}
 
 
 ## Triângulos de uma malha com pele. `tris` (um byte por triângulo) + `want` filtram pelo
 ## cabelo; `keep_bone` filtra pelo osso dominante do triângulo. `color(centro, n, uv[, osso])`
 ## dá a cor de cada vértice (centro = do triângulo): vermelho −1 = pele forçada (o UV vira o
-## de pele da parte). Abaixo de `waist`, o tronco conta como região das pernas (cintura).
+## de pele da parte, `skin_uv`); toda pele leva no UV2 a faixa de referência, `base_uv`. Abaixo de `waist`, o tronco conta como região das pernas (cintura).
 ## `move(p)` muda a posição (cabelo achatado).
 static func _add_part(g: Dictionary, arrays: Array, tris: PackedByteArray, want: bool, region: int, color: Callable,
-		move := Callable(), keep_bone := Callable(), skin_uv := Vector2(0.97, 0.9), waist := -INF) -> void:
+		move := Callable(), keep_bone := Callable(), skin_uv := Vector2(0.97, 0.9), waist := -INF, base_uv := Vector2(0.94, 0.9)) -> void:
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
 	var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
@@ -738,6 +667,7 @@ static func _add_part(g: Dictionary, arrays: Array, tris: PackedByteArray, want:
 	var gv: PackedVector3Array = g["v"]
 	var gn: PackedVector3Array = g["n"]
 	var guv: PackedVector2Array = g["uv"]
+	var guv2: PackedVector2Array = g["uv2"]
 	var gc: PackedColorArray = g["c"]
 	var gb: PackedInt32Array = g["b"]
 	var gw: PackedFloat32Array = g["w"]
@@ -769,12 +699,13 @@ static func _add_part(g: Dictionary, arrays: Array, tris: PackedByteArray, want:
 			var c: Color = color.call(center, normals[v], uvs[v], bone) if with_bone else color.call(center, normals[v], uvs[v])
 			var uv := uvs[v]
 			if c.r < 0.0:
-				c = _skin(1.0)
+				c = Color(1, 1, 1, MODE_SKIN)
 				uv = skin_uv
 			gi.append(gv.size())
 			gv.append(move.call(verts[v]) if move.is_valid() else verts[v])
 			gn.append(normals[v])
 			guv.append(uv)
+			guv2.append(base_uv if absf(c.a - MODE_SKIN) < 0.01 else Vector2.ZERO)
 			gc.append(c)
 			gr.append(reg)
 			for j in 4:
@@ -783,6 +714,7 @@ static func _add_part(g: Dictionary, arrays: Array, tris: PackedByteArray, want:
 	g["v"] = gv
 	g["n"] = gn
 	g["uv"] = guv
+	g["uv2"] = guv2
 	g["c"] = gc
 	g["b"] = gb
 	g["w"] = gw
@@ -817,6 +749,7 @@ static func _add_arrays(g: Dictionary, arrays: Array, xf: Transform3D, bone: int
 	var gv: PackedVector3Array = g["v"]
 	var gn: PackedVector3Array = g["n"]
 	var guv: PackedVector2Array = g["uv"]
+	var guv2: PackedVector2Array = g["uv2"]
 	var gc: PackedColorArray = g["c"]
 	var gb: PackedInt32Array = g["b"]
 	var gw: PackedFloat32Array = g["w"]
@@ -827,6 +760,7 @@ static func _add_arrays(g: Dictionary, arrays: Array, xf: Transform3D, bone: int
 		gv.append(xf * verts[k])
 		gn.append((nb * normals[k]).normalized())
 		guv.append((uvs as PackedVector2Array)[k] if uvs != null else Vector2.ZERO)
+		guv2.append(Vector2.ZERO)
 		gc.append(col)
 		gr.append(region)
 		gb.append_array([bone, 0, 0, 0])
@@ -840,6 +774,7 @@ static func _add_arrays(g: Dictionary, arrays: Array, xf: Transform3D, bone: int
 	g["v"] = gv
 	g["n"] = gn
 	g["uv"] = guv
+	g["uv2"] = guv2
 	g["c"] = gc
 	g["b"] = gb
 	g["w"] = gw
@@ -848,8 +783,8 @@ static func _add_arrays(g: Dictionary, arrays: Array, xf: Transform3D, bone: int
 
 
 ## Chapéus: presos ao osso da cabeça no ponto de encaixe do alto do crânio (anchor), com o
-## ajuste da cabeça (escala e giro). Nada mexe nos vértices da cabeça: o chapéu só fica por
-## cima, e o cabelo embaixo dele é achatado (_flatten).
+## ajuste da cabeça (posição, escala e giro, em data/cabecas.json) para cobrir o cabelo dela
+## sem flutuar. Nada mexe nos vértices da cabeça.
 static func _add_hat(g: Dictionary, prims: Dictionary, item: String, job: Dictionary, col: Color) -> void:
 	var a: Vector3 = job["anchor"]
 	var s: float = job["hat_scale"]
@@ -876,34 +811,6 @@ static func _add_hat(g: Dictionary, prims: Dictionary, item: String, job: Dictio
 			put.call("box", Vector3(0, -0.06, SKULL_MAX.z + 0.07), Vector3(0.27, 0.02, 0.15), col.darkened(0.06))
 
 
-## Penteados extras (por cima do cabelo), na cor do cabelo. Com chapéu, só o rabo de cavalo
-## (os outros ficariam dentro do chapéu).
-static func _add_hairstyle(g: Dictionary, prims: Dictionary, style: String, hair: Dictionary, covered: bool, anchor: Vector3) -> void:
-	if style == "none" or (covered and style != "ponytail"):
-		return
-	var top := float(hair.get("hair_top", SKULL_MAX.y))
-	var hc: Vector2i = hair.get("hair_cell", Vector2i(-1, -1))
-	var base := _cell_color(hc) if hc.x >= 0 else Color("3f3f46")
-	var lc := base.srgb_to_linear()
-	var c := Color(lc.r, lc.g, lc.b, MODE_HAIR_EXTRA)
-	var z := anchor.z
-	match style:
-		"bun":
-			_add_rigid(g, prims["sphere"], Transform3D(Basis().scaled(Vector3.ONE * 0.12), Vector3(0, top - 0.01, z - 0.1)), B_HEAD, c, R_STYLE)
-		"ponytail":
-			var y := minf(top, SKULL_MAX.y) - 0.06
-			_add_rigid(g, prims["sphere"], Transform3D(Basis().scaled(Vector3(0.08, 0.08, 0.08)), Vector3(0, y, SKULL_MIN.z - 0.03)), B_HEAD, c, R_STYLE)
-			_add_rigid(g, prims["cone"], Transform3D(Basis(Vector3.RIGHT, PI * 0.85).scaled(Vector3(0.07, 0.18, 0.07)), Vector3(0, y - 0.1, SKULL_MIN.z - 0.06)), B_HEAD, c, R_STYLE)
-		"curls":
-			for k in 7:
-				var a := TAU * k / 7.0
-				_add_rigid(g, prims["sphere"], Transform3D(Basis().scaled(Vector3.ONE * 0.09), Vector3(cos(a) * 0.13, top - 0.015, z + sin(a) * 0.13)), B_HEAD, c, R_STYLE)
-		"spiky":
-			for k in 5:
-				var x := (k - 2) * 0.06
-				_add_rigid(g, prims["cone"], Transform3D(Basis(Vector3.FORWARD, x * 2.5).scaled(Vector3(0.05, 0.1, 0.05)), Vector3(x, top + 0.035, z - 0.02)), B_HEAD, c, R_STYLE)
-
-
 ## Capa: um pano atrás das costas (preso ao tronco), com UV para a textura das bandeiras.
 static func _add_cape(g: Dictionary, body: Dictionary) -> void:
 	var top := float(body["torso_top"]) - 0.02
@@ -915,6 +822,7 @@ static func _add_cape(g: Dictionary, body: Dictionary) -> void:
 	var gv: PackedVector3Array = g["v"]
 	var gn: PackedVector3Array = g["n"]
 	var guv: PackedVector2Array = g["uv"]
+	var guv2: PackedVector2Array = g["uv2"]
 	var gc: PackedColorArray = g["c"]
 	var gb: PackedInt32Array = g["b"]
 	var gw: PackedFloat32Array = g["w"]
@@ -928,6 +836,7 @@ static func _add_cape(g: Dictionary, body: Dictionary) -> void:
 			gv.append(Vector3(lerpf(-w, w, u), lerpf(top, bottom, v), z - 0.04 * v))
 			gn.append(Vector3(0, 0, -1))
 			guv.append(Vector2(1.0 - u, v))
+			guv2.append(Vector2.ZERO)
 			gc.append(Color(1, 1, 1, v))  # alfa = quanto balança
 			gb.append_array([B_TORSO, 0, 0, 0])
 			gw.append_array([1.0, 0.0, 0.0, 0.0])
@@ -941,6 +850,7 @@ static func _add_cape(g: Dictionary, body: Dictionary) -> void:
 	g["v"] = gv
 	g["n"] = gn
 	g["uv"] = guv
+	g["uv2"] = guv2
 	g["c"] = gc
 	g["b"] = gb
 	g["w"] = gw
@@ -959,6 +869,7 @@ static func _finish(groups: Array) -> ArrayMesh:
 		arrays[Mesh.ARRAY_VERTEX] = g["v"]
 		arrays[Mesh.ARRAY_NORMAL] = g["n"]
 		arrays[Mesh.ARRAY_TEX_UV] = g["uv"]
+		arrays[Mesh.ARRAY_TEX_UV2] = g["uv2"]
 		arrays[Mesh.ARRAY_COLOR] = g["c"]
 		arrays[Mesh.ARRAY_BONES] = g["b"]
 		arrays[Mesh.ARRAY_WEIGHTS] = g["w"]
@@ -999,10 +910,21 @@ static func apply(model: Node3D, mesh: ArrayMesh, look: Dictionary, cape: Array)
 	return out
 
 
-## Pele e cabelo por parâmetro de instância (o material é o mesmo para todos).
+## Pele por parâmetro de instância (o material é o mesmo para todos). Sem tom escolhido, a
+## pele original da cabeça: o corpo e a pele à mostra ficam do mesmo tom do rosto.
 static func set_colors(mi: MeshInstance3D, look: Dictionary) -> void:
-	mi.set_instance_shader_parameter("skin_color", lin(str(look.get("skin", ""))))
-	mi.set_instance_shader_parameter("hair_color", lin(str(look.get("hair", ""))))
+	mi.set_instance_shader_parameter("skin_color", skin_of(look))
+
+
+## A cor de pele do jogador: a escolhida ou a original da cabeça. Em sRGB, como na bolinha
+## do editor: o Godot já converte para linear os parâmetros por instância do tipo cor (a 4.1
+## convertia de novo, e a pele saía mais escura e saturada que a escolhida).
+static func skin_of(look: Dictionary) -> Color:
+	var hex := str(look.get("skin", ""))
+	if not hex.is_empty():
+		return Color(hex)
+	var head: Dictionary = _parts.get(str(look.get("head", "")), {})
+	return head.get("skin_color", Color(0, 0, 0, 0))
 
 
 ## Material da capa com os retalhos das bandeiras (cache por lista de países).

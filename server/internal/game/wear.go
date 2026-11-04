@@ -10,7 +10,7 @@ import (
 // Roupas, tinta, visual do personagem e capa de bandeiras (fase 4.0, ADR 0051). Cada espaço
 // (cabeça, corpo, pernas, pés e costas) tem uma peça; vestir outra devolve a antiga ao bolso.
 // A tinta (feita de flores) muda a cor de uma peça vestida. O visual (partes dos personagens,
-// pele, cabelo, penteado e acessório) e as roupas ficam no servidor e vão para todo mundo.
+// pele e acessório) e as roupas ficam no servidor e vão para todo mundo.
 
 // WearInfo é items.json → wear.
 type WearInfo struct {
@@ -27,37 +27,30 @@ type Worn struct {
 	Color string `json:"color"`
 }
 
-// Look é o visual do personagem (editor).
+// Look é o visual do personagem (editor). A cabeça é uma das 12 cabeças originais, com o
+// cabelo dela (fase 4.2, ADR 0053: sem cabelo, cor do cabelo e penteado separados).
 type Look struct {
 	Head      string `json:"head"`
 	Body      string `json:"body"`
 	Legs      string `json:"legs"`
 	Skin      string `json:"skin"`
-	Hair      string `json:"hair"`
-	Hairstyle string `json:"hairstyle"`
 	Accessory string `json:"accessory"`
-	// Haircut: o cabelo de qual personagem (fase 4.1; "" = o da cabeça, "none" = sem cabelo).
-	Haircut string `json:"haircut"`
 }
 
 // LookOptions é body.json → look.
 type LookOptions struct {
 	Parts       []string `json:"parts"`
 	Skins       []string `json:"skins"`
-	HairColors  []string `json:"hair_colors"`
-	Hairstyles  []string `json:"hairstyles"`
 	Accessories []string `json:"accessories"`
-	// Haircuts: cabelos separados das cabeças (fase 4.1): "" (o da cabeça), "none" e as partes.
-	Haircuts []string `json:"haircuts"`
 }
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 func (o *LookOptions) check() error {
-	if len(o.Parts) == 0 || len(o.Hairstyles) == 0 || len(o.Accessories) == 0 {
+	if len(o.Parts) == 0 || len(o.Accessories) == 0 {
 		return fmt.Errorf("body.json: look sem opções")
 	}
-	for _, c := range append(append([]string{}, o.Skins...), o.HairColors...) {
+	for _, c := range o.Skins {
 		if c != "" && !hexColor.MatchString(c) {
 			return fmt.Errorf("body.json: cor %q inválida", c)
 		}
@@ -98,7 +91,7 @@ func (s *Service) defaultLook(p *Player) Look {
 			part = cand
 		}
 	}
-	return Look{Head: part, Body: part, Legs: part, Hairstyle: "none", Accessory: "none"}
+	return Look{Head: part, Body: part, Legs: part, Accessory: "none"}
 }
 
 func (s *Service) validLook(l Look) error {
@@ -108,14 +101,11 @@ func (s *Service) validLook(l Look) error {
 			return ErrInvalid.with("Parte %q desconhecida.", part)
 		}
 	}
-	if !slicesContains(o.Skins, l.Skin) || !slicesContains(o.HairColors, l.Hair) {
+	if !slicesContains(o.Skins, l.Skin) {
 		return ErrInvalid.with("Cor desconhecida.")
 	}
-	if !slicesContains(o.Hairstyles, l.Hairstyle) || !slicesContains(o.Accessories, l.Accessory) {
-		return ErrInvalid.with("Penteado ou acessório desconhecido.")
-	}
-	if l.Haircut != "" && !slicesContains(o.Haircuts, l.Haircut) {
-		return ErrInvalid.with("Cabelo %q desconhecido.", l.Haircut)
+	if !slicesContains(o.Accessories, l.Accessory) {
+		return ErrInvalid.with("Acessório desconhecido.")
 	}
 	return nil
 }
@@ -343,10 +333,7 @@ func (s *Service) DevRandomLook(pick func(n int) int) *LookView {
 	o := s.content.Body.Look
 	one := func(list []string) string { return list[pick(len(list))] }
 	v := &LookView{Look: Look{Head: one(o.Parts), Body: one(o.Parts), Legs: one(o.Parts), Skin: one(o.Skins),
-		Hair: one(o.HairColors), Hairstyle: one(o.Hairstyles), Accessory: one(o.Accessories)}, Wear: map[string]Worn{}}
-	if len(o.Haircuts) > 0 {
-		v.Look.Haircut = one(o.Haircuts)
-	}
+		Accessory: one(o.Accessories)}, Wear: map[string]Worn{}}
 	bySlot := map[string][]*Item{}
 	for i := range s.content.Items {
 		if it := &s.content.Items[i]; it.Category == CategoryWear && it.Wear != nil {

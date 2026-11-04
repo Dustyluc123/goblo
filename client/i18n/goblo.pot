@@ -325,7 +325,7 @@ msgstr ""
 msgid "Acenar"
 msgstr ""
 
-#: client/scripts/look_editor.gd:118
+#: client/scripts/look_editor.gd:105
 msgid "Acessório"
 msgstr ""
 
@@ -609,20 +609,16 @@ msgstr ""
 msgid "C ou Esc"
 msgstr ""
 
-#: client/scripts/look_editor.gd:106
-msgid "Cabelo"
+#: client/scripts/look_editor.gd:101 client/scripts/wardrobe_ui.gd:9
+msgid "Cabeça"
 msgstr ""
 
-#: client/scripts/wardrobe_ui.gd:9
-msgid "Cabeça"
+#: client/scripts/look_editor.gd:101
+msgid "Cabeça %d"
 msgstr ""
 
 #: server/data/game/items.json
 msgid "Cachecol"
-msgstr ""
-
-#: client/scripts/look_editor.gd:13
-msgid "Cachos"
 msgstr ""
 
 #: server/data/game/items.json
@@ -809,7 +805,7 @@ msgstr ""
 msgid "Começar"
 msgstr ""
 
-#: client/scripts/look_editor.gd:78
+#: client/scripts/look_editor.gd:76
 msgid "Começar a jogar"
 msgstr ""
 
@@ -883,14 +879,6 @@ msgstr ""
 
 #: client/scripts/api.gd:47
 msgid "Content-Type: application/json"
-msgstr ""
-
-#: client/scripts/look_editor.gd:13
-msgid "Coque"
-msgstr ""
-
-#: client/scripts/look_editor.gd:113
-msgid "Cor do cabelo"
 msgstr ""
 
 #: client/scripts/dev_panel.gd:524 client/scripts/wardrobe_ui.gd:9
@@ -1129,7 +1117,7 @@ msgstr ""
 msgid "Ervas"
 msgstr ""
 
-#: client/scripts/body_game.gd:504 client/scripts/craft_ui.gd:25 client/scripts/look_editor.gd:36 client/scripts/sell_ui.gd:36 client/scripts/shop_ui.gd:26 client/scripts/travel_ui.gd:34
+#: client/scripts/body_game.gd:504 client/scripts/craft_ui.gd:25 client/scripts/look_editor.gd:34 client/scripts/sell_ui.gd:36 client/scripts/shop_ui.gd:26 client/scripts/travel_ui.gd:34
 msgid "Esc"
 msgstr ""
 
@@ -1175,10 +1163,6 @@ msgstr ""
 
 #: server/data/game/items.json
 msgid "Espelho"
-msgstr ""
-
-#: client/scripts/look_editor.gd:13
-msgid "Espetado"
 msgstr ""
 
 #: server/data/game/items.json
@@ -1609,7 +1593,7 @@ msgstr ""
 msgid "Lojista"
 msgstr ""
 
-#: client/scripts/character_look.gd:988 client/scripts/character_look.gd:991
+#: client/scripts/character_look.gd:899 client/scripts/character_look.gd:902
 msgid "Look"
 msgstr ""
 
@@ -1649,7 +1633,7 @@ msgstr ""
 msgid "Merged"
 msgstr ""
 
-#: client/scripts/character_look.gd:163 client/scripts/character_look.gd:984 client/scripts/model_library.gd:163 client/scripts/neighborhood.gd:254 client/scripts/pedia_art.gd:96 client/scripts/player.gd:182
+#: client/scripts/character_look.gd:163 client/scripts/character_look.gd:895 client/scripts/model_library.gd:163 client/scripts/neighborhood.gd:254 client/scripts/pedia_art.gd:96 client/scripts/player.gd:182
 msgid "MeshInstance3D"
 msgstr ""
 
@@ -1693,7 +1677,7 @@ msgstr ""
 msgid "Montanha"
 msgstr ""
 
-#: client/scripts/look_editor.gd:75
+#: client/scripts/look_editor.gd:73
 msgid "Monte o seu personagem"
 msgstr ""
 
@@ -1745,7 +1729,7 @@ msgstr ""
 msgid "Neighborhood"
 msgstr ""
 
-#: client/scripts/look_editor.gd:13 client/scripts/look_editor.gd:14
+#: client/scripts/look_editor.gd:12
 msgid "Nenhum"
 msgstr ""
 
@@ -1809,10 +1793,6 @@ msgstr ""
 msgid "O dinheiro daqui é o gobolar, mas todo mundo chama de {slang}. Você ganha vendendo coisas na caixa de vendas."
 msgstr ""
 
-#: client/scripts/look_editor.gd:109
-msgid "O do rosto"
-msgstr ""
-
 #: client/scripts/server_setup.gd:21
 msgid "O jogo não achou o servidor. Se um amigo hospeda o Goblo, cole aqui o endereço que ele mandou (por exemplo https://goblo.exemplo.com)."
 msgstr ""
@@ -1849,7 +1829,7 @@ msgstr ""
 msgid "Onde: %s"
 msgstr ""
 
-#: client/scripts/look_editor.gd:187
+#: client/scripts/look_editor.gd:156
 msgid "Original"
 msgstr ""
 
@@ -1969,10 +1949,6 @@ msgstr ""
 msgid "Pelos passaportes"
 msgstr ""
 
-#: client/scripts/look_editor.gd:114
-msgid "Penteado extra"
-msgstr ""
-
 #: client/scripts/dev_panel.gd:431
 msgid "Perda de pacotes de movimento: %d%%"
 msgstr ""
@@ -1981,7 +1957,7 @@ msgstr ""
 msgid "Perda de pacotes de movimento: 0%"
 msgstr ""
 
-#: client/scripts/look_editor.gd:12 client/scripts/wardrobe_ui.gd:9
+#: client/scripts/look_editor.gd:11 client/scripts/wardrobe_ui.gd:9
 msgid "Pernas"
 msgstr ""
 
@@ -2133,10 +2109,6 @@ msgstr ""
 msgid "Quentinho"
 msgstr ""
 
-#: client/scripts/look_editor.gd:14
-msgid "Quepe azul"
-msgstr ""
-
 #: server/data/game/dialogs.json
 msgid "Quer dar uma olhada? Também compro qualquer coisa que você tiver, pagando um pouquinho mais que a caixa de vendas."
 msgstr ""
@@ -2147,10 +2119,6 @@ msgstr ""
 
 #: server/data/game/dialogs.json
 msgid "Quero vender"
-msgstr ""
-
-#: client/scripts/look_editor.gd:13
-msgid "Rabo de cavalo"
 msgstr ""
 
 #: server/data/game/animals.json
@@ -2221,14 +2189,6 @@ msgstr ""
 msgid "Roda de carroça"
 msgstr ""
 
-#: client/scripts/look_editor.gd:105
-msgid "Rosto"
-msgstr ""
-
-#: client/scripts/look_editor.gd:105
-msgid "Rosto %d"
-msgstr ""
-
 #: client/scripts/dev_panel.gd:568
 msgid "Roupas e editor"
 msgstr ""
@@ -2237,7 +2197,7 @@ msgstr ""
 msgid "Saldo: %s."
 msgstr ""
 
-#: client/scripts/look_editor.gd:49 client/scripts/look_editor.gd:78
+#: client/scripts/look_editor.gd:47 client/scripts/look_editor.gd:76
 msgid "Salvar"
 msgstr ""
 
@@ -2255,10 +2215,6 @@ msgstr ""
 
 #: client/scripts/body_game.gd:304 client/scripts/dev_panel.gd:526
 msgid "Sede"
-msgstr ""
-
-#: client/scripts/look_editor.gd:111
-msgid "Sem cabelo"
 msgstr ""
 
 #: client/scripts/main.gd:599
@@ -2293,7 +2249,7 @@ msgstr ""
 msgid "Sentar"
 msgstr ""
 
-#: client/scripts/look_editor.gd:35 client/scripts/look_editor.gd:75
+#: client/scripts/look_editor.gd:33 client/scripts/look_editor.gd:73
 msgid "Seu personagem"
 msgstr ""
 
@@ -2317,7 +2273,7 @@ msgstr ""
 msgid "Simular rede ruim (só neste computador):"
 msgstr ""
 
-#: client/scripts/character_look.gd:979 client/scripts/npc.gd:56 client/scripts/player.gd:141
+#: client/scripts/character_look.gd:890 client/scripts/npc.gd:56 client/scripts/player.gd:141
 msgid "Skeleton3D"
 msgstr ""
 
@@ -2465,7 +2421,7 @@ msgstr ""
 msgid "Todos os passaportes e um carimbo de cada país com aeroporto (sem gobolares)"
 msgstr ""
 
-#: client/scripts/look_editor.gd:115
+#: client/scripts/look_editor.gd:102
 msgid "Tom de pele"
 msgstr ""
 
@@ -2517,7 +2473,7 @@ msgstr ""
 msgid "Trocar meu país para o selecionado na aba Mundo"
 msgstr ""
 
-#: client/scripts/look_editor.gd:12
+#: client/scripts/look_editor.gd:11
 msgid "Tronco e braços"
 msgstr ""
 
@@ -3137,11 +3093,11 @@ msgstr ""
 msgid "É isso! Qualquer coisa, dá para rever esta conversa nas configurações (F6). Divirta-se, {player}!"
 msgstr ""
 
-#: client/scripts/look_editor.gd:14
+#: client/scripts/look_editor.gd:12
 msgid "Óculos"
 msgstr ""
 
-#: client/scripts/look_editor.gd:14
+#: client/scripts/look_editor.gd:12
 msgid "Óculos escuros"
 msgstr ""
 

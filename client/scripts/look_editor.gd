@@ -1,17 +1,15 @@
 class_name LookEditor
 extends PanelContainer
-## Editor de personagem (fase 4.0, ADR 0051; partes independentes na 4.1, ADR 0052): rosto
-## (a cabeça sem o cabelo), cabelo (o de qualquer uma das 12 cabeças, ou nenhum), penteado
-## extra, tom de pele, cor do cabelo, tronco e braços, pernas e acessório. Cada parte muda só
-## ela. No primeiro acesso é obrigatório, antes de entrar no jogo (sem fechar; "Começar a
-## jogar" salva). Depois, abre no espelho do lote e nas configurações (F6). Salvar manda para
-## o servidor e todos veem.
+## Editor de personagem (fase 4.0, ADR 0051; cabeça inteira na 4.2, ADR 0053): cabeça (uma
+## das 12 originais, com o cabelo dela), tom de pele, tronco e braços, pernas e acessório.
+## Cada parte muda só ela. No primeiro acesso é obrigatório, antes de entrar no jogo (sem
+## fechar; "Começar a jogar" salva). Depois, abre no espelho do lote e nas configurações (F6).
+## Salvar manda para o servidor e todos veem.
 
 signal saved
 
 const PART_LABELS := {"body": "Tronco e braços", "legs": "Pernas"}
-const STYLE_NAMES := {"none": "Nenhum", "bun": "Coque", "ponytail": "Rabo de cavalo", "curls": "Cachos", "spiky": "Espetado"}
-const ACC_NAMES := {"none": "Nenhum", "aid-glasses": "Óculos", "aid-sunglasses": "Óculos escuros", "cap-male-c": "Quepe azul"}
+const ACC_NAMES := {"none": "Nenhum", "aid-glasses": "Óculos", "aid-sunglasses": "Óculos escuros"}
 
 var game: GameMain
 var session: Session
@@ -80,9 +78,7 @@ func open(first_time := false) -> void:
 	look = (lv.get("look", {}) as Dictionary).duplicate() if lv.get("look") is Dictionary else {}
 	if look.is_empty():
 		var part := game._player.character.trim_prefix("character-")
-		look = {"head": part, "body": part, "legs": part, "skin": "", "hair": "", "hairstyle": "none", "accessory": "none"}
-	if not look.has("haircut"):
-		look["haircut"] = ""
+		look = {"head": part, "body": part, "legs": part, "skin": "", "accessory": "none"}
 	_build()
 	visible = true
 
@@ -102,16 +98,7 @@ func _build() -> void:
 		c.queue_free()
 	var o := _opts()
 	var parts: Array = o.get("parts", [])
-	_rows.add_child(_stepper(tr("Rosto"), "head", parts, func(v: String) -> String: return tr("Rosto %d") % (parts.find(v) + 1)))
-	_rows.add_child(_stepper(tr("Cabelo"), "haircut", o.get("haircuts", [""]), func(v: String) -> String:
-		match v:
-			"":
-				return tr("O do rosto")
-			"none":
-				return tr("Sem cabelo")
-		return CharacterLook.haircut_name(v)))
-	_rows.add_child(_swatches(tr("Cor do cabelo"), "hair", o.get("hair_colors", [])))
-	_rows.add_child(_stepper(tr("Penteado extra"), "hairstyle", o.get("hairstyles", ["none"]), func(v: String) -> String: return tr(STYLE_NAMES.get(v, v))))
+	_rows.add_child(_stepper(tr("Cabeça"), "head", parts, func(v: String) -> String: return tr("Cabeça %d") % (parts.find(v) + 1)))
 	_rows.add_child(_swatches(tr("Tom de pele"), "skin", o.get("skins", [])))
 	for k: String in PART_LABELS:
 		_rows.add_child(_stepper(tr(PART_LABELS[k]), k, parts, func(v: String) -> String: return Player.character_label("character-" + v)))
@@ -143,8 +130,6 @@ func _stepper(title: String, key: String, options: Array, name_of: Callable) -> 
 			if options.is_empty():
 				return
 			var i := options.find(str(look.get(key, "")))
-			if key == "head":
-				_pin_haircut()
 			i = posmod(i + dir, options.size())
 			look[key] = str(options[i])
 			value.text = name_of.call(look[key])
@@ -155,22 +140,6 @@ func _stepper(title: String, key: String, options: Array, name_of: Callable) -> 
 		else:
 			line.add_child(b)
 	return line
-
-
-## Antes de trocar o rosto: o cabelo "o do rosto" vira o cabelo daquele rosto, para trocar o
-## rosto não mudar o cabelo (partes independentes). O quepe vira acessório.
-func _pin_haircut() -> void:
-	if str(look.get("haircut", "")) != "":
-		return
-	var head := str(look.get("head", ""))
-	var cuts: Array = _opts().get("haircuts", [])
-	if cuts.has(head):
-		look["haircut"] = head
-	else:
-		look["haircut"] = "none"
-		if CharacterLook.is_cap_head(head) and str(look.get("accessory", "none")) == "none" and (_opts().get("accessories", []) as Array).has("cap-" + head):
-			look["accessory"] = "cap-" + head
-	_build.call_deferred()
 
 
 ## Linha de bolinhas de cor ("" = a cor original do personagem).

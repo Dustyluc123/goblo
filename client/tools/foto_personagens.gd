@@ -7,14 +7,14 @@ extends SceneTree
 ## Foto (sem roubar o foco):  tools/sem_foco.sh -s tools/foto_personagens.gd -- --foto=/tmp/p.png
 
 const LOOKS := [
-	[{"head": "female-a", "body": "female-a", "legs": "female-a", "skin": "", "hair": "", "hairstyle": "none", "accessory": "none"}, {}],
-	[{"head": "male-c", "body": "female-d", "legs": "male-a", "skin": "#6b4430", "hair": "#e0b25a", "hairstyle": "curls", "accessory": "aid-glasses"},
+	[{"head": "female-a", "body": "female-a", "legs": "female-a", "skin": "", "accessory": "none"}, {}],
+	[{"head": "male-c", "body": "female-d", "legs": "male-a", "skin": "#6b4430", "accessory": "aid-glasses"},
 		{"head": {"item": "beanie", "color": "#e86a6a"}, "body": {"item": "coat", "color": "#6d8fe8"}, "legs": {"item": "pants", "color": "#5b6f8c"}, "feet": {"item": "boots", "color": "#7a5233"}}],
-	[{"head": "female-e", "body": "male-b", "legs": "female-c", "skin": "#f6d5b8", "hair": "#c0392b", "hairstyle": "ponytail", "accessory": "aid-sunglasses"},
+	[{"head": "female-e", "body": "male-b", "legs": "female-c", "skin": "#f6d5b8", "accessory": "aid-sunglasses"},
 		{"head": {"item": "straw_hat", "color": "#e9c46a"}, "body": {"item": "tank_top", "color": "#f4f1e4"}, "legs": {"item": "shorts", "color": "#e9c46a"}, "feet": {"item": "sandals", "color": "#c99a6b"}}],
-	[{"head": "male-f", "body": "male-e", "legs": "male-e", "skin": "#9c6644", "hair": "#2b1d16", "hairstyle": "bun", "accessory": "none", "haircut": "female-d"},
+	[{"head": "male-f", "body": "male-e", "legs": "male-e", "skin": "#9c6644", "accessory": "none"},
 		{"head": {"item": "cap", "color": "#6d8fe8"}, "body": {"item": "scarf", "color": "#e86a6a"}, "back": {"item": "flag_cape", "color": "#f4f1e4"}}],
-	[{"head": "female-b", "body": "female-f", "legs": "female-b", "skin": "#c98e62", "hair": "#7d8ea6", "hairstyle": "spiky", "accessory": "none"},
+	[{"head": "female-b", "body": "female-f", "legs": "female-b", "skin": "#c98e62", "accessory": "none"},
 		{"head": {"item": "fur_hat", "color": "#8d6e63"}, "body": {"item": "poncho", "color": "#c0392b"}}],
 ]
 

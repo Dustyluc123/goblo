@@ -289,17 +289,16 @@ As flores colhíveis vêm do servidor (`objects.json`, kind `flower`, com `seaso
 
 As cinco flores antigas (vermelha, amarela, branca, roxa e azul) continuam e agora somem no inverno. As **flores decorativas** (só enfeite) ficam em `client/data/decoracao.json → flowers`, por bioma e estação, no mesmo MultiMesh da grama, com densidade e distância próprias por qualidade (`flower_density`, `flower_radius` em `quality.gd`; somem antes da grama, fase 4.1).
 
-## Cabeças, cabelos e chapéus (`cabecas.json`, fase 4.1)
+## Cabeças, chapéus e óculos (`cabecas.json`, fase 4.2)
 
-As 12 cabeças do Mini Characters têm o mesmo crânio; o cabelo é o que sai dele e vira uma parte à parte no editor ([ADR 0052](decisoes/0052-roupas-por-regiao-cabelo-separado-e-desempenho.md)). No arquivo:
+A cabeça é uma das 12 originais do Mini Characters, inteira (rosto e cabelo, como vieram; [ADR 0053](decisoes/0053-cabeca-inteira-pele-e-foto-centralizada.md)). Não há cabelo, cor do cabelo nem penteado separados. No arquivo:
 
 - `anchor`: ponto de encaixe dos chapéus no alto do crânio (preso ao osso da cabeça);
-- `hats`: ajuste por cabeça (`offset` [x, y, z], `scale`, `rot` em graus); `default` para as outras;
-- `hair_cut` (+ `hair_cut_add` por cabeça): com chapéu, o cabelo acima desta altura é achatado para dentro do chapéu;
-- `haircut_names`: nome de cada cabelo no editor;
-- `cap_heads`: cabeças cujo "cabelo" é um boné (fica com a cor original e vira acessório `cap-<cabeça>` em `body.json → look.accessories`).
+- `hats`: ajuste por cabeça para o chapéu cobrir o cabelo dela sem flutuar (`offset` [x, y, z], `scale`, `rot` em graus); `default` para as outras. Coques e cabelos compridos saem por trás do chapéu;
+- `face`: ponto dos óculos (os mesmos que já vêm em `male-a` e `male-e`), preso ao osso da cabeça; `faces`: ajuste por cabeça (`offset`, `scale`);
+- `cap_heads`: cabeças cujo "cabelo" é um quepe (`male-c`): com chapéu vestido, o quepe sai.
 
-A lista de cabelos oferecidos fica em `server/data/game/body.json → look.haircuts` (o servidor valida).
+Tons de pele e acessórios oferecidos ficam em `server/data/game/body.json → look` (o servidor valida). A pele de cada personagem é o par de faixas da paleta das orelhas dele; o tom escolhido vale para a cabeça, o corpo, as pernas e a pele que a roupa deixa à mostra. As 12 cabeças aceitam todos os tons sem pintar cabelo, barba, bigode ou quepe.
 
 Roupas substituem a parte da roupa original do espaço delas (cor por região, sem malha a mais). Peça nova: item com `wear` em `items.json` e a regra da região em `CharacterLook` (`_body_color`, `_legs_color`) ou a forma em `_add_hat`/`_build`; o `client/tests/test_roupas.gd` confere que ela só muda o próprio espaço.
 

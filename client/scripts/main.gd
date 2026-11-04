@@ -4110,7 +4110,7 @@ func _body_test() -> void:
 	var look: Dictionary = (_player.look_view.get("look", {}) as Dictionary).duplicate()
 	look["head"] = "female-e"
 	look["skin"] = "#9c6644"
-	look["hairstyle"] = "bun"
+	look["accessory"] = "aid-glasses"
 	await save_look(look)
 	check.call(str((_player.look_view.get("look", {}) as Dictionary).get("head", "")) == "female-e", "editor salvou a cabeça nova")
 	# Modo tranquilo.

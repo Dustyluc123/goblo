@@ -2,9 +2,12 @@ package sqlitestore
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -96,5 +99,54 @@ func TestCoinsNeverNegative(t *testing.T) {
 	tr, err := s.Transactions(ctx, p.ID, 10)
 	if err != nil || len(tr) != 2 || tr[0].Delta != -10 || tr[0].Balance != 0 || tr[1].Reason != "sell" {
 		t.Fatalf("histórico: %+v %v", tr, err)
+	}
+}
+
+// Fase 4.2: a migração 0009 troca cabelo, penteado e quepe pela cabeça original
+// correspondente e tira os campos que saíram.
+func TestMigrationWholeHead(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(ctx, ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	cases := []struct{ before, want string }{
+		{`{"thirst":50,"look":{"head":"male-a","body":"male-a","legs":"male-a","skin":"#f6d5b8","hair":"#c0392b","hairstyle":"bun","accessory":"aid-glasses","haircut":"female-e"}}`,
+			`{"thirst":50,"look":{"head":"female-e","body":"male-a","legs":"male-a","skin":"#f6d5b8","accessory":"aid-glasses"}}`},
+		{`{"look":{"head":"female-b","body":"male-a","legs":"male-a","skin":"","hair":"","hairstyle":"none","accessory":"cap-male-c","haircut":"none"}}`,
+			`{"look":{"head":"male-c","body":"male-a","legs":"male-a","skin":"","accessory":"none"}}`},
+		{`{"look":{"head":"male-d","body":"male-d","legs":"male-d","skin":"","hair":"","hairstyle":"spiky","accessory":"none","haircut":""}}`,
+			`{"look":{"head":"male-d","body":"male-d","legs":"male-d","skin":"","accessory":"none"}}`},
+		{`{"look":{"head":"","body":"","legs":"","skin":"","accessory":""}}`, `{"look":{"head":"","body":"","legs":"","skin":"","accessory":""}}`},
+		{`{"thirst":10}`, `{"thirst":10}`},
+	}
+	for i, c := range cases {
+		p := &game.Player{Nickname: fmt.Sprintf("Mig%d", i), Country: "BRA", TokenHash: fmt.Sprintf("m%d", i), CreatedAt: time.Now()}
+		if err := s.CreatePlayer(ctx, p); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.SaveBody(ctx, p.ID, c.before); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sql, err := migrations.ReadFile("migrations/0009_cabeca_inteira.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.ExecContext(ctx, string(sql)); err != nil {
+		t.Fatal(err)
+	}
+	for i, c := range cases {
+		got, err := s.Body(ctx, int64(i+1))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var a, b any
+		json.Unmarshal([]byte(got), &a)
+		json.Unmarshal([]byte(c.want), &b)
+		if !reflect.DeepEqual(a, b) {
+			t.Errorf("caso %d: %s, esperava %s", i, got, c.want)
+		}
 	}
 }
