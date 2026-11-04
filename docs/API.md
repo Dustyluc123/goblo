@@ -84,6 +84,7 @@ Tudo o que o cliente precisa saber do conteúdo do jogo, lido de `server/data/ga
   "dialogs": {"shop_hello": [{"text": "Oi, {player}! …"}, {"text": "…", "options": [{"text": "Quero comprar", "action": "open_shop"}, …]}], …},
   "intro": {"start": "intro_hello", "tasks": [{"id": "shake", "action": "shake", "after": "intro_after_shake"}, {"id": "craft_axe", "recipe": "axe", "after": "intro_after_craft"}]},
   "animals": {"cow": {"name": "Vaca", "model": "Cow", "height": 1.35, "shy": false, "walk": 0.8, "run": 4, "roam": 5.5, "leg": 16, "jump": "Jump_toIdle"}, …},
+  "flower_biomes": {"grassland": {"flower_daisy": ["spring", "summer", "none"], …}, …} (fase 4.2: bioma → flor → estações em que nasce, "" = sempre),
   "pedia": [{"id": "alpaca", "name": "Alpaca", "kind": "animal", "model": "Alpaca"}, …, {"id": "tree_snow", "name": "Árvore com neve", "kind": "tree", "season": "snow", "model": "PineTree_Snow_1"}]
 }
 ```
@@ -274,7 +275,7 @@ As três conferem que o jogador está perto da loja da praça daquele país (`re
 | 🔑 `POST /intro` | `{"done": true}` | marca como vista (terminou ou pulou) ou não vista (`false`: rever pelo F6, modo dev). As tarefas já pagas continuam pagas |
 | 🔑 `POST /animal/feed` | `{"animal": 123}` | gasta uma frutinha (o animal come e vira amigo; marca a espécie como amiga na Goblopédia) |
 | 🔑 `GET /pedia` | — | páginas da Goblopédia com o progresso: `{"entries": [{"id", "name", "kind", "model", "discovered", "first_at", "country", "country_name", "biome", "sightings", "friend"}]}` |
-| 🔑 `POST /pedia/register` | `{"entry": "cow", "country": "ARG", "biome": "grassland", "look": [x, y, z]}` | registra uma foto: `{"entry", "first", "reward", "coins", "sightings", "message"}`; só a primeira foto paga `rewards.pedia_first`. `look` é a direção da câmera: o servidor confere se o animal (na posição do trajeto comum), a flor azul ou a árvore da estação estava perto e na frente dela (`403 too_far` se não) |
+| 🔑 `POST /pedia/register` | `{"entry": "cow", "country": "ARG", "biome": "grassland", "look": [x, y, z], "cam": [x, y, z], "at": [x, y, z]}` | registra uma foto: `{"entry", "first", "reward", "coins", "sightings", "message"}`; só a primeira foto paga `rewards.pedia_first`. `look` é a direção da câmera, `cam` a posição dela e `at` o ponto do assunto enquadrado (fase 4.2, ADR 0053). O servidor confere se a coisa estava perto (`rules.json → photo.max_dist`) e dentro de um cone estreito (`photo.angle`): o animal (no trajeto comum), uma flor do servidor daquele item ou uma decorativa de uma espécie que nasce ali naquela estação, ou uma árvore que o cliente desenha de outono ou com neve (`403 too_far` se não) |
 
 ## Corpo, comida, roupas e visual (fase 4.0)
 
@@ -316,7 +317,7 @@ Desde a fase 3, o servidor sabe onde o jogador está (pelo tempo real) e confere
 - `/passport/stamp`: o jogador precisa estar no país. Com o tempo real ligado, quem carimba a entrada a pé é o próprio servidor (mensagem `stamp`);
 - a barreira da fronteira: a posição que cruza para um país sem passaporte é corrigida.
 
-Também conferem a distância `/interact`, `/sell` (na caixa de vendas do próprio lote), `/animal/feed` e `/pedia/register`. Os alcances ficam em `rules.json` (`reach`).
+Também conferem a distância `/interact`, `/sell` (na caixa de vendas do próprio lote), `/animal/feed` e `/pedia/register`. Os alcances ficam em `rules.json` (`reach`; o enquadramento da foto, em `photo`).
 
 ## Tempo real
 
@@ -340,6 +341,7 @@ Sem `GOBLO_DEV=1`, **toda** rota `/dev/…` responde `403 {"error":"dev_only"}` 
 | `POST /dev/fake-neighbors` | `{"cell": 21424, "count": 20}` | cria jogadores falsos com casas prontas e decoração sorteada nos lotes livres mais perto da célula |
 | `POST /dev/coins` | `{"amount": 500}` | dá (ou tira, com número negativo) gobolares; o saldo nunca fica negativo |
 | `POST /dev/pedia` | `{"action": "complete"}` | `complete` (todas as páginas descobertas e amigos, sem gobolares) ou `reset` |
+| `POST /dev/season` | `{"unix": 1800000000}` | a data das estações forçada no cliente (0 = a real); a foto de árvores e flores de estação é conferida por ela (fase 4.2) |
 | `POST /dev/passport` | `{"action": "give", "country": "PRY"}` | `give` ou `remove` um passaporte; `complete` (todos os passaportes e um carimbo de cada país com aeroporto, sem gobolares) ou `reset`. Responde o livro de passaporte |
 | `POST /dev/travel` | `{"from": "BRA", "to": "JPN"}` | viagem de graça e sem passaporte; mesma resposta de `/travel` |
 | `POST /dev/shop/restock` | `{"country": "BRA"}` | adianta a loja do país para o estoque do dia seguinte (só neste servidor, até reiniciar) |

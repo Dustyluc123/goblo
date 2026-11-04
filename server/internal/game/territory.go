@@ -16,6 +16,20 @@ type Rules struct {
 	Chat       ChatRules     `json:"chat"`
 	Reach      ReachRules    `json:"reach"`
 	Characters []string      `json:"characters"`
+	Photo      PhotoRules    `json:"photo"`
+}
+
+// PhotoRules: enquadramento da foto que registra na Goblopédia (fase 4.2, ADR 0053). O
+// cliente usa Center e MinSize na tela; o servidor confere o cone e as distâncias.
+type PhotoRules struct {
+	Center      float64            `json:"center"`
+	MinSize     float64            `json:"min_size"`
+	MaxDist     map[string]float64 `json:"max_dist"`
+	Angle       float64            `json:"angle"`
+	CameraReach float64            `json:"camera_reach"`
+	Slack       float64            `json:"slack"`
+	AtSlack     float64            `json:"at_slack"`
+	Drift       float64            `json:"drift"`
 }
 
 // MovementRules: validação do movimento no servidor (ADR 0039).
@@ -60,9 +74,6 @@ type ReachRules struct {
 	Shop        float64 `json:"shop"`
 	Trade       float64 `json:"trade"`
 	Airport     float64 `json:"airport"`
-	PhotoAnimal float64 `json:"photo_animal"`
-	PhotoObject float64 `json:"photo_object"`
-	PhotoAngle  float64 `json:"photo_angle"`
 }
 
 // ValidCharacter diz se o personagem está na lista de rules.json ("" = o padrão).
@@ -94,6 +105,11 @@ func (r *Rules) check() error {
 		r.Network.MaxVisible <= 0 || r.Network.MaxMessageBytes <= 0 || r.Chat.MaxChars <= 0 || r.Chat.PerSeconds <= 0 ||
 		r.Reach.Object <= 0 || len(r.Characters) == 0 {
 		return fmt.Errorf("rules.json: movement, network, chat, reach e characters precisam de valores positivos")
+	}
+	ph := r.Photo
+	if ph.Center <= 0 || ph.Center > 1 || ph.MinSize < 0 || ph.Angle <= 0 || ph.CameraReach <= 0 ||
+		ph.MaxDist["animal"] <= 0 || ph.MaxDist["flower"] <= 0 || ph.MaxDist["tree"] <= 0 {
+		return fmt.Errorf("rules.json: photo precisa de center (0 a 1), angle, camera_reach e max_dist de animal, flower e tree")
 	}
 	return nil
 }

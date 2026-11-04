@@ -60,6 +60,10 @@ type Service struct {
 	shopOffset map[string]int64
 	// Corpos carregados e fogueiras acesas no chão (fase 4.0).
 	body bodies
+	// Data das estações forçada pelo modo dev (jogador → data), como o cliente desenha
+	// (fase 4.2): vale para conferir as fotos de árvores e flores de estação.
+	seasonMu  sync.Mutex
+	devSeason map[int64]time.Time
 }
 
 // NewService monta as regras. clock nil = relógio real.

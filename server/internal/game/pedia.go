@@ -114,6 +114,74 @@ func (s *Service) pediaView(ctx context.Context, st Store, p *Player) ([]PediaVi
 	return out, nil
 }
 
+// PhotoShot é a câmera no momento da foto (fase 4.2): a direção (Look), a posição (Cam) e o
+// ponto da coisa enquadrada (At). Zero = não mandou.
+type PhotoShot struct {
+	Look world.Vec3
+	Cam  world.Vec3
+	At   world.Vec3
+}
+
+// FlowerGrows diz se a flor `item` nasce no bioma (objects.json) em alguma das estações (as
+// regras sem estação valem sempre). Fase 4.2: as flores decorativas do cliente registram na
+// Goblopédia pela espécie que cresce ali.
+func (c *Content) FlowerGrows(biome, item string, seasons []string) bool {
+	for _, r := range c.Objects[biome] {
+		if r.Kind != KindFlower || !slicesContains(r.flowerItems(), item) {
+			continue
+		}
+		if len(r.Seasons) == 0 {
+			return true
+		}
+		for _, se := range seasons {
+			if slicesContains(r.Seasons, se) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// flowerItems: os itens que uma regra de flor dá (flower_<cor> e a cor rara).
+func (r *ObjectRule) flowerItems() []string {
+	var out []string
+	for _, c := range r.Colors {
+		out = append(out, "flower_"+c)
+	}
+	if r.RareColor != "" {
+		out = append(out, "flower_"+r.RareColor)
+	}
+	return out
+}
+
+// FlowerBiomes: bioma → flor → estações em que nasce ("" = sempre). Vai no /content para o
+// cliente saber quais flores decorativas registram na Goblopédia.
+func (c *Content) FlowerBiomes() map[string]map[string][]string {
+	out := map[string]map[string][]string{}
+	for biome, rules := range c.Objects {
+		for _, r := range rules {
+			if r.Kind != KindFlower {
+				continue
+			}
+			for _, it := range r.flowerItems() {
+				if out[biome] == nil {
+					out[biome] = map[string][]string{}
+				}
+				se := r.Seasons
+				if len(se) == 0 {
+					se = []string{""}
+				}
+				for _, x := range se {
+					if !slicesContains(out[biome][it], x) {
+						out[biome][it] = append(out[biome][it], x)
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
 // PediaResult é a resposta de registrar uma foto.
 type PediaResult struct {
 	Entry     string `json:"entry"`
@@ -129,15 +197,15 @@ type PediaResult struct {
 //
 // Com o tempo real ligado, a distância é conferida no servidor (ADR 0040).
 //
-// look é a direção da câmera no momento da foto (zero = não confere o ângulo). Com a
-// camada em tempo real ligada, o servidor confere se a coisa estava perto e na frente da
-// câmera (ADR 0040).
-func (s *Service) RegisterPedia(ctx context.Context, p *Player, entry, country, biome string, look world.Vec3) (*PediaResult, error) {
+// shot é a câmera no momento da foto (direção, posição e o ponto enquadrado; zero = não
+// confere). Com a camada em tempo real ligada, o servidor confere se a coisa estava perto e
+// centralizada (ADR 0040, 0053).
+func (s *Service) RegisterPedia(ctx context.Context, p *Player, entry, country, biome string, shot PhotoShot) (*PediaResult, error) {
 	e := s.content.PediaEntry(entry)
 	if e == nil {
 		return nil, ErrNotFound.with("Isso não está na Goblopédia.")
 	}
-	if err := s.pediaSeen(ctx, p, e, look); err != nil {
+	if err := s.pediaSeen(ctx, p, e, shot); err != nil {
 		return nil, err
 	}
 	if s.CountryName(country) == "" {

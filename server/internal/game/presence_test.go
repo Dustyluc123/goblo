@@ -130,15 +130,15 @@ func TestServerChecksReach(t *testing.T) {
 		}
 	}
 	if empty.Len() > 0 {
-		if _, err := f.svc.RegisterPedia(f.ctx, p, a.Species, "BRA", "forest", empty); !errors.Is(err, game.ErrTooFar) {
+		if _, err := f.svc.RegisterPedia(f.ctx, p, a.Species, "BRA", "forest", game.PhotoShot{Look: empty}); !errors.Is(err, game.ErrTooFar) {
 			t.Fatalf("câmera virada para onde não há %s registrou: %v", a.Species, err)
 		}
 	}
-	if _, err := f.svc.RegisterPedia(f.ctx, p, a.Species, "BRA", "forest", look); err != nil {
+	if _, err := f.svc.RegisterPedia(f.ctx, p, a.Species, "BRA", "forest", game.PhotoShot{Look: look}); err != nil {
 		t.Fatalf("animal na frente da câmera: %v", err)
 	}
 	pres.pos[p.ID] = ap.Add(east.Scale(400))
-	if _, err := f.svc.RegisterPedia(f.ctx, p, a.Species, "BRA", "forest", world.Vec3{}); !errors.Is(err, game.ErrTooFar) {
+	if _, err := f.svc.RegisterPedia(f.ctx, p, a.Species, "BRA", "forest", game.PhotoShot{}); !errors.Is(err, game.ErrTooFar) {
 		t.Fatalf("animal a 400 unidades registrou: %v", err)
 	}
 

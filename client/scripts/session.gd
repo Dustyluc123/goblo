@@ -46,6 +46,9 @@ var animal_species := {}
 var rules := {}
 ## Páginas da Goblopédia (do /content, sem o progresso): [{id, name, kind, model, season}].
 var pedia_catalog: Array = []
+## Bioma → flor → estações em que nasce ("" = sempre), do objects.json do servidor (fase 4.2:
+## quais flores decorativas registram na Goblopédia).
+var flower_biomes: Dictionary = {}
 ## NPCs e diálogos (npcs.json e dialogs.json do servidor; fase 3.5).
 var npc_roles := {}
 var npc_names := {}
@@ -100,6 +103,7 @@ func set_content(data: Dictionary) -> void:
 	animal_species = data.get("animals", {})
 	rules = data.get("rules", {})
 	pedia_catalog = data.get("pedia", [])
+	flower_biomes = data.get("flower_biomes", {}) if data.get("flower_biomes") is Dictionary else {}
 	npc_roles = data.get("npcs", {})
 	npc_names = data.get("npc_names", {})
 	dialogs = data.get("dialogs", {})

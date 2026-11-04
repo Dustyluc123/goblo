@@ -265,10 +265,16 @@ func (s *Service) ConsumeArrival(player int64) (world.Vec3, bool) {
 	return s.ArrivalPoint(a.country)
 }
 
-// pediaSeen confere a foto: um animal da espécie (na posição do trajeto comum, com a folga
-// das reações locais), a flor azul ou uma árvore da estação, perto do jogador e na direção
-// da câmera.
-func (s *Service) pediaSeen(ctx context.Context, p *Player, e *PediaEntry, look world.Vec3) error {
+// pediaSeen confere, com o tempo real ligado, se a coisa estava enquadrada (fase 4.2, ADR
+// 0053): perto (photo.max_dist do tipo, a partir da câmera, que fica a até camera_reach do
+// personagem) e dentro de um cone estreito em volta da direção da câmera (photo.angle). O
+// cliente manda também o ponto que enquadrou (At): ele precisa estar perto da coisa.
+//   - animal: um da espécie no trajeto comum (com drift de folga das reações locais);
+//   - flor: uma flor do servidor daquele item, ou uma decorativa (só no cliente) de uma
+//     espécie que cresce naquele bioma e estação (FlowerGrows);
+//   - árvore: uma árvore que o cliente desenha de outono ou com neve (TreeVariant, com um dia
+//     de folga para o pedaço montado antes).
+func (s *Service) pediaSeen(ctx context.Context, p *Player, e *PediaEntry, shot PhotoShot) error {
 	pos, cell, _, checked, err := s.where(p)
 	if err != nil || !checked {
 		return err
@@ -276,24 +282,37 @@ func (s *Service) pediaSeen(ctx context.Context, p *Player, e *PediaEntry, look 
 	if cell < 0 || cell >= len(s.world.Cells) {
 		cell = s.world.FindCell(pos, -1)
 	}
-	r := s.content.Rules.Reach
-	cosMax := math.Cos(r.PhotoAngle * math.Pi / 180)
-	up := pos.Normalize()
-	inView := func(target world.Vec3, maxDist float64) bool {
-		d := s.groundDistance(pos, target)
-		if d > maxDist {
+	ph := s.content.Rules.Photo
+	origin := pos
+	if shot.Cam.Len() > 0 && shot.Cam.Sub(pos).Len() <= ph.CameraReach {
+		origin = shot.Cam
+	}
+	maxDist := ph.MaxDist[e.Kind]
+	look := shot.Look
+	inView := func(target world.Vec3) bool {
+		to := target.Sub(origin)
+		d := to.Len()
+		if d > maxDist+ph.Slack {
 			return false
 		}
-		if look.Len() < 1e-6 || d < 3 {
+		if look.Len() < 1e-6 || d <= ph.Slack {
 			return true
 		}
-		to := target.Sub(pos)
-		to = to.Sub(up.Scale(to.Dot(up))).Normalize()
-		l := look.Sub(up.Scale(look.Dot(up))).Normalize()
-		return to.Dot(l) >= cosMax
+		limit := ph.Angle*math.Pi/180 + math.Atan(ph.Slack/d)
+		return to.Scale(1/d).Dot(look.Normalize()) >= math.Cos(limit)
+	}
+	hasAt := shot.At.Len() > 0
+	// near: a coisa em `at` está enquadrada; o ponto que o cliente mandou vale se estiver a
+	// até `slack` dela (a coisa pode ter ficado mais alta ou mais baixa na tela).
+	near := func(at world.Vec3, slack float64) bool {
+		if hasAt && shot.At.Sub(at).Len() <= slack && inView(shot.At) {
+			return true
+		}
+		return inView(at)
 	}
 	cells := s.cellsAround(cell, 2)
 	now := s.clock.Now()
+	seasonNow := s.seasonTime(p) // a data forçada no modo dev vale para árvores e flores
 	switch e.Kind {
 	case "animal":
 		animals, err := s.Animals(ctx, cells)
@@ -301,7 +320,7 @@ func (s *Service) pediaSeen(ctx context.Context, p *Player, e *PediaEntry, look 
 			return err
 		}
 		for i := range animals {
-			if animals[i].Species == e.ID && inView(s.AnimalPoint(&animals[i], now), r.PhotoAnimal+r.AnimalDrift) {
+			if animals[i].Species == e.ID && near(s.AnimalPoint(&animals[i], now), ph.Drift+ph.AtSlack) {
 				return nil
 			}
 		}
@@ -311,23 +330,55 @@ func (s *Service) pediaSeen(ctx context.Context, p *Player, e *PediaEntry, look 
 			return err
 		}
 		for _, c := range cells {
-			lat := s.world.Cells[c].Lat
-			season := SeasonFor(now, lat, s.world.Cells[c].Biome)
+			wc := s.world.Cells[c]
 			for _, o := range s.cellObjects(c, lots) {
-				ok := false
 				switch {
-				case e.Kind == "flower":
-					ok = o.Kind == KindFlower && o.Item == e.ID
-				case e.Kind == "tree":
-					ok = o.Kind == KindTree && ((e.Season == "autumn" && season == "autumn") || ((e.Season == "snow" || e.Season == "winter") && season == "winter"))
+				case e.Kind == "flower" && o.Kind == KindFlower && o.Item == e.ID:
+					if near(s.ObjectPoint(&o), ph.AtSlack) {
+						return nil
+					}
+				case e.Kind == "tree" && o.Kind == KindTree:
+					want := e.Season
+					if want == "winter" {
+						want = "snow"
+					}
+					ok := false
+					for _, dt := range []time.Duration{0, -24 * time.Hour, 24 * time.Hour} {
+						ok = ok || TreeVariant(&o, seasonNow.Add(dt), wc.Lat, wc.Biome) == want
+					}
+					top := s.ObjectPoint(&o)
+					top = top.Add(top.Normalize().Scale(2))
+					if ok && near(top, ph.AtSlack) {
+						return nil
+					}
 				}
-				if ok && inView(s.ObjectPoint(&o), r.PhotoObject) {
+			}
+		}
+		// Flor decorativa: só existe no cliente; vale a espécie que cresce ali agora.
+		if e.Kind == "flower" && hasAt && inView(shot.At) {
+			ac := s.world.FindCell(shot.At, cell)
+			if ac >= 0 && s.world.Cells[ac].Terrain == world.Land && s.groundDistance(shot.At, pos) <= maxDist+ph.CameraReach {
+				wc := s.world.Cells[ac]
+				if s.content.FlowerGrows(world.BiomeNames[wc.Biome], e.ID, seasonsAround(seasonNow, wc.Lat, wc.Biome)) {
 					return nil
 				}
 			}
 		}
 	}
-	return ErrTooFar.with("Não deu para ver %s daqui. Chegue mais perto e enquadre.", e.Name)
+	return ErrTooFar.with("Não deu para ver %s daqui. Chegue mais perto e centralize na foto.", e.Name)
+}
+
+// seasonsAround: as estações da célula agora e a SeasonBlendDays dias para cada lado (o
+// cliente mistura as estações na virada).
+func seasonsAround(t time.Time, lat float64, b world.Biome) []string {
+	var out []string
+	for _, dt := range []float64{0, -SeasonBlendDays, SeasonBlendDays} {
+		se := SeasonFor(t.Add(time.Duration(dt*24)*time.Hour), lat, b)
+		if !slicesContains(out, se) {
+			out = append(out, se)
+		}
+	}
+	return out
 }
 
 // cellsAround: a célula e as vizinhas até `rings` anéis.

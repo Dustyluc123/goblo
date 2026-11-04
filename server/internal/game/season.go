@@ -2,6 +2,7 @@ package game
 
 import (
 	"math"
+	"regexp"
 	"time"
 
 	"github.com/Dustyluc123/goblo/server/internal/world"
@@ -71,4 +72,54 @@ func SeasonFor(t time.Time, lat float64, b world.Biome) string {
 		return SeasonAt(t, lat)
 	}
 	return "none"
+}
+
+// --- Árvores de estação (fase 4.2, ADR 0053) ------------------------------------------------
+// A mesma conta de Seasons.object_variant (client/scripts/seasons.gd): perto de cada virada,
+// cada árvore troca de modelo num dia diferente (limiar pelo id). O servidor usa para saber
+// se a árvore que o jogador fotografou estava de outono ou com neve na tela dele.
+
+// seasonBlend é a meia largura da transição em unidades de fase (~91 dias por estação).
+const seasonBlend = SeasonBlendDays / (365.2422 / 4)
+
+// treeVariantModel: árvores do pacote que têm versão de outono e de neve.
+var treeVariantModel = regexp.MustCompile(`^(CommonTree|BirchTree|PineTree|Willow)_\d$`)
+
+func smoothstep(a, b, x float64) float64 {
+	t := math.Max(0, math.Min(1, (x-a)/(b-a)))
+	return t * t * (3 - 2*t)
+}
+
+// SeasonWeight é o peso (0 a 1) da estação s (0 a 3) na fase p, com a mistura nas viradas.
+func SeasonWeight(p float64, s int) float64 {
+	d := math.Mod(p-float64(s)+2+8, 4) - 2
+	return smoothstep(-seasonBlend, seasonBlend, d) * (1 - smoothstep(1-seasonBlend, 1+seasonBlend, d))
+}
+
+// hash01 é BiomeStyle.hash01 do cliente: um número de 0 a 1 pelo id.
+func hash01(x int64) float64 {
+	h := (uint64(x) * 2654435761) & 0xFFFFFFFF
+	h = ((h ^ (h >> 15)) * 0x2C1B3C6D) & 0xFFFFFFFF
+	h ^= h >> 13
+	return float64(h&0xFFFF) / 65535
+}
+
+// TreeVariant é a versão da árvore que o cliente desenha no instante t: "autumn", "snow"
+// ou "" (a de sempre).
+func TreeVariant(o *Object, t time.Time, lat float64, b world.Biome) string {
+	if o.Kind != KindTree || !treeVariantModel.MatchString(o.Model) || SeasonFor(t, lat, b) == "none" {
+		return ""
+	}
+	p := NorthPhase(t)
+	if lat < 0 {
+		p = math.Mod(p+2, 4)
+	}
+	limit := 0.1 + 0.8*hash01(o.ID)
+	if SeasonWeight(p, 3) > limit {
+		return "snow"
+	}
+	if SeasonWeight(p, 2) > limit {
+		return "autumn"
+	}
+	return ""
 }

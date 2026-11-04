@@ -113,12 +113,18 @@ static func object_variant(world: WorldData, o: Dictionary, north: float) -> Str
 	var cell := int(o["cell"])
 	if not cell_has_seasons(world, cell):
 		return ""
-	var p := phase_at(north, world.lats[cell])
-	var limit := 0.1 + 0.8 * BiomeStyle.hash01(int(o["id"]))
+	return variant_at(int(o["id"]), str(o["model"]), str(o["kind"]), world.lats[cell], north)
+
+
+## A conta de object_variant numa célula com estações (latitude `lat`). O servidor tem a
+## mesma para as árvores (game.TreeVariant), para saber o que a foto mostrou (fase 4.2).
+static func variant_at(id: int, model: String, kind: String, lat: float, north: float) -> String:
+	var p := phase_at(north, lat)
+	var limit := 0.1 + 0.8 * BiomeStyle.hash01(id)
 	if weight(p, 3) > limit:
-		return "snow" if not variant_model(str(o["model"]), "snow").is_empty() else ""
-	if weight(p, 2) > limit and str(o["kind"]) == "tree":
-		return "autumn" if not variant_model(str(o["model"]), "autumn").is_empty() else ""
+		return "snow" if not variant_model(model, "snow").is_empty() else ""
+	if weight(p, 2) > limit and kind == "tree":
+		return "autumn" if not variant_model(model, "autumn").is_empty() else ""
 	return ""
 
 

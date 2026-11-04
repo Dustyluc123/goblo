@@ -40,7 +40,7 @@ extends Node3D
 ##                       confere o país exato e a linha no chão, e anda até cruzar uma
 ##   --animal-test       acha animais, confere a posição contra o trajeto comum, faz
 ##                       carinho, dá frutinha, assusta um tímido correndo e mede o custo
-##   --photo-test        câmera fotográfica: enquadra uma vaca, fotografa, confere o registro
+##   --photo-test        câmera fotográfica: enquadra um animal e uma flor, mira com nome, fora do centro, escondido, longe
 ##                       na Goblopédia (gobolares só na primeira foto) e abre o álbum
 ##   --season-test       força cada estação (modo dev) e confere árvores, grama, chão, o
 ##                       nome no HUD, os dois hemisférios, os trópicos e a foto de outono
@@ -1677,6 +1677,8 @@ func dev_force_season(season: String) -> void:
 		Seasons.override_unix = float(Time.get_unix_time_from_datetime_dict({"year": year, "month": md[0], "day": md[1], "hour": 12, "minute": 0, "second": 0}))
 		_ui.dev.status(tr("Data forçada: %02d/%02d (%s no norte, %s no sul).") % [md[1], md[0],
 			Seasons.LABELS[season].to_lower(), Seasons.LABELS[Seasons.NAMES[(Seasons.NAMES.find(season) + 2) % 4]].to_lower()])
+	# O servidor confere as fotos de árvores e flores de estação pela mesma data (fase 4.2).
+	await _api.request("POST", "/dev/season", {"unix": Seasons.override_unix})
 	await apply_season(Seasons.north_phase(season_now()))
 
 
@@ -2083,12 +2085,15 @@ func _screenshot_setup() -> void:
 			_session.equip("camera")
 			await get_tree().create_timer(0.5).timeout
 			var a := _animals.nearest(_player.global_position, 40.0)
+			if not a.is_empty():
+				# Perto e centralizado: a mira fica dourada com o nome (ou ???).
+				var ap: Vector3 = a["pos"]
+				var aup := ap.normalized()
+				await _teleport(ap + aup.cross(Vector3.UP).normalized() * 6.0)
+				await get_tree().create_timer(0.3).timeout
 			_photo.enter()
 			if not a.is_empty():
-				var up := _player.global_position.normalized()
-				var to: Vector3 = (a["pos"] as Vector3) - _player.global_position
-				_camera._heading = (to - up * to.dot(up)).normalized()
-				_camera.photo_pitch = -3.0
+				_aim_at((a["pos"] as Vector3) + (a["pos"] as Vector3).normalized() * 0.6)
 			if ui == "selfie":
 				# De costas para o animal: ele aparece atrás do personagem.
 				_camera._heading = -_camera._heading
@@ -2551,75 +2556,169 @@ func _photo_test() -> void:
 	await dev_give("camera", 1)
 	_session.equip("camera")
 	await teleport_exact(-34.6, -60.5)
-	await get_tree().create_timer(0.8).timeout
-	var fwd := -_player.global_basis.z
-	check.call(_animals.spawn_debug("cow", _player.global_position + fwd * 6.0), "vaca na frente (modo dev)")
-	await get_tree().create_timer(0.8).timeout
-	var cow: Node3D = null
+	await get_tree().create_timer(1.5).timeout
+	# Um animal do servidor (o trajeto comum: o servidor confere a foto por ele).
+	var pick := {}
+	var best := INF
 	for id: int in _animals._active:
-		if id < 0:
-			cow = _animals._active[id]["node"]
+		var d := (_animals._active[id]["node"] as Node3D).global_position.distance_to(_player.global_position)
+		if id >= 0 and d < best:
+			best = d
+			pick = _animals._active[id]
+	check.call(not pick.is_empty(), "um animal do servidor por perto (%.0f unidades)" % best)
+	if pick.is_empty():
+		get_tree().quit(1)
+		return
+	var aid := int(pick["animal"]["id"])
+	var sp := str(pick["animal"]["species"])
+	var node: Node3D = pick["node"]
+	# Fica a 7 unidades dele (a cada quadro: ele anda) e mira no meio dele.
+	var last := node.global_position
+	var stand := func(dist: float) -> void:
+		if is_instance_valid(node):
+			last = node.global_position
+		var up := last.normalized()
+		var side := up.cross(Vector3.UP).normalized()
+		_teleport(last + side * dist)
+		await get_tree().create_timer(0.3).timeout
+		if _animals._active.has(aid):
+			node = _animals._active[aid]["node"]
+
+	await stand.call(7.0)
 	_photo.enter()
 	check.call(_photo.active and _camera.photo_mode, "botão direito com a câmera na mão entra no modo foto")
-	# Mira na vaca (o mouse giraria a câmera até ela).
-	if cow:
-		var up := _player.global_position.normalized()
-		var to := cow.global_position - _player.global_position
-		_camera._heading = (to - up * to.dot(up)).normalized()
-		_camera.photo_pitch = -2.0
-	await get_tree().create_timer(0.5).timeout
+	_aim_at(node.global_position + node.global_position.normalized() * float(_animals.species[sp]["height"]) * 0.55)
+	await get_tree().create_timer(0.4).timeout
 	var subjects := _photo.find_subjects()
-	var entries: Array = subjects.map(func(x: Dictionary) -> String: return str(x["entry"]))
-	check.call("cow" in entries, "vaca enquadrada: %s" % str(entries))
+	check.call(not subjects.is_empty() and str(subjects[0]["entry"]) == sp, "%s centralizado é o assunto: %s" % [sp, str(subjects.map(func(x: Dictionary) -> String: return x["entry"]))])
+	check.call(not _photo.aim.is_empty() and _photo._aim_label.text == "???", "mira dourada com ??? (ainda não descoberto): %s" % _photo._aim_label.text)
 	var coins := _session.coins
+	_aim_at(node.global_position + node.global_position.normalized() * float(_animals.species[sp]["height"]) * 0.55)
 	var reg := await _photo.take_photo()
-	# Outro bicho pode sair na mesma foto: procura o registro da vaca e soma todas as recompensas.
-	var first := {}
-	var paid := 0
-	for x: Dictionary in reg:
-		paid += int(x.get("reward", 0))
-		if str(x.get("entry", "")) == "cow":
-			first = x
-	check.call(first.get("entry", "") == "cow" and bool(first.get("first", false)) and _session.coins == coins + paid and int(first.get("reward", 0)) > 0,
-		"primeira foto da vaca registra e paga (%d → %d gobolares)" % [coins, _session.coins])
+	var first: Dictionary = reg[0] if reg.size() == 1 else {}
+	check.call(reg.size() == 1 and str(first.get("entry", "")) == sp and bool(first.get("first", false)) and _session.coins == coins + int(first.get("reward", 0)),
+		"primeira foto registra só o assunto e paga (%s, %d → %d gobolares)" % [str(reg), coins, _session.coins])
+	check.call(_photo._aim_label.text == _photo.entry_name(sp), "depois do registro, a mira mostra o nome: %s" % _photo._aim_label.text)
+	_aim_at(node.global_position + node.global_position.normalized() * float(_animals.species[sp]["height"]) * 0.55)
 	var reg2 := await _photo.take_photo()
 	check.call(not reg2.is_empty() and not bool(reg2[0]["first"]) and int(reg2[0]["reward"]) == 0, "segunda foto não paga de novo")
-	# Mirando para o outro lado, nada enquadrado.
-	_camera._turn(PI)
-	await get_tree().create_timer(0.4).timeout
-	check.call(_photo.find_subjects().filter(func(x: Dictionary) -> bool: return x["entry"] == "cow").is_empty(), "de costas para a vaca, ela não conta")
+	# Fora do centro: virado 35° para o lado, o animal não conta.
+	_camera._turn(deg_to_rad(35.0))
+	await get_tree().create_timer(0.3).timeout
+	check.call(_photo.find_subjects().filter(func(x: Dictionary) -> bool: return x["entry"] == sp).is_empty(), "fora do centro (35°), o animal não conta")
+	# Escondido: uma parede entre a câmera e o animal.
+	_aim_at(node.global_position + node.global_position.normalized() * float(_animals.species[sp]["height"]) * 0.55)
+	var wall := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	shape.shape = BoxShape3D.new()
+	(shape.shape as BoxShape3D).size = Vector3(3, 3, 0.3)
+	wall.add_child(shape)
+	add_child(wall)
+	var eye := _camera.global_position
+	var mid := eye.lerp(node.global_position, 0.5)
+	wall.look_at_from_position(mid, node.global_position, mid.normalized())
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var hidden: Array = _photo.find_subjects().filter(func(x: Dictionary) -> bool: return x["entry"] == sp)
+	if not hidden.is_empty():
+		var q := PhysicsRayQueryParameters3D.create(_camera.global_position, hidden[0]["at"])
+		print("parede: ", get_world_3d().direct_space_state.intersect_ray(q))
+	check.call(hidden.is_empty(), "escondido atrás de uma parede, não conta")
+	wall.queue_free()
+	await get_tree().physics_frame
 	# Primeira pessoa: câmera nos olhos e corpo escondido.
 	var head := _player.global_position + _player.global_position.normalized() * CameraRig.EYE_HEIGHT
 	check.call(_camera.global_position.distance_to(head) < 0.3 and not _player.body_visible(),
 		"primeira pessoa: câmera nos olhos (%.2f) e corpo escondido" % _camera.global_position.distance_to(head))
-	# F: selfie, de costas para a vaca (ela aparece atrás do personagem).
+	# F: selfie, de costas para o animal (ele aparece atrás do personagem, no meio da foto).
 	var key_f := InputEventKey.new()
 	key_f.keycode = KEY_F
 	key_f.pressed = true
 	Input.parse_input_event(key_f)
-	await get_tree().create_timer(0.6).timeout
+	await get_tree().create_timer(0.3).timeout
+	# No selfie, a câmera fica para o lado do heading e olha de volta: o animal, do outro lado.
+	var up0 := _player.global_position.normalized()
+	var away := _player.global_position - node.global_position
+	_camera._heading = (away - up0 * away.dot(up0)).normalized()
+	await get_tree().create_timer(0.4).timeout
 	var to_cam := _camera.global_position - _player.global_position
 	check.call(_photo.selfie() and _player.body_visible() and _player.pose_blend > 0.5 and to_cam.dot(-_player.global_basis.z) > 1.0 and _player.input_blocked,
 		"F liga o selfie: câmera na frente, corpo à vista, pose (%.2f), parado" % _player.pose_blend)
-	entries = _photo.find_subjects().map(func(x: Dictionary) -> String: return str(x["entry"]))
-	check.call("cow" in entries, "selfie: vaca atrás do personagem enquadrada: %s" % str(entries))
+	var in_selfie: Array = _photo.find_subjects().map(func(x: Dictionary) -> String: return str(x["entry"]))
+	check.call(sp in in_selfie, "selfie: %s atrás do personagem enquadrado: %s" % [sp, str(in_selfie)])
 	var reg3 := await _photo.take_photo()
-	check.call(not reg3.is_empty() and reg3[0]["entry"] == "cow", "selfie registra a vaca na Goblopédia")
+	var horse_selfie: bool = not reg3.is_empty() and reg3[0]["entry"] == sp
+	check.call(not reg3.is_empty() and not in_selfie.is_empty() and reg3[0]["entry"] == in_selfie[0],
+		"selfie registra só o mais centralizado (%s)" % (str(reg3[0]["entry"]) if not reg3.is_empty() else "nada"))
 	Input.parse_input_event(key_f)
 	await get_tree().create_timer(0.3).timeout
-	check.call(not _photo.selfie() and not _player.body_visible() and _camera.global_position.distance_to(head) < 0.3, "F de novo volta para a primeira pessoa")
+	check.call(not _photo.selfie() and not _player.body_visible(), "F de novo volta para a primeira pessoa")
+	# Longe: a 55 unidades fica pequeno demais (ou longe demais) e não conta.
+	_aim_at(node.global_position)
+	var at_far := node.global_position
+	await stand.call(55.0)
+	_aim_at(at_far)
+	await get_tree().create_timer(0.3).timeout
+	check.call(_photo.find_subjects().filter(func(x: Dictionary) -> bool: return x["entry"] == sp).is_empty(), "a 55 unidades, não conta")
+	# Flores, de perto: uma do servidor e uma decorativa (as que houver por aqui).
+	var picked := {}
+	for x: Dictionary in _photo_flowers_near(40.0):
+		if not picked.has(x["decor"]):
+			picked[x["decor"]] = x
+	check.call(not picked.is_empty(), "flores por perto para fotografar (%s)" % ", ".join(picked.keys().map(func(k: bool) -> String: return "decorativa" if k else "do servidor")))
+	for decor: bool in picked:
+		var flower: Dictionary = picked[decor]
+		var fp: Vector3 = flower["pos"]
+		var up := fp.normalized()
+		var side := up.cross(Vector3.UP).normalized()
+		_teleport(fp + side * 3.4)
+		await get_tree().create_timer(0.5).timeout
+		_aim_at(fp + up * 0.18)
+		await get_tree().create_timer(0.3).timeout
+		var fs := _photo.find_subjects()
+		var kind := "decorativa" if decor else "do servidor"
+		check.call(not fs.is_empty() and str(fs[0]["entry"]) == str(flower["item"]), "flor %s (%s) centralizada é o assunto: %s" % [flower["item"], kind, str(fs.map(func(x: Dictionary) -> String: return x["entry"]))])
+		_aim_at(fp + up * 0.18)
+		var reg4 := await _photo.take_photo()
+		check.call(not reg4.is_empty() and str(reg4[0]["entry"]) == str(flower["item"]), "flor %s registra: %s" % [kind, str(reg4)])
 	_photo.exit()
 	check.call(_player.body_visible() and not _player.posing, "sair do modo foto mostra o corpo de novo")
 	check.call(not _camera.photo_mode, "botão direito ou Esc sai do modo foto")
 	_ui.pedia.toggle()
 	await get_tree().create_timer(1.0).timeout
-	var cow_page: Array = _ui.pedia._entries.filter(func(e: Dictionary) -> bool: return e["id"] == "cow")
-	check.call(not cow_page.is_empty() and bool(cow_page[0]["discovered"]) and int(cow_page[0]["sightings"]) == 3 and str(cow_page[0]["country"]) == "ARG",
-		"Goblopédia: vaca descoberta na Argentina, 3 fotos (%s)" % str(cow_page))
+	var page: Array = _ui.pedia._entries.filter(func(e: Dictionary) -> bool: return e["id"] == sp)
+	var want := 3 if horse_selfie else 2
+	check.call(not page.is_empty() and bool(page[0]["discovered"]) and int(page[0]["sightings"]) == want and str(page[0]["country"]) == "ARG",
+		"Goblopédia: %s descoberto na Argentina, %d fotos (%s)" % [sp, want, str(page)])
 	check.call(_ui.pedia._entries.size() >= 15, "álbum com %d páginas" % _ui.pedia._entries.size())
 	_ui.close_windows()
 	print("Goblo: photo-test %s" % ("tudo certo" if fails.is_empty() else "%d falhas" % fails.size()))
 	get_tree().quit(1 if not fails.is_empty() else 0)
+
+
+## Teste: vira a câmera do modo foto (primeira pessoa) para o ponto.
+func _aim_at(point: Vector3) -> void:
+	var up := _player.global_position.normalized()
+	var eye := _player.global_position + up * CameraRig.EYE_HEIGHT
+	var to := point - eye
+	var flat := to - up * to.dot(up)
+	_camera._heading = flat.normalized()
+	_camera.photo_pitch = clampf(rad_to_deg(atan2(to.dot(up), flat.length())), -10.0, 50.0)
+
+
+## Teste: flores que registram perto do personagem (do servidor e decorativas que nascem ali).
+func _photo_flowers_near(r: float) -> Array:
+	var out: Array = []
+	var entries := _photo._flower_entries()
+	for o: Dictionary in _data.objects_near(_player.global_position, r):
+		if str(o["kind"]) == "flower" and entries.has(str(o.get("item", ""))):
+			out.append({"pos": o["pos"], "item": o["item"], "decor": false})
+	var models := _photo._flower_models()
+	for f: Array in _vegetation.decor_flowers_near(_player.global_position, r):
+		var item := str(models.get(f[1], ""))
+		if entries.has(item) and _photo._grows_here(item, f[0]):
+			out.append({"pos": f[0], "item": item, "decor": true})
+	return out
 
 
 ## Estações: no norte e no sul, árvores trocam de modelo pela estação, o HUD mostra o
@@ -2670,10 +2769,7 @@ func _season_test() -> void:
 		away = (away - up * away.dot(up)).normalized()
 		await _teleport(p + away * 7.0)
 		_photo.enter()
-		var to := p - _player.global_position
-		var pu := _player.global_position.normalized()
-		_camera._heading = (to - pu * to.dot(pu)).normalized()
-		_camera.photo_pitch = 8.0
+		_aim_at(p + up * 2.0)
 		await get_tree().create_timer(0.5).timeout
 		var reg := await _photo.take_photo()
 		_photo.exit()
@@ -2681,6 +2777,29 @@ func _season_test() -> void:
 		check.call("tree_autumn" in got, "foto de árvore de outono na Goblopédia: %s" % str(got))
 	else:
 		check.call(false, "achar uma árvore de outono perto")
+	# Inverno forçado no modo dev: a árvore com neve também entra (o servidor usa a mesma data).
+	await dev_force_season("winter")
+	_vegetation.load_now(_player.global_position)
+	await settle.call()
+	var snowy := {}
+	for o: Dictionary in _data.objects_near(_player.global_position, 25.0):
+		if _vegetation.season_entry(o) == "tree_snow":
+			snowy = o
+			break
+	if not snowy.is_empty():
+		var sp: Vector3 = snowy["pos"]
+		var sup := sp.normalized()
+		var side := sup.cross(Vector3.UP).normalized()
+		await _teleport(sp + side * 7.0)
+		_photo.enter()
+		_aim_at(sp + sup * 2.0)
+		await get_tree().create_timer(0.5).timeout
+		var reg_s := await _photo.take_photo()
+		_photo.exit()
+		var got_s: Array = reg_s.map(func(r: Dictionary) -> String: return str(r["entry"]))
+		check.call("tree_snow" in got_s, "foto de árvore com neve (inverno forçado no modo dev) na Goblopédia: %s" % str(got_s))
+	else:
+		check.call(false, "achar uma árvore com neve perto")
 	# Sul: com o norte no inverno, a Argentina está no verão (sem neve, sem outono).
 	await dev_force_season("winter")
 	await teleport_exact(-34.6, -60.5)

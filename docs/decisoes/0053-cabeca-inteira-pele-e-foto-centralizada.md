@@ -1,4 +1,4 @@
-# 0053 — Cabeça inteira, pele do jogador e acessórios no osso da cabeça
+# 0053 — Cabeça inteira, pele do jogador, acessórios na cabeça e foto centralizada
 
 **Fase 4.2.** Corrige a 0052 (visual do personagem).
 
@@ -26,3 +26,30 @@
 - As 12 cabeças aceitam todos os tons (sem pintar cabelo, barba, bigode ou quepe); conferido em `tests/test_roupas.gd` e nas capturas (`docs/imagens/pele-e-roupas.jpg`).
 - `tests/test_roupas.gd` agora também confere, nas 12 cabeças e nos 12 corpos, que óculos, chapéus, cachecol, aba do poncho, sola da sandália e capa estão no osso certo (peso 1) e perto de onde devem; que toda pele usa a referência da própria parte; que cabelo nunca vira pele; que o que a mão segura não muda de cor; e que os tons vão em sRGB.
 - Cabeça nova do pacote: entra sozinha se tiver orelhas de pele e o mesmo crânio; senão, ajuste `SKULL_MIN`/`SKULL_MAX` e `cabecas.json`.
+
+---
+
+## Goblopédia: registro só com o assunto centralizado
+
+### Por que flores e árvores não registravam
+
+- **Flores:** o cliente só procurava a flor azul (`flower_blue`). Desde a 4.0 todo item com a tag `flower` tem página, mas as outras 19 espécies nunca eram enviadas.
+- **Flores decorativas:** são as mais numerosas (e as que mais aparecem nas fotos), mas só existem no cliente; não havia como registrar.
+- **Árvores de outono e com neve:** o cliente troca o modelo aos poucos, árvore por árvore, perto da virada da estação (limiar pelo id); o servidor exigia a estação "oficial" da célula. Perto da virada, uma árvore já laranja era recusada. E com a estação forçada no modo dev (F1), o servidor continuava na data real.
+
+### Decisão
+
+- **Enquadramento** (`rules.json → photo`): o assunto precisa estar na área central (`center`, 35% da largura e da altura), visível (nada sólido entre a câmera e ele; o raio pode bater no próprio tronco) e com um tamanho mínimo na tela (`min_size`, 5% da altura), até a distância do tipo (`max_dist`). Com mais de um, vale **o mais centralizado** (uma foto registra uma coisa só).
+- **Mira:** no centro da moldura; fica dourada e mostra o nome do assunto (ou "???" se ainda não foi descoberto) quando há um assunto bem enquadrado. O cartão do corpo some do visor. Ao fotografar, a mensagem do servidor confirma ("Novo na Goblopédia: Ipê-amarelo!").
+- **Servidor:** o cliente manda a direção, a posição da câmera e o ponto enquadrado (`look`, `cam`, `at`). O servidor confere um cone de 20° (mais o que 1,5 unidade vale na distância), a câmera a até 6 unidades do personagem e a distância do tipo, e:
+  - animal: um da espécie no trajeto comum, perto do ponto enquadrado (com a folga das reações locais);
+  - flor do servidor: uma daquele item, perto do ponto;
+  - flor decorativa: a espécie nasce no bioma do ponto naquela estação (com ±10 dias de folga, a mistura da virada), pelas regras de `objects.json` (`Content.FlowerGrows`). O cliente recebe a mesma tabela no `/content` (`flower_biomes`) e só acende a mira no que vai registrar. Um teste confere que toda flor de `decoracao.json` nasce no mesmo bioma e estação para o servidor;
+  - árvore: o servidor calcula a mesma versão que o cliente desenha (`game.TreeVariant` = `Seasons.variant_at`, com um dia de folga), com 60 casos iguais nos testes dos dois lados.
+- **Modo dev:** forçar a estação no F1 avisa o servidor (`POST /dev/season`), que confere árvores e flores pela mesma data.
+- **Selfie:** vale igual; o que está centralizado atrás do personagem (o raio ignora o próprio personagem).
+
+### Consequências
+
+- Testes: `photo_test.go` (cada uma das 20 flores, árvore de outono e com neve, flor decorativa, fora do centro, longe, espécie que não nasce ali, estação forçada no modo dev) e `--photo-test` (mira com ??? e com o nome, só o assunto registra, fora do centro, atrás de uma parede, longe, selfie, uma flor do servidor e uma decorativa) e `--season-test` (árvore de outono e com neve).
+- Flores da primavera que são só enfeite (as brancas, amarelas e roxas na tundra e na montanha) não registram: o servidor não tem essas cores lá. A mira não acende nelas.

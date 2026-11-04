@@ -303,3 +303,28 @@ func (s *Service) landCellsNear(start, limit int) []int {
 	}
 	return out
 }
+
+// DevSeason (modo dev) guarda a data das estações que o cliente do jogador está desenhando
+// (zero = a data real). A foto de árvores e flores de estação é conferida por ela.
+func (s *Service) DevSeason(p *Player, at time.Time) {
+	s.seasonMu.Lock()
+	defer s.seasonMu.Unlock()
+	if s.devSeason == nil {
+		s.devSeason = map[int64]time.Time{}
+	}
+	if at.IsZero() {
+		delete(s.devSeason, p.ID)
+		return
+	}
+	s.devSeason[p.ID] = at
+}
+
+// seasonTime: a data das estações para o jogador (a forçada pelo modo dev ou agora).
+func (s *Service) seasonTime(p *Player) time.Time {
+	s.seasonMu.Lock()
+	defer s.seasonMu.Unlock()
+	if t, ok := s.devSeason[p.ID]; ok {
+		return t
+	}
+	return s.clock.Now()
+}

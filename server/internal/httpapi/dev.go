@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/Dustyluc123/goblo/server/internal/game"
 )
@@ -26,6 +27,7 @@ func (s *Server) devRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /dev/fake-neighbors", s.auth(s.devFakeNeighbors))
 	mux.HandleFunc("POST /dev/coins", s.auth(s.devCoins))
 	mux.HandleFunc("POST /dev/pedia", s.auth(s.devPedia))
+	mux.HandleFunc("POST /dev/season", s.auth(s.devSeason))
 	mux.HandleFunc("POST /dev/passport", s.auth(s.devPassport))
 	mux.HandleFunc("POST /dev/travel", s.auth(s.travel(true)))
 	mux.HandleFunc("GET /dev/border-lots", s.auth(s.devBorderLots))
@@ -253,4 +255,21 @@ func (s *Server) devShopRestock(w http.ResponseWriter, r *http.Request, p *game.
 		return
 	}
 	writeJSON(w, http.StatusOK, v)
+}
+
+// devSeason: a data das estações forçada no cliente (fase 4.2; unix 0 = a data real).
+func (s *Server) devSeason(w http.ResponseWriter, r *http.Request, p *game.Player) {
+	var body struct {
+		Unix float64 `json:"unix"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeError(w, s, err)
+		return
+	}
+	var at time.Time
+	if body.Unix > 0 {
+		at = time.Unix(int64(body.Unix), 0).UTC()
+	}
+	s.Game.DevSeason(p, at)
+	writeJSON(w, http.StatusOK, map[string]any{"unix": body.Unix})
 }

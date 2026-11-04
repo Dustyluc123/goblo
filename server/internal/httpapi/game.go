@@ -145,6 +145,7 @@ func (s *Server) content(w http.ResponseWriter, _ *http.Request) {
 		"shop_fixed":      c.Shop.Fixed,
 		"animals":         c.Animals.Species,
 		"pedia":           c.PediaEntries(),
+		"flower_biomes":   c.FlowerBiomes(),
 		"rules":           c.Rules,
 		"body":            c.Body,
 	})
@@ -505,13 +506,16 @@ func (s *Server) pediaRegister(w http.ResponseWriter, r *http.Request, p *game.P
 		Country string     `json:"country"`
 		Biome   string     `json:"biome"`
 		Look    [3]float64 `json:"look"` // direção da câmera na foto (opcional)
+		Cam     [3]float64 `json:"cam"`  // posição da câmera (fase 4.2, opcional)
+		At      [3]float64 `json:"at"`   // ponto da coisa enquadrada (fase 4.2, opcional)
 	}
 	if err := readJSON(r, &body); err != nil {
 		writeError(w, s, err)
 		return
 	}
-	look := world.Vec3{X: body.Look[0], Y: body.Look[1], Z: body.Look[2]}
-	res, err := s.Game.RegisterPedia(r.Context(), p, body.Entry, body.Country, body.Biome, look)
+	v := func(a [3]float64) world.Vec3 { return world.Vec3{X: a[0], Y: a[1], Z: a[2]} }
+	shot := game.PhotoShot{Look: v(body.Look), Cam: v(body.Cam), At: v(body.At)}
+	res, err := s.Game.RegisterPedia(r.Context(), p, body.Entry, body.Country, body.Biome, shot)
 	if err != nil {
 		writeError(w, s, err)
 		return

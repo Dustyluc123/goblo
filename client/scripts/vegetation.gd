@@ -342,6 +342,18 @@ static func _hidden_transform(t: Transform3D) -> Transform3D:
 
 
 ## Página da Goblopédia de uma árvore pela estação ("tree_autumn", "tree_snow" ou "").
+## Flores decorativas a até `r` de `point` (só as desenhadas: dentro do flower_radius da
+## qualidade): [[posição, modelo], ...]. Para a câmera fotográfica (fase 4.2).
+func decor_flowers_near(point: Vector3, r: float) -> Array:
+	var out: Array = []
+	var reach := minf(r, float(Quality.current()["flower_radius"]))
+	for key: int in world.chunks_near(point, reach):
+		for f: Array in _chunks.get(key, {}).get("flowers", []):
+			if (f[0] as Vector3).distance_squared_to(point) <= reach * reach:
+				out.append(f)
+	return out
+
+
 func season_entry(o: Dictionary) -> String:
 	if str(o["kind"]) != "tree":
 		return ""
@@ -415,7 +427,13 @@ func _generate_small(key: int, density: float, lots: Dictionary, north := -1.0) 
 			o += 16
 		buffers[name] = buf
 		counts[name] = list.size()
-	return {"buffers": buffers, "counts": counts}
+	# Flores decorativas (fase 4.2): onde ficaram, para a câmera fotográfica (Goblopédia).
+	var flowers: Array = []
+	for name: String in lists:
+		if name.begins_with("flower:") or name.begins_with("primitive:flower_"):
+			for inst: Array in lists[name]:
+				flowers.append([(inst[0] as Transform3D).origin, name])
+	return {"buffers": buffers, "counts": counts, "flowers": flowers}
 
 
 ## Cores da grama nas estações (multiplicam o tom do bioma).
@@ -523,6 +541,7 @@ func _apply_small(key: int, result: Dictionary) -> void:
 	node.set_meta("layer", "small")
 	node.set_meta("count", 0)
 	add_child(node)
+	_chunks[key]["flowers"] = result.get("flowers", [])
 	var models: Array = []
 	for name: String in result["buffers"]:
 		models.append([name, int(result["counts"][name]), result["buffers"][name]])
@@ -619,4 +638,6 @@ func _free_layer(key: int, layer: String) -> void:
 		if layer == "big":
 			for o: Dictionary in data.chunk(key).get("objects", []):
 				_instances.erase(o["id"])
+		if layer == "small":
+			chunk.erase("flowers")
 	chunk.erase(layer)
