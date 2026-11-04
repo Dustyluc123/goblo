@@ -47,10 +47,37 @@ type AnimalRule struct {
 	Group   [2]int   `json:"group"`
 }
 
+// RegionalRule é um grupo de animais de uma região (fase 4.5): só nos países da lista (ou em
+// qualquer um, sem lista), nos biomas e na faixa de latitude e longitude.
+type RegionalRule struct {
+	AnimalRule
+	Biomes    []string   `json:"biomes"`
+	Countries []string   `json:"countries,omitempty"`
+	Lat       [2]float64 `json:"lat,omitempty"`
+	Lon       [2]float64 `json:"lon,omitempty"`
+}
+
+func (r *RegionalRule) matches(c *world.Cell) bool {
+	if !slicesContains(r.Biomes, c.Biome.String()) {
+		return false
+	}
+	if len(r.Countries) > 0 && !slicesContains(r.Countries, c.Country) {
+		return false
+	}
+	if r.Lat != [2]float64{} && (c.Lat < r.Lat[0] || c.Lat > r.Lat[1]) {
+		return false
+	}
+	if r.Lon != [2]float64{} && (c.Lon < r.Lon[0] || c.Lon > r.Lon[1]) {
+		return false
+	}
+	return true
+}
+
 // AnimalContent é o animals.json.
 type AnimalContent struct {
 	Species      map[string]AnimalSpecies `json:"species"`
 	Biomes       map[string][]AnimalRule  `json:"biomes"`
+	Regional     []RegionalRule           `json:"regional"`
 	Neighborhood struct {
 		Species    []string `json:"species"`
 		PerLot     float64  `json:"per_lot"`
@@ -190,6 +217,38 @@ func GenerateAnimals(w *world.World, content *Content, cell int, objects []Objec
 			a := dr.float() * 2 * math.Pi
 			home := [2]float64{math.Cos(a) * 9.5, math.Sin(a) * 9.5}
 			add(dr, species, home)
+		}
+	}
+	// Fase 4.5: animais de cada região do mundo (capivara na América do Sul, canguru na
+	// Austrália…), com sorteio separado e depois dos outros: os ids antigos não mudam.
+	if len(ac.Regional) > 0 {
+		rr := newRNG(mix(uint64(cell), 0x4E610))
+		for _, rule := range ac.Regional {
+			if !rule.matches(&w.Cells[cell]) {
+				continue
+			}
+			groups := int(rule.PerCell)
+			if rr.float() < rule.PerCell-float64(groups) {
+				groups++
+			}
+			for g := 0; g < groups; g++ {
+				n := len(f.Poly)
+				k := rr.intn(n)
+				u, v := rr.float(), rr.float()
+				if u+v > 1 {
+					u, v = 1-u, 1-v
+				}
+				a, b := f.Poly[k], f.Poly[(k+1)%n]
+				home := [2]float64{(a[0]*u + b[0]*v) * 0.75, (a[1]*u + b[1]*v) * 0.75}
+				species := rule.Species[rr.intn(len(rule.Species))]
+				size := rule.Group[0]
+				if rule.Group[1] > rule.Group[0] {
+					size += rr.intn(rule.Group[1] - rule.Group[0] + 1)
+				}
+				for i := 0; i < size; i++ {
+					add(rr, species, home)
+				}
+			}
 		}
 	}
 	return out

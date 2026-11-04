@@ -1,5 +1,5 @@
 {
-  "_doc": "Animais (fase 2.5). species: cada espécie com nome, modelo (client/assets/quaternius/ultimate-animated-animals), altura no jogo (o personagem tem ~1), shy (tímido: foge galopando se o jogador correr perto), walk e run (velocidades em unidades/s), roam (raio da área de passeio em volta da casa do grupo), leg (segundos de cada trecho do passeio: anda até um ponto e depois fica parado, pastando ou olhando) e jump (nome da animação de pulinho, que muda entre os pacotes). biomes: em cada bioma, grupos de animais; species é a lista sorteada, per_cell a média de grupos por célula e group o tamanho do grupo (mín., máx.). neighborhood: cachorros perto dos bairros (células com lotes ocupados em biomas agradáveis): per_lot grupos por lote ocupado, até max_per_cell. Os animais são os mesmos para todos os jogadores: o servidor sorteia por célula e a posição em cada instante sai de uma conta com o id e o horário do servidor (ADR 0032).",
+  "_doc": "Animais (fase 2.5). species: cada espécie com nome, modelo (client/assets/quaternius/ultimate-animated-animals), altura no jogo (o personagem tem ~1), shy (tímido: foge galopando se o jogador correr perto), walk e run (velocidades em unidades/s), roam (raio da área de passeio em volta da casa do grupo), leg (segundos de cada trecho do passeio: anda até um ponto e depois fica parado, pastando ou olhando) e jump (nome da animação de pulinho, que muda entre os pacotes). biomes: em cada bioma, grupos de animais; species é a lista sorteada, per_cell a média de grupos por célula e group o tamanho do grupo (mín., máx.). neighborhood: cachorros perto dos bairros (células com lotes ocupados em biomas agradáveis): per_lot grupos por lote ocupado, até max_per_cell. regional (fase 4.5): grupos de animais de uma região do mundo, pela região de origem de cada espécie: biomes, countries (sem lista = qualquer país), lat e lon (faixas); sorteio separado e depois dos outros, para os animais que já existiam não mudarem. Modelos creature:… são feitos no cliente (client/scripts/creature_models.gd). Os animais são os mesmos para todos os jogadores: o servidor sorteia por célula e a posição em cada instante sai de uma conta com o id e o horário do servidor (ADR 0032).",
   "species": {
     "cow":         {"name": "Vaca",          "model": "Cow",         "height": 1.35, "shy": false, "walk": 0.8, "run": 4.0, "roam": 5.5, "leg": 16, "jump": "Jump_toIdle"},
     "bull":        {"name": "Touro",         "model": "Bull",        "height": 1.45, "shy": false, "walk": 0.8, "run": 4.0, "roam": 5.5, "leg": 18, "jump": "Jump_toIdle"},
@@ -12,7 +12,16 @@
     "alpaca":      {"name": "Alpaca",        "model": "Alpaca",      "height": 1.3,  "shy": false, "walk": 0.8, "run": 4.0, "roam": 5.0, "leg": 15, "jump": "Jump_toIdle"},
     "wolf":        {"name": "Lobo",          "model": "Wolf",        "height": 0.75, "shy": true,  "walk": 1.2, "run": 6.5, "roam": 7.0, "leg": 12, "jump": "Jump_ToIdle"},
     "husky":       {"name": "Husky",         "model": "Husky",       "height": 0.65, "shy": false, "walk": 1.2, "run": 5.5, "roam": 5.0, "leg": 10, "jump": "Jump_ToIdle"},
-    "shiba":       {"name": "Shiba",         "model": "ShibaInu",    "height": 0.6,  "shy": false, "walk": 1.2, "run": 5.5, "roam": 5.0, "leg": 10, "jump": "Jump_ToIdle"}
+    "shiba":       {"name": "Shiba",         "model": "ShibaInu",    "height": 0.6,  "shy": false, "walk": 1.2, "run": 5.5, "roam": 5.0, "leg": 10, "jump": "Jump_ToIdle"},
+    "capybara":    {"name": "Capivara",      "model": "creature:capybara",   "height": 0.62, "shy": false, "walk": 0.6, "run": 3.5, "roam": 4.5, "leg": 18, "jump": "Jump_toIdle"},
+    "macaw":       {"name": "Arara",         "model": "creature:macaw",      "height": 0.55, "shy": true,  "walk": 0.6, "run": 4.0, "roam": 4.0, "leg": 12, "jump": "Jump_toIdle"},
+    "toucan":      {"name": "Tucano",        "model": "creature:toucan",     "height": 0.42, "shy": true,  "walk": 0.6, "run": 4.0, "roam": 4.0, "leg": 12, "jump": "Jump_toIdle"},
+    "penguin":     {"name": "Pinguim",       "model": "creature:penguin",    "height": 0.62, "shy": false, "walk": 0.5, "run": 2.4, "roam": 4.0, "leg": 14, "jump": "Jump_toIdle"},
+    "polar_bear":  {"name": "Urso-polar",    "model": "creature:polar_bear", "height": 1.3,  "shy": true,  "walk": 0.8, "run": 4.5, "roam": 6.0, "leg": 18, "jump": "Jump_toIdle"},
+    "camel":       {"name": "Camelo",        "model": "creature:camel",      "height": 1.9,  "shy": false, "walk": 0.8, "run": 4.5, "roam": 6.0, "leg": 18, "jump": "Jump_toIdle"},
+    "kangaroo":    {"name": "Canguru",       "model": "creature:kangaroo",   "height": 1.3,  "shy": true,  "walk": 1.0, "run": 6.0, "roam": 6.0, "leg": 12, "jump": "Jump_toIdle"},
+    "koala":       {"name": "Coala",         "model": "creature:koala",      "height": 0.5,  "shy": false, "walk": 0.35,"run": 1.8, "roam": 3.0, "leg": 22, "jump": "Jump_toIdle"},
+    "panda":       {"name": "Panda",         "model": "creature:panda",      "height": 0.95, "shy": false, "walk": 0.5, "run": 2.6, "roam": 4.5, "leg": 20, "jump": "Jump_toIdle"}
   },
   "biomes": {
     "grassland":       [{"species": ["cow", "bull", "horse", "horse_white", "donkey"], "per_cell": 0.9, "group": [1, 3]}],
@@ -24,5 +33,15 @@
     "desert":          [],
     "ice":             []
   },
-  "neighborhood": {"species": ["shiba", "husky"], "per_lot": 0.35, "max_per_cell": 2}
+  "neighborhood": {"species": ["shiba", "husky"], "per_lot": 0.35, "max_per_cell": 2},
+  "regional": [
+    {"species": ["capybara"], "biomes": ["tropical_forest", "grassland", "forest", "beach"], "countries": ["BRA", "ARG", "PRY", "URY", "BOL", "PER", "COL", "VEN", "GUY", "SUR", "ECU"], "per_cell": 0.35, "group": [2, 4]},
+    {"species": ["macaw", "toucan"], "biomes": ["tropical_forest"], "countries": ["BRA", "PER", "COL", "VEN", "BOL", "ECU", "GUY", "SUR", "PRY"], "per_cell": 0.4, "group": [1, 2]},
+    {"species": ["penguin"], "biomes": ["ice", "tundra", "beach"], "lat": [-90.0, -46.0], "per_cell": 0.5, "group": [3, 6]},
+    {"species": ["polar_bear"], "biomes": ["ice", "tundra"], "lat": [62.0, 90.0], "per_cell": 0.2, "group": [1, 2]},
+    {"species": ["camel"], "biomes": ["desert"], "lat": [5.0, 50.0], "lon": [-20.0, 120.0], "per_cell": 0.3, "group": [1, 3]},
+    {"species": ["kangaroo"], "biomes": ["grassland", "desert", "forest"], "countries": ["AUS"], "per_cell": 0.45, "group": [1, 3]},
+    {"species": ["koala"], "biomes": ["forest", "tropical_forest", "grassland"], "countries": ["AUS"], "lon": [138.0, 155.0], "per_cell": 0.25, "group": [1, 2]},
+    {"species": ["panda"], "biomes": ["forest", "mountain"], "countries": ["CHN"], "lon": [97.0, 112.0], "lat": [25.0, 36.0], "per_cell": 0.3, "group": [1, 2]}
+  ]
 }

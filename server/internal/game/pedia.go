@@ -46,7 +46,7 @@ func (c *Content) PediaEntries() []PediaEntry {
 	out = append(out, c.Pedia.Extras...)
 	// Fase 4.5: o que brilha nas cavernas, o chefe e as lendas.
 	for _, g := range c.Caves.Glow {
-		out = append(out, PediaEntry{ID: g.ID, Name: g.Name, Kind: "cave", Model: "cave:" + g.ID, Color: g.Color})
+		out = append(out, PediaEntry{ID: g.ID, Name: g.Name, Kind: "cave", Model: "primitive:" + g.ID, Color: g.Color})
 	}
 	out = append(out, PediaEntry{ID: c.Caves.Boss.ID, Name: c.Caves.Boss.Name, Kind: "cave", Model: "creature:" + c.Caves.Boss.ID})
 	for _, l := range c.Folklore.Legends {

@@ -321,6 +321,21 @@ func (c *Content) index() error {
 			}
 		}
 	}
+	for _, r := range c.Animals.Regional {
+		if len(r.Species) == 0 || len(r.Biomes) == 0 || r.Group[0] < 1 || r.Group[1] < r.Group[0] {
+			return fmt.Errorf("animals.json: grupo regional inválido")
+		}
+		for _, sp := range r.Species {
+			if _, ok := c.Animals.Species[sp]; !ok {
+				return fmt.Errorf("animals.json: regional usa a espécie %s, que não existe", sp)
+			}
+		}
+		for _, b := range r.Biomes {
+			if !validBiome(b) {
+				return fmt.Errorf("animals.json: regional com bioma %s desconhecido", b)
+			}
+		}
+	}
 	for _, sp := range c.Animals.Neighborhood.Species {
 		if _, ok := c.Animals.Species[sp]; !ok {
 			return fmt.Errorf("animals.json: bairro usa a espécie %s, que não existe", sp)

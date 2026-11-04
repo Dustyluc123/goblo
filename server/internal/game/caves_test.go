@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"slices"
 	"testing"
 	"time"
 
@@ -430,5 +431,37 @@ func TestLegendsAppearOnlyInTheirCountry(t *testing.T) {
 	b, _ := json.Marshal(f.svc.LegendsNear(c, 2, at))
 	if string(a) != string(b) {
 		t.Fatal("lendas diferentes na mesma hora")
+	}
+}
+
+// Animais do mundo (fase 4.5): cada espécie nova aparece na região de origem, e só nela.
+func TestRegionalAnimalsLiveWhereTheyBelong(t *testing.T) {
+	f := newFixture(t)
+	c := f.svc.Content()
+	where := map[string]map[string]int{}
+	for cell := range f.world.Cells {
+		for _, a := range game.GenerateAnimals(f.world, c, cell, nil, nil) {
+			if where[a.Species] == nil {
+				where[a.Species] = map[string]int{}
+			}
+			where[a.Species][f.world.Cells[cell].Country]++
+		}
+	}
+	for _, r := range c.Animals.Regional {
+		for _, sp := range r.Species {
+			if len(where[sp]) == 0 {
+				t.Errorf("%s não aparece em lugar nenhum", sp)
+			}
+			if len(r.Countries) > 0 {
+				for country := range where[sp] {
+					if !slices.Contains(r.Countries, country) {
+						t.Errorf("%s apareceu em %s", sp, country)
+					}
+				}
+			}
+		}
+	}
+	if where["kangaroo"]["AUS"] == 0 || where["panda"]["CHN"] == 0 || where["capybara"]["BRA"] == 0 {
+		t.Errorf("canguru, panda ou capivara fora de casa: %v %v %v", where["kangaroo"], where["panda"], where["capybara"])
 	}
 }
